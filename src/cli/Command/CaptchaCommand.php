@@ -34,10 +34,11 @@ final class CaptchaCommand extends BaseCommand
 
         $appEnv = trim((string) $input->getOption('app-env'));
         if ($appEnv !== '') {
-            $this->setProfileEnv($appEnv);
+            $this->setAppEnv($appEnv);
         }
 
         $profile = (string) (getenv('APP_ENV') ?: '');
+        $this->setPhaseEnv('runtime');
         $compiler = new EnvCompiler($this->rootPath());
         $context = $this->resolveContext($compiler, $profile, 'runtime');
         if (!$this->validateEnv($compiler, $context, $input, $output)) {

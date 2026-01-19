@@ -37,17 +37,10 @@ final class ContentSourceResolver
         return $this->defaultJsonPath();
     }
 
-    public function resolveTargets(string $defaultProfile, bool $interactive, bool $automated): array
+    public function resolveTargets(string $defaultProfile): array
     {
         $yamlPath = $this->requireYamlPath();
         $targets = $this->collectYamlTargets($yamlPath, $defaultProfile);
-        if ($targets !== []) {
-            return $targets;
-        }
-        if (!$this->isYamlDir($yamlPath)) {
-            return $this->requireYamlTargets($yamlPath, $defaultProfile);
-        }
-        $targets = $this->resolveDemoTargets($yamlPath, $defaultProfile, $interactive, $automated);
         if ($targets !== []) {
             return $targets;
         }
@@ -123,89 +116,6 @@ final class ContentSourceResolver
             'profile' => $matches[1],
             'yaml' => Path::join($yamlPath, $entry),
         ];
-    }
-
-    private function resolveDemoTargets(
-        string $yamlPath,
-        string $defaultProfile,
-        bool $interactive,
-        bool $automated
-    ): array {
-        if ($this->maybeCopyDemoData($yamlPath, $defaultProfile, $interactive, $automated)) {
-            $targets = $this->collectYamlTargets($yamlPath, $defaultProfile);
-            if ($targets !== []) {
-                return $targets;
-            }
-        }
-        return $this->fixtureTargetsIfEnabled($defaultProfile);
-    }
-
-    private function maybeCopyDemoData(
-        string $yamlDir,
-        string $defaultProfile,
-        bool $interactive,
-        bool $automated
-    ): bool {
-        if (!$this->shouldAttemptDemo($interactive, $automated)) {
-            return false;
-        }
-        if ($this->shouldPrompt($interactive, $automated) && !$this->promptSetupDemo($yamlDir)) {
-            return false;
-        }
-        $this->copyDemoData($yamlDir, $defaultProfile);
-        return true;
-    }
-
-    private function fixtureTargetsIfEnabled(string $defaultProfile): array
-    {
-        if (getenv('AUTO_ENV_USE_FIXTURE') !== '1') {
-            return [];
-        }
-        $fixturePath = $this->demoFixturePath();
-        if (!is_file($fixturePath)) {
-            throw new \RuntimeException("Demo fixture not found: {$fixturePath}");
-        }
-        return [[
-            'profile' => $defaultProfile,
-            'yaml' => $fixturePath,
-        ]];
-    }
-
-    private function shouldAttemptDemo(bool $interactive, bool $automated): bool
-    {
-        return $interactive || $automated;
-    }
-
-    private function shouldPrompt(bool $interactive, bool $automated): bool
-    {
-        return $interactive && !$automated;
-    }
-
-    private function promptSetupDemo(string $yamlDir): bool
-    {
-        fwrite(STDOUT, "Keine daten-*.yaml in {$yamlDir} gefunden. Demo-Daten kopieren? [y/N] ");
-        $answer = trim((string) fgets(STDIN));
-        return strtolower($answer) === 'y';
-    }
-
-    private function copyDemoData(string $yamlDir, string $defaultProfile): void
-    {
-        $fixturePath = $this->demoFixturePath();
-        $content = file_get_contents($fixturePath);
-        if ($content === false) {
-            throw new \RuntimeException("Failed to read demo fixture: {$fixturePath}");
-        }
-        if (!is_dir($yamlDir) && !mkdir($yamlDir, 0775, true) && !is_dir($yamlDir)) {
-            throw new \RuntimeException("YAML directory missing and could not be created: {$yamlDir}");
-        }
-        $target = Path::join($yamlDir, 'daten-' . $defaultProfile . '.yaml');
-        file_put_contents($target, $content);
-        fwrite(STDOUT, "Demo-Daten kopiert: {$target}\n");
-    }
-
-    private function demoFixturePath(): string
-    {
-        return Path::join($this->env->rootPath(), 'tests', 'fixtures', 'lebenslauf', 'daten-gueltig.yaml');
     }
 
     private function defaultJsonPath(): string

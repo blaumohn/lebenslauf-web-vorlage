@@ -8,7 +8,8 @@ Shared-hosting-friendly PHP MVP with Twig, file-based persistence, and no cookie
 
 ```bash
 composer install
-php bin/cli setup dev
+php bin/cli setup dev --create-data-templates
+php bin/cli build dev
 php bin/cli run dev
 ```
 
@@ -20,18 +21,18 @@ The same commands are also available as `composer` scripts.
 
 Requirements: PHP >= 8.1, Node.js, Python 3.
 Defaults come from `.env` files (see `.env.template`).
-If no `.env.local` exists, `php bin/cli setup` asks whether to use `tests/fixtures/env.local` as a demo.
-`php bin/cli setup` runs `npm install`.
-`php bin/cli run` starts the Python dev runner (options: `--env`, `--build`, `--mail-stdout`).
+If no `.env.local` exists, `php bin/cli setup` asks whether to derive it from `.env.template`.
+`php bin/cli setup` runs `npm install`. Add `--create-data-templates` to generate `.local/content.ini` and demo YAML files.
+`php bin/cli run` starts the Python dev runner (options: `--build`, `--mail-stdout`).
 Note: `setup` creates `.venv` using system Python; other commands prefer `.venv`.
 
 ## CLI syntax
 
 ```bash
 # Lifecycle
-php bin/cli setup <profile>
+php bin/cli setup <profile> [--create-data-templates]
 php bin/cli build <profile>
-php bin/cli run <profile> [--build] [--env <file>] [--mail-stdout]
+php bin/cli run <profile> [--build] [--demo] [--mail-stdout]
 
 # Content
 php bin/cli cv build <profile>
@@ -51,6 +52,7 @@ php bin/cli build dev
 
 `cv build` converts YAML to JSON and renders the static HTML via `cv upload`.
 If `LEBENSLAUF_DATEN_PFAD` is a directory, all `daten-<profile>.yaml` files are built.
+`run --demo` uses the fixture data without touching `.local`.
 
 ## Configuration
 

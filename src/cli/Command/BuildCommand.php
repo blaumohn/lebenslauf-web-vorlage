@@ -18,51 +18,81 @@ final class BuildCommand extends BaseCommand
 {
     protected function configure(): void
     {
-        $this->addArgument('profile', InputArgument::REQUIRED, 'Profilname (z. B. dev)');
+        $this->addArgument('profile', InputArgument::OPTIONAL, 'APP_ENV (optional)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $profile = $this->requireProfile($input, $output);
-        if ($profile === null) {
-            return Command::FAILURE;
-        }
-
-        $this->setProfileEnv($profile);
+        $this->prepareBuildEnv($input);
         $exitCode = $this->runCssBuild($output);
         if ($exitCode !== 0) {
             return $exitCode;
         }
 
         $compiler = new EnvCompiler($this->rootPath());
-        $buildContext = $this->resolveContext($compiler, $profile, 'build');
-        if (!$this->validateEnv($compiler, $buildContext, $input, $output)) {
+        $buildContext = $this->compileBuildEnv($compiler, $input, $output);
+        if ($buildContext === null) {
             return Command::FAILURE;
         }
-        $runtimeContext = new Context($buildContext->pipeline(), 'runtime', $buildContext->profile());
-        if (!$this->compileEnv($compiler, $runtimeContext, $input, $output)) {
+        if (!$this->compileRuntimeEnv($compiler, $buildContext, $input, $output)) {
             return Command::FAILURE;
         }
 
-        $env = new Env($this->rootPath());
-        $builder = new CvBuildService($env);
-
-        try {
-            $builder->build($output, $input->isInteractive());
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+        if (!$this->runCvBuild($input, $output)) {
             return Command::FAILURE;
         }
 
         return Command::SUCCESS;
     }
 
-    private function resolveContext(EnvCompiler $compiler, string $profile, string $phase): Context
+    private function prepareBuildEnv(InputInterface $input): void
+    {
+        $this->applyAppEnvFromArg($input);
+        $this->setPhaseEnv('build');
+    }
+
+    private function compileBuildEnv(
+        EnvCompiler $compiler,
+        InputInterface $input,
+        OutputInterface $output
+    ): ?Context {
+        $buildContext = $this->resolveContext($compiler, 'build');
+        if (!$this->validateEnv($compiler, $buildContext, $input, $output)) {
+            return null;
+        }
+        return $buildContext;
+    }
+
+    private function compileRuntimeEnv(
+        EnvCompiler $compiler,
+        Context $buildContext,
+        InputInterface $input,
+        OutputInterface $output
+    ): bool {
+        $runtimeContext = new Context($buildContext->pipeline(), 'runtime', $buildContext->profile());
+        return $this->compileEnv($compiler, $runtimeContext, $input, $output);
+    }
+
+    private function runCvBuild(InputInterface $input, OutputInterface $output): bool
+    {
+        $env = new Env($this->rootPath());
+        $builder = new CvBuildService($env);
+
+        try {
+            $builder->build($output);
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return false;
+        }
+        return true;
+    }
+
+    private function resolveContext(EnvCompiler $compiler, string $phase): Context
     {
         return $compiler->resolveContext([
             'pipeline' => 'dev',
             'phase' => $phase,
-            'profile' => $profile,
+            'profile' => null,
         ]);
     }
 

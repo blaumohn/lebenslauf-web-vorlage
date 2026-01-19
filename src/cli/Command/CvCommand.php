@@ -20,7 +20,7 @@ final class CvCommand extends BaseCommand
     protected function configure(): void
     {
         $this->addArgument('action', InputArgument::REQUIRED, 'build oder upload')
-            ->addArgument('profile', InputArgument::OPTIONAL, 'Profilname')
+            ->addArgument('profile', InputArgument::OPTIONAL, 'Profilname (Upload) oder APP_ENV (Build)')
             ->addArgument('json', InputArgument::OPTIONAL, 'JSON-Pfad (bei upload)')
             ->addOption('app-env', null, InputOption::VALUE_REQUIRED, 'APP_ENV für die Ausführung setzen');
     }
@@ -35,20 +35,16 @@ final class CvCommand extends BaseCommand
             return $this->handleUpload($input, $output);
         }
 
-        $output->writeln('<error>Usage: cv build <PROFIL> | cv upload <PROFIL> <JSON></error>');
+        $output->writeln('<error>Usage: cv build [APP_ENV] | cv upload <PROFIL> <JSON></error>');
         return Command::FAILURE;
     }
 
     private function handleBuild(InputInterface $input, OutputInterface $output): int
     {
-        $profile = $this->requireProfile($input, $output);
-        if ($profile === null) {
-            return Command::FAILURE;
-        }
-
-        $this->setProfileEnv($profile);
+        $this->applyAppEnvFromArg($input);
+        $this->setPhaseEnv('build');
         $compiler = new EnvCompiler($this->rootPath());
-        $context = $this->resolveContext($compiler, $profile, 'build');
+        $context = $this->resolveContext($compiler, 'build');
         if (!$this->validateEnv($compiler, $context, $input, $output)) {
             return Command::FAILURE;
         }
@@ -56,7 +52,7 @@ final class CvCommand extends BaseCommand
         $builder = new CvBuildService($env);
 
         try {
-            $builder->build($output, $input->isInteractive());
+            $builder->build($output);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -69,7 +65,7 @@ final class CvCommand extends BaseCommand
     {
         $appEnv = trim((string) $input->getOption('app-env'));
         if ($appEnv !== '') {
-            $this->setProfileEnv($appEnv);
+            $this->setAppEnv($appEnv);
         }
 
         $profile = trim((string) $input->getArgument('profile'));
@@ -79,8 +75,9 @@ final class CvCommand extends BaseCommand
             return Command::FAILURE;
         }
 
+        $this->setPhaseEnv('build');
         $compiler = new EnvCompiler($this->rootPath());
-        $context = $this->resolveContext($compiler, $profile, 'build');
+        $context = $this->resolveContext($compiler, 'build');
         if (!$this->validateEnv($compiler, $context, $input, $output)) {
             return Command::FAILURE;
         }
@@ -97,12 +94,12 @@ final class CvCommand extends BaseCommand
         return Command::SUCCESS;
     }
 
-    private function resolveContext(EnvCompiler $compiler, string $profile, string $phase): Context
+    private function resolveContext(EnvCompiler $compiler, string $phase): Context
     {
         return $compiler->resolveContext([
             'pipeline' => 'dev',
             'phase' => $phase,
-            'profile' => $profile,
+            'profile' => null,
         ]);
     }
 

@@ -19,10 +19,16 @@ composer install
 2) **Setup**
 
 ```bash
-php bin/cli setup dev
+php bin/cli setup dev --create-data-templates
 ```
 
-3) **Starten**
+3) **Build**
+
+```bash
+php bin/cli build dev
+```
+
+4) **Starten**
 
 ```bash
 php bin/cli run dev
@@ -31,6 +37,7 @@ php bin/cli run dev
 `run` kompiliert die Runtime-Env nach `var/config/env.php`.
 
 Vor dem ersten Start `.env.local` anlegen (siehe `.env.template`).
+`setup --create-data-templates` legt `.local/content.ini` sowie Demo-YAML in `.local/lebenslauf` an.
 
 ## Daten bearbeiten
 
@@ -55,6 +62,12 @@ subject=Kontaktformular
 - YAML-Daten liegen standardmäßig in `.local/lebenslauf` (`LEBENSLAUF_DATEN_PFAD`).
 - Nur Dateien `daten-<profil>.yaml` werden berücksichtigt (z. B. `daten-entwickler.yaml`).
 - UI-Labels/Übersetzungen liegen in `src/resources/labels.json` (Repo-Beitrag möglich).
+
+Optional: Demo-Daten ohne lokale Inhalte verwenden:
+
+```bash
+php bin/cli run dev --demo
+```
 
 ## Build (YAML -> JSON -> HTML)
 
@@ -85,4 +98,4 @@ php bin/cli build dev
 
 Die Env-Policy (Pipeline/Phase/Profil) ist in `docs/ENVIRONMENTS.md` beschrieben.
 Beispielwerte stehen in `.env.template`, Regeln in `config/env.manifest.yaml`.
-Fuer Deployments wird die Runtime-Env als `var/config/env.php` erzeugt (siehe `php bin/cli env compile`).
+Für Deployments wird die Runtime-Env als `var/config/env.php` erzeugt (siehe `php bin/cli env compile`).

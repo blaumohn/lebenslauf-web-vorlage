@@ -37,6 +37,26 @@ final class PythonRunner
         return (int) $process->getExitCode();
     }
 
+    public function createVenv(string $path, bool $interactive): bool
+    {
+        if (is_dir($path)) {
+            return true;
+        }
+        $python = $this->findPython(false, true, false);
+        if ($python === null) {
+            return false;
+        }
+        $process = new Process([$python, '-m', 'venv', $path], $this->rootPath);
+        if ($interactive && Process::isTtySupported()) {
+            $process->setTty(true);
+        }
+        $process->run();
+        if (!$process->isSuccessful()) {
+            fwrite(STDERR, $process->getErrorOutput());
+        }
+        return $process->isSuccessful();
+    }
+
     private function findPython(bool $preferVenv, bool $allowSystem, bool $promptOnMissingVenv): ?string
     {
         if ($preferVenv) {

@@ -1,5 +1,6 @@
 #!/usr/bin/env .venv/bin/python3
 import argparse
+import json
 import os
 import signal
 import subprocess
@@ -12,6 +13,7 @@ from watchers import css, manager, twig, yaml_data
 def parse_args():
     parser = argparse.ArgumentParser(description="Run dev server with watchers.")
     parser.add_argument("--build", action="store_true", help="Run cv build before starting dev.")
+    parser.add_argument("--demo", action="store_true", help="Use demo fixtures for cv build.")
     parser.add_argument("--mail-stdout", action="store_true", help="Send mail output to stdout.")
     return parser.parse_args()
 
@@ -22,16 +24,16 @@ def run_checked(cmd, process_env, root_path):
         sys.exit(result.returncode)
 
 
-def run_cv_build(process_env, root_path):
-    profile = require_profile(process_env)
-    run_checked(["php", "bin/cli", "cv", "build", profile], process_env, root_path)
+def run_cv_build(process_env, root_path, demo=False):
+    build_env = dict(process_env)
+    if demo:
+        build_env.update(demo_env(root_path))
+    run_checked(["php", "bin/cli", "cv", "build"], build_env, root_path)
+    write_state(build_state_path(root_path, process_env), build_inputs(root_path, build_env, demo))
 
 
 def get_config_value(key, process_env, root_path):
     cmd = ["php", "bin/cli", "env", "get", key]
-    profile = process_env.get("APP_ENV")
-    if profile:
-        cmd.extend(["--profile", profile])
     result = subprocess.run(cmd, capture_output=True, text=True, env=process_env, cwd=root_path)
     if result.returncode != 0:
         return ""
@@ -73,7 +75,7 @@ def resolve_path(root_path, value):
     return os.path.join(root_path, value)
 
 
-def register_yaml_watch(watch_manager, process_env, root_path):
+def register_yaml_watch(watch_manager, process_env, root_path, demo):
     yaml_path, yaml_dir = resolve_yaml_inputs(process_env, root_path)
     if not (yaml_path or yaml_dir):
         print("yaml watch disabled (set LEBENSLAUF_DATEN_PFAD or LEBENSLAUF_YAML_PFAD).", flush=True)
@@ -84,11 +86,11 @@ def register_yaml_watch(watch_manager, process_env, root_path):
     watch_manager.register(
         "yaml",
         yaml_data.files_fn(yaml_path, yaml_dir),
-        lambda: run_cv_build(process_env, root_path),
+        lambda: run_cv_build(process_env, root_path, demo),
     )
 
 
-def register_twig_watch(watch_manager, process_env, root_path):
+def register_twig_watch(watch_manager, process_env, root_path, demo):
     if not twig.enabled():
         print("twig watch disabled (missing templates directory).", flush=True)
         return
@@ -98,7 +100,7 @@ def register_twig_watch(watch_manager, process_env, root_path):
     watch_manager.register(
         "twig",
         twig.files_fn(),
-        lambda: run_cv_build(process_env, root_path),
+        lambda: run_cv_build(process_env, root_path, demo),
     )
 
 
@@ -119,23 +121,171 @@ def build_runtime_env(args):
     return process_env
 
 
-def require_profile(process_env):
-    profile = process_env.get("APP_ENV", "")
-    if profile:
-        return profile
-    print("APP_ENV ist erforderlich (nutze: bin/cli run <profil>).", file=sys.stderr)
-    sys.exit(1)
-
-
 def ensure_initial_build(args, process_env, root_path):
-    if args.build:
-        run_cv_build(process_env, root_path)
+    if args.build or build_state_dirty(process_env, root_path, args.demo):
+        run_cv_build(process_env, root_path, args.demo)
 
 
-def register_watchers(watch_manager, process_env, root_path):
-    register_yaml_watch(watch_manager, process_env, root_path)
-    register_twig_watch(watch_manager, process_env, root_path)
+def register_watchers(watch_manager, process_env, root_path, demo):
+    register_env_watch(watch_manager, process_env, root_path)
+    register_yaml_watch(watch_manager, process_env, root_path, demo)
+    register_twig_watch(watch_manager, process_env, root_path, demo)
     register_css_watch(watch_manager)
+
+
+def env_files(root_path, process_env):
+    pipeline = process_env.get("PIPELINE", "dev")
+    phase = "runtime"
+    profile = process_env.get("PROFILE", "")
+    filenames = [
+        ".env",
+        ".env.local",
+        f".env.{pipeline}",
+        f".env.{pipeline}.local",
+        f".env.{pipeline}.{phase}",
+        f".env.{pipeline}.{phase}.local",
+    ]
+    if profile:
+        filenames.extend(
+            [
+                f".env.{pipeline}.{profile}",
+                f".env.{pipeline}.{profile}.local",
+                f".env.{pipeline}.{profile}.{phase}",
+                f".env.{pipeline}.{profile}.{phase}.local",
+            ]
+        )
+    filenames.append("config/env.manifest.yaml")
+    return [os.path.join(root_path, name) for name in filenames]
+
+
+def run_env_compile(process_env, root_path):
+    run_checked(
+        [
+            "php",
+            "bin/cli",
+            "env",
+            "compile",
+            "--pipeline",
+            process_env.get("PIPELINE", "dev"),
+            "--phase",
+            "runtime",
+        ],
+        process_env,
+        root_path,
+    )
+    write_state(env_state_path(root_path, process_env), env_files(root_path, process_env))
+
+
+def register_env_watch(watch_manager, process_env, root_path):
+    watched = env_files(root_path, process_env)
+    watch_manager.register(
+        "env",
+        lambda: watched,
+        lambda: run_env_compile(process_env, root_path),
+    )
+
+
+def ensure_env_compiled(process_env, root_path):
+    if env_state_dirty(process_env, root_path):
+        run_env_compile(process_env, root_path)
+
+
+def demo_env(root_path):
+    return {
+        "CONTENT_INI_PATH": os.path.join(root_path, "tests", "fixtures", "content.ini"),
+        "LEBENSLAUF_YAML_PFAD": os.path.join(
+            root_path, "tests", "fixtures", "lebenslauf", "daten-gueltig.yaml"
+        ),
+        "LEBENSLAUF_DATEN_PFAD": os.path.join(root_path, "tests", "fixtures", "lebenslauf"),
+    }
+
+
+def build_inputs(root_path, process_env, demo):
+    if demo:
+        yaml_path = demo_env(root_path)["LEBENSLAUF_YAML_PFAD"]
+        yaml_dir = demo_env(root_path)["LEBENSLAUF_DATEN_PFAD"]
+        content_path = demo_env(root_path)["CONTENT_INI_PATH"]
+    else:
+        yaml_path, yaml_dir = resolve_yaml_inputs(process_env, root_path)
+        content_path = get_config_value("CONTENT_INI_PATH", process_env, root_path)
+        if not content_path:
+            content_path = os.path.join(root_path, ".local", "content.ini")
+        content_path = resolve_path(root_path, content_path)
+    files = []
+    files.append(content_path)
+    files.append(os.path.join(root_path, "src", "resources", "labels.json"))
+    files.append(os.path.join(root_path, "schemas", "lebenslauf.schema.json"))
+    files.extend(yaml_data.files_fn(yaml_path, yaml_dir)())
+    files.extend(twig.files_fn()())
+    return unique_paths(files)
+
+
+def build_state_dirty(process_env, root_path, demo):
+    snapshot = snapshot_state(build_inputs(root_path, process_env, demo))
+    stored = read_state(build_state_path(root_path, process_env))
+    return snapshot != stored
+
+
+def env_state_dirty(process_env, root_path):
+    snapshot = snapshot_state(env_files(root_path, process_env))
+    stored = read_state(env_state_path(root_path, process_env))
+    return snapshot != stored
+
+
+def build_state_path(root_path, process_env):
+    pipeline = process_env.get("PIPELINE", "dev")
+    profile = process_env.get("PROFILE", "")
+    suffix = f"-{profile}" if profile else ""
+    name = f"{pipeline}{suffix}.json"
+    return os.path.join(root_path, "var", "state", "build", name)
+
+
+def env_state_path(root_path, process_env):
+    pipeline = process_env.get("PIPELINE", "dev")
+    phase = "runtime"
+    profile = process_env.get("PROFILE", "")
+    suffix = f"-{profile}" if profile else ""
+    name = f"{pipeline}-{phase}{suffix}.json"
+    return os.path.join(root_path, "var", "state", "env", name)
+
+
+def snapshot_state(paths):
+    snapshot = {}
+    for path in unique_paths(paths):
+        if not os.path.isfile(path):
+            snapshot[path] = {"missing": True}
+            continue
+        snapshot[path] = {
+            "mtime": os.path.getmtime(path),
+            "size": os.path.getsize(path),
+        }
+    return snapshot
+
+
+def read_state(path):
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def write_state(path, paths):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    snapshot = snapshot_state(paths)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle, indent=2, ensure_ascii=False)
+
+
+def unique_paths(paths):
+    items = []
+    for value in paths:
+        if isinstance(value, str) and value:
+            items.append(value)
+    return sorted(set(items))
 
 
 def run_event_loop(processes, watch_manager):
@@ -176,13 +326,14 @@ def main():
     os.chdir(root_path)
 
     process_env = build_runtime_env(args)
+    ensure_env_compiled(process_env, root_path)
     ensure_initial_build(args, process_env, root_path)
 
     watch_manager = manager.WatchManager()
     processes = setup_processes(process_env, root_path)
     register_signal_handlers(processes)
 
-    register_watchers(watch_manager, process_env, root_path)
+    register_watchers(watch_manager, process_env, root_path, args.demo)
     run_event_loop(processes, watch_manager)
 
 

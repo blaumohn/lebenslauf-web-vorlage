@@ -2,14 +2,15 @@
 
 namespace App\Cli\Command;
 
+use App\Cli\PythonRunner;
 use EnvPipelineSpec\Env\EnvInitializer;
-use App\Content\ContentResolver;
+use App\Content\ContentConfig;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'setup', description: 'Richtet die Entwicklungsumgebung ein.')]
@@ -17,21 +18,21 @@ final class SetupCommand extends BaseCommand
 {
     protected function configure(): void
     {
-        $this->addArgument('profile', InputArgument::REQUIRED, 'Profilname (z. B. dev)');
+        $this->addArgument('profile', InputArgument::OPTIONAL, 'APP_ENV (optional)')
+            ->addOption('create-data-templates', null, InputOption::VALUE_NONE, 'Demo-Inhalte nach .local kopieren');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $profile = $this->requireProfile($input, $output);
-        if ($profile === null) {
-            return Command::FAILURE;
+        $this->applyAppEnvFromArg($input);
+        $this->setPhaseEnv('setup');
+        $this->ensureLocalEnv($input);
+        if ($input->getOption('create-data-templates')) {
+            $this->createDataTemplates();
         }
 
-        $this->setProfileEnv($profile);
-        $this->ensureLocalEnv($input);
-        $this->ensureLocalContent($input);
-
-        if (!$this->ensureVenv($output)) {
+        $runner = new PythonRunner($this->rootPath());
+        if (!$this->ensureVenv($runner, $input, $output)) {
             return Command::FAILURE;
         }
 
@@ -44,46 +45,87 @@ final class SetupCommand extends BaseCommand
 
     private function ensureLocalEnv(InputInterface $input): void
     {
-        $initializer = new EnvInitializer($this->rootPath());
+        $initializer = new EnvInitializer($this->rootPath(), '.env.template');
         $initializer->ensureLocalEnv($input->isInteractive());
     }
 
-    private function ensureLocalContent(InputInterface $input): void
+    private function createDataTemplates(): void
     {
-        $resolver = new ContentResolver($this->rootPath());
-        $resolver->ensureLocalContent($input->isInteractive());
+        $this->ensureContentIni();
+        $this->ensureDemoData();
     }
 
-    private function ensureVenv(OutputInterface $output): bool
+    private function ensureContentIni(): void
     {
-        $venvPath = Path::join($this->rootPath(), '.venv');
-        if (is_dir($venvPath)) {
+        $target = $this->contentIniPath();
+        if (is_file($target)) {
+            return;
+        }
+        $source = $this->contentTemplatePath();
+        $this->copyFile($source, $target);
+    }
+
+    private function ensureDemoData(): void
+    {
+        $profile = $this->resolveDefaultProfile();
+        $target = $this->demoTargetPath($profile);
+        if (is_file($target)) {
+            return;
+        }
+        $source = $this->demoSourcePath();
+        $this->copyFile($source, $target);
+    }
+
+    private function resolveDefaultProfile(): string
+    {
+        $config = new ContentConfig($this->rootPath());
+        return $config->defaultProfile();
+    }
+
+    private function demoSourcePath(): string
+    {
+        return $this->joinPath('tests', 'fixtures', 'lebenslauf', 'daten-gueltig.yaml');
+    }
+
+    private function demoTargetPath(string $profile): string
+    {
+        return $this->joinPath('.local', 'lebenslauf', 'daten-' . $profile . '.yaml');
+    }
+
+    private function contentIniPath(): string
+    {
+        return $this->joinPath('.local', 'content.ini');
+    }
+
+    private function contentTemplatePath(): string
+    {
+        return $this->joinPath('config', 'content.template.ini');
+    }
+
+    private function copyFile(string $source, string $target): void
+    {
+        if (!is_file($source)) {
+            throw new \RuntimeException("Datei fehlt: {$source}");
+        }
+        $dir = dirname($target);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        copy($source, $target);
+    }
+
+    private function joinPath(string ...$parts): string
+    {
+        return implode(DIRECTORY_SEPARATOR, array_merge([$this->rootPath()], $parts));
+    }
+
+    private function ensureVenv(PythonRunner $runner, InputInterface $input, OutputInterface $output): bool
+    {
+        if ($runner->createVenv('.venv', $input->isInteractive())) {
             return true;
         }
-        $python = $this->findPython();
-        if ($python === null) {
-            $output->writeln('<error>Python 3 fehlt. Bitte installieren.</error>');
-            return false;
-        }
-        return $this->runCommand([$python, '-m', 'venv', '.venv'], $output, false);
-    }
-
-    private function findPython(): ?string
-    {
-        $candidates = PHP_OS_FAMILY === 'Windows' ? ['python'] : ['python3', 'python'];
-        foreach ($candidates as $candidate) {
-            if ($this->isPython3($candidate)) {
-                return $candidate;
-            }
-        }
-        return null;
-    }
-
-    private function isPython3(string $binary): bool
-    {
-        $process = new Process([$binary, '-c', 'import sys; print(sys.version_info[0])']);
-        $process->run();
-        return $process->isSuccessful() && trim($process->getOutput()) === '3';
+        $output->writeln('<error>Python 3 fehlt. Bitte installieren.</error>');
+        return false;
     }
 
     private function installNodeDependencies(InputInterface $input, OutputInterface $output): bool

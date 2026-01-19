@@ -39,27 +39,15 @@ def ensure_cache_dir(path):
     return path
 
 
-def build_env(base_env, clone_path):
-    cache_root = ensure_cache_dir(os.path.join(ROOT, "var", "cache", "smoke"))
+def build_env(base_env):
+    cache_root = os.environ.get("SMOKE_CACHE_ROOT", "")
+    if cache_root == "":
+        return None
+    cache_root = ensure_cache_dir(cache_root)
     env = dict(base_env)
-    env.update(
-        {
-            "COMPOSER_CACHE_DIR": ensure_cache_dir(os.path.join(cache_root, "composer")),
-            "NPM_CONFIG_CACHE": ensure_cache_dir(os.path.join(cache_root, "npm")),
-            "PIP_CACHE_DIR": ensure_cache_dir(os.path.join(cache_root, "pip")),
-            "LEBENSLAUF_DATEN_PFAD": os.path.join(clone_path, ".local", "lebenslauf"),
-            "APP_BASE_PATH": "",
-            "APP_ENV": "dev",
-            "PIPELINE": "dev",
-            "AUTO_ENV_SETUP": "1",
-            "IP_SALT": "change-me",
-            "CAPTCHA_MAX_GET": "5",
-            "CONTACT_MAX_POST": "3",
-            "RATE_LIMIT_WINDOW_SECONDS": "600",
-            "MAIL_STDOUT": "1",
-            "SMTP_FROM_NAME": "Web",
-        }
-    )
+    env["COMPOSER_CACHE_DIR"] = ensure_cache_dir(os.path.join(cache_root, "composer"))
+    env["NPM_CONFIG_CACHE"] = ensure_cache_dir(os.path.join(cache_root, "npm"))
+    env["PIP_CACHE_DIR"] = ensure_cache_dir(os.path.join(cache_root, "pip"))
     return env
 
 
@@ -111,16 +99,6 @@ def start_dev_server(clone_path, env):
     )
 
 
-def ensure_env_local(clone_path):
-    env_path = os.path.join(clone_path, ".env.local")
-    if os.path.isfile(env_path):
-        return
-    fixture = os.path.join(clone_path, "tests", "fixtures", "env.local")
-    if not os.path.isfile(fixture):
-        raise RuntimeError("Missing env.local fixture.")
-    shutil.copyfile(fixture, env_path)
-
-
 def stop_dev_server(proc):
     if os.name == "nt":
         proc.terminate()
@@ -146,10 +124,9 @@ class SmokeTests(unittest.TestCase):
         cls.temp_dir = tempfile.mkdtemp(prefix="lebenslauf-smoke-")
         cls.clone_path = os.path.join(cls.temp_dir, "repo")
         clone_repo(source, cls.clone_path)
-        cls.env = build_env(os.environ, cls.clone_path)
+        cls.env = build_env(os.environ)
         run(["composer", "install", "--no-interaction", "--prefer-dist"], cwd=cls.clone_path, env=cls.env)
-        run(["php", "bin/cli", "setup", "dev"], cwd=cls.clone_path, env=cls.env)
-        ensure_env_local(cls.clone_path)
+        run(["php", "bin/cli", "setup", "dev", "--create-data-templates"], cwd=cls.clone_path, env=cls.env)
 
     @classmethod
     def tearDownClass(cls):
@@ -160,10 +137,7 @@ class SmokeTests(unittest.TestCase):
 
     def test_smoke_flow(self):
         """clone -> setup -> tests -> dev-server -> /cv check."""
-        env_path = os.path.join(self.clone_path, ".env.local")
-        self.assertTrue(os.path.isfile(env_path), "Expected .env.local to exist")
-
-        run(["php", "bin/cli", "cv", "build", "dev"], cwd=self.clone_path, env=self.env)
+        run(["php", "bin/cli", "build", "dev"], cwd=self.clone_path, env=self.env)
 
         run(["composer", "run", "test"], cwd=self.clone_path, env=self.env)
 

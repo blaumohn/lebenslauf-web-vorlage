@@ -13,18 +13,23 @@ abstract class BaseCommand extends Command
         return dirname(__DIR__, 3);
     }
 
-    protected function requireProfile(InputInterface $input, OutputInterface $output): ?string
+    protected function applyAppEnvFromArg(InputInterface $input): ?string
     {
         $profile = trim((string) $input->getArgument('profile'));
-        if ($profile !== '') {
-            return $profile;
+        if ($profile === '') {
+            return null;
         }
-        $output->writeln('<error>Profil fehlt. Beispiel: dev</error>');
-        return null;
+        $this->setAppEnv($profile);
+        return $profile;
     }
 
-    protected function setProfileEnv(string $profile): void
+    protected function setPhaseEnv(string $phase): void
     {
-        putenv('APP_ENV=' . $profile);
+        putenv('PHASE=' . $phase);
+    }
+
+    protected function setAppEnv(string $value): void
+    {
+        putenv('APP_ENV=' . $value);
     }
 }

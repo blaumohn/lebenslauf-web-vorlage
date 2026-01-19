@@ -19,7 +19,7 @@ final class EnvCommand extends BaseCommand
         $this->addArgument('action', InputArgument::REQUIRED, 'get, show, lint oder compile')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
-            ->addOption('app-env', null, InputOption::VALUE_REQUIRED, 'APP_ENV/PROFILE für die Ausführung setzen')
+            ->addOption('app-env', null, InputOption::VALUE_REQUIRED, 'APP_ENV für die Ausführung setzen')
             ->addOption('pipeline', null, InputOption::VALUE_REQUIRED, 'Pipeline-Name')
             ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase-Name')
             ->addOption('profile', null, InputOption::VALUE_REQUIRED, 'Profil');
@@ -128,14 +128,14 @@ final class EnvCommand extends BaseCommand
     {
         $appEnv = trim((string) $input->getOption('app-env'));
         if ($appEnv !== '') {
-            $this->setProfileEnv($appEnv);
+            $this->setAppEnv($appEnv);
         }
 
         return $compiler->resolveContext(
             [
                 'pipeline' => 'dev',
                 'phase' => $phase,
-                'profile' => $appEnv !== '' ? $appEnv : null,
+                'profile' => null,
             ],
             [
                 'pipeline' => $input->getOption('pipeline'),
