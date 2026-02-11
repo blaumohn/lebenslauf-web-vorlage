@@ -3,7 +3,6 @@
 namespace App\Cli\Command;
 
 use App\Cli\PythonResolver;
-use App\Cli\Util\LocalConfigWriter;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,7 +20,6 @@ final class SetupCommand extends BaseCommand
     {
         $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
             ->addOption('reset-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalte nach .local kopieren')
-            ->addOption('rotate-ip-salt', null, InputOption::VALUE_NONE, 'IP_SALT neu setzen')
             ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
@@ -34,11 +32,6 @@ final class SetupCommand extends BaseCommand
             return Command::FAILURE;
         }
         $configValues = $this->resolveSetupConfigValues($pipeline, $output);
-        if ($input->getOption('rotate-ip-salt')) {
-            if (!$this->rotateLocalIpSalt($pipeline, $output)) {
-                return Command::FAILURE;
-            }
-        }
         if ($input->getOption('reset-sample-content')) {
             $profile = $this->resolveDefaultProfile($configValues);
             if (!$this->resetSampleContent($profile)) {
@@ -60,25 +53,6 @@ final class SetupCommand extends BaseCommand
 
         return Command::SUCCESS;
     }
-
-    private function rotateLocalIpSalt(string $pipeline, OutputInterface $output): bool
-    {
-        if (!$this->shouldRotateIpSalt($pipeline)) {
-            return true;
-        }
-        $writer = new LocalConfigWriter($this->rootPath());
-        if ($writer->rotateIpSalt($pipeline)) {
-            return true;
-        }
-        $output->writeln('<error>IP_SALT konnte nicht lokal geschrieben werden.</error>');
-        return false;
-    }
-
-    private function shouldRotateIpSalt(string $pipeline): bool
-    {
-        return in_array($pipeline, ['dev', 'preview'], true);
-    }
-
     private function resetSampleContent(string $profile): bool
     {
         $target = $this->demoTargetPath($profile);

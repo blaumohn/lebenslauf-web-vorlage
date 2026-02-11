@@ -41,6 +41,7 @@ php bin/cli build <pipeline> upload <cv-profile> <json>
 # Security
 php bin/cli token rotate <profile> [count]
 php bin/cli captcha <pipeline> [cleanup]
+php bin/cli ip-hash reset
 ```
 
 ## CLI model
@@ -57,6 +58,7 @@ Examples:
 - `php bin/cli build dev cv`
 - `php bin/cli run dev`
 - `php bin/cli python dev --add-path . tests/py/smoke.py`
+- `php bin/cli ip-hash reset`
 
 ## Python runner
 

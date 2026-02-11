@@ -68,6 +68,7 @@ Beispiele:
 - `php bin/cli build dev cv`
 - `php bin/cli run dev`
 - `php bin/cli python dev --add-path . tests/py/smoke.py`
+- `php bin/cli ip-hash reset`
 
 ## Python-Runner
 

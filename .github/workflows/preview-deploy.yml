@@ -12,7 +12,6 @@ jobs:
     environment: preview
     env:
       APP_ENV: preview
-      IP_SALT: ${{ secrets.IP_SALT }}
       SMTP_PASS: ${{ secrets.SMTP_PASS }}
       FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
       FTP_HOST: ${{ secrets.FTP_HOST }}

@@ -72,8 +72,9 @@ variables:
     IP_SALT:
       sources: [system, local, file]
       meta:
-        desc: "Salt fuer IP-Hashing"
-        example: "change-me"
+        desc: "Legacy-Wert fuer Migration; Runtime verwaltet Salt in var/state"
+        notes: "Optional fuer Uebergang. Neuer Betrieb nutzt Runtime-State statt externer Config."
+        example: "legacy-only"
 
   deploy:
     FTP_SERVER_DIR: {}
@@ -117,7 +118,6 @@ pipelines:
       allowed: []
     runtime:
       required:
-        - IP_SALT
         - CAPTCHA_MAX_GET
         - CONTACT_MAX_POST
         - RATE_LIMIT_WINDOW_SECONDS
@@ -134,7 +134,6 @@ pipelines:
       allowed: []
     runtime:
       required:
-        - IP_SALT
         - CAPTCHA_MAX_GET
         - CONTACT_MAX_POST
         - RATE_LIMIT_WINDOW_SECONDS

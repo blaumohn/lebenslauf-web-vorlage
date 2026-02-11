@@ -21,8 +21,7 @@ final class ContactSubmitAction
     {
         $trustProxy = $this->context->config->getBool('TRUST_PROXY', false);
         $ip = $this->context->ipResolver->resolve($request, $trustProxy);
-        $salt = $this->context->config->requireString('IP_SALT');
-        $ipHash = hash_hmac('sha256', $ip, $salt);
+        $ipHash = $this->context->ipHashService->hashIp($ip);
 
         $window = $this->context->config->requireInt('RATE_LIMIT_WINDOW_SECONDS');
         $maxPost = $this->context->config->requireInt('CONTACT_MAX_POST');

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Cli\Util\LocalConfigWriter;
+use App\Http\Security\IpHashService;
+use App\Http\Security\IpSaltRuntime;
+use App\Http\Storage\FileStorage;
 use PipelineConfigSpec\PipelineConfigService;
 use App\Http\AppBuilder;
 use App\Http\ConfigCompiled;
@@ -32,7 +34,6 @@ abstract class FeatureTestCase extends TestCase
             $this->root . '/var/state/tokens',
             $this->root . '/var/config',
         ]);
-        $this->prepareLocalRuntimeConfig();
         $this->compileConfig();
     }
 
@@ -50,6 +51,14 @@ abstract class FeatureTestCase extends TestCase
     protected function projectRoot(): string
     {
         return dirname(__DIR__, 3);
+    }
+
+    protected function ipHashFor(string $ip): string
+    {
+        $runtime = $this->buildIpSaltRuntime();
+        $salt = $runtime->resolveSalt();
+        $service = new IpHashService($salt);
+        return $service->hashIp($ip);
     }
 
     private function configSourceDir(): string
@@ -75,15 +84,6 @@ abstract class FeatureTestCase extends TestCase
         throw new RuntimeException('Konnte Test-Verzeichnis nicht anlegen: ' . $root);
     }
 
-    private function prepareLocalRuntimeConfig(): void
-    {
-        $writer = new LocalConfigWriter($this->root);
-        $ok = $writer->rotateIpSalt('dev');
-        if (!$ok) {
-            throw new RuntimeException('Konnte IP_SALT fuer Test-Config nicht schreiben.');
-        }
-    }
-
     private function ensureDirs(array $dirs): void
     {
         foreach ($dirs as $dir) {
@@ -97,6 +97,17 @@ abstract class FeatureTestCase extends TestCase
     {
         $configService = new PipelineConfigService($this->root, 'src/resources/config');
         $configService->compile('dev', 'runtime');
+    }
+
+    private function buildIpSaltRuntime(): IpSaltRuntime
+    {
+        $storage = new FileStorage();
+        return new IpSaltRuntime(
+            $storage,
+            $this->root . '/var/state',
+            $this->root . '/var/tmp/captcha',
+            $this->root . '/var/tmp/ratelimit'
+        );
     }
 
     private function copyDir(string $source, string $dest): void
