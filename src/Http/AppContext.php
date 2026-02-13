@@ -6,7 +6,7 @@ use App\Http\Captcha\CaptchaService;
 use App\Http\Contact\MailService;
 use App\Http\Cv\CvStorage;
 use App\Http\Security\IpHashService;
-use App\Http\Security\IpSaltRuntime;
+use App\Http\Security\IpSaltService;
 use App\Http\Security\RateLimiter;
 use App\Http\Security\RuntimeAtomicWriter;
 use App\Http\Security\RuntimeLockRunner;
@@ -44,21 +44,21 @@ final class AppContext
             $config->getInt('CAPTCHA_TTL_SECONDS', 600)
         );
         $context->rateLimiter = new RateLimiter($storage, $rootPath . '/var/tmp/ratelimit');
-        $ipSaltRuntime = self::buildIpSaltRuntime($storage, $rootPath);
-        $context->ipHashService = new IpHashService($ipSaltRuntime->resolveSalt());
+        $ipSaltService = self::buildIpSaltService($storage, $rootPath);
+        $context->ipHashService = new IpHashService($ipSaltService->resolveSalt());
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
 
         return $context;
     }
 
-    private static function buildIpSaltRuntime(
+    private static function buildIpSaltService(
         FileStorage $storage,
         string $rootPath
-    ): IpSaltRuntime {
+    ): IpSaltService {
         $lockRunner = new RuntimeLockRunner($rootPath . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
-        return new IpSaltRuntime(
+        return new IpSaltService(
             $storage,
             $lockRunner,
             $writer,

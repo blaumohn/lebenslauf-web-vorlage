@@ -4,16 +4,21 @@ namespace App\Http\Security;
 
 use App\Http\Storage\FileStorage;
 
-final class IpSaltStateReader
+final class FileIpSaltStateStore implements IpSaltStateStore
 {
     private const STATE_FILE = 'ip_salt.state.json';
 
     private FileStorage $storage;
+    private RuntimeAtomicWriter $writer;
     private string $stateDir;
 
-    public function __construct(FileStorage $storage, string $stateDir)
-    {
+    public function __construct(
+        FileStorage $storage,
+        RuntimeAtomicWriter $writer,
+        string $stateDir
+    ) {
         $this->storage = $storage;
+        $this->writer = $writer;
         $this->stateDir = rtrim($stateDir, DIRECTORY_SEPARATOR);
     }
 
@@ -34,17 +39,38 @@ final class IpSaltStateReader
         return new IpSaltState($salt, $fingerprint, $status, $generation);
     }
 
+    public function writeState(IpSaltState $state): void
+    {
+        $payload = $this->buildPayload($state);
+        $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded)) {
+            throw new \RuntimeException('IP-Salt-State konnte nicht serialisiert werden.');
+        }
+        $this->writer->writeText($this->statePath(), $encoded . "\n");
+    }
+
+    private function buildPayload(IpSaltState $state): array
+    {
+        return [
+            'salt' => $state->salt(),
+            'fingerprint' => $state->fingerprint(),
+            'status' => $state->status(),
+            'generation' => $state->generation(),
+            'updated_at' => gmdate('c'),
+        ];
+    }
+
     private function readStringField(array $payload, string $key): ?string
     {
         $value = $payload[$key] ?? null;
         if (!is_string($value)) {
             return null;
         }
-        $value = trim($value);
-        if ($value === '') {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
             return null;
         }
-        return $value;
+        return $trimmed;
     }
 
     private function readStatus(array $payload): ?string

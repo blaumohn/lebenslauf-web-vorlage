@@ -4,24 +4,19 @@ namespace App\Http\Security;
 
 final class IpSaltResetExecutor
 {
-    private const STATE_FILE = 'ip_salt.state.json';
-
-    private RuntimeAtomicWriter $writer;
+    private IpSaltStateStore $stateStore;
     private IpSaltStateValidator $validator;
-    private string $stateDir;
     private string $captchaDir;
     private string $rateLimitDir;
 
     public function __construct(
-        RuntimeAtomicWriter $writer,
+        IpSaltStateStore $stateStore,
         IpSaltStateValidator $validator,
-        string $stateDir,
         string $captchaDir,
         string $rateLimitDir
     ) {
-        $this->writer = $writer;
+        $this->stateStore = $stateStore;
         $this->validator = $validator;
-        $this->stateDir = rtrim($stateDir, DIRECTORY_SEPARATOR);
         $this->captchaDir = rtrim($captchaDir, DIRECTORY_SEPARATOR);
         $this->rateLimitDir = rtrim($rateLimitDir, DIRECTORY_SEPARATOR);
     }
@@ -86,23 +81,7 @@ final class IpSaltResetExecutor
 
     private function writeState(IpSaltState $state): void
     {
-        $payload = $this->buildStatePayload($state);
-        $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        if (!is_string($encoded)) {
-            throw new \RuntimeException('IP-Salt-State konnte nicht serialisiert werden.');
-        }
-        $this->writer->writeText($this->statePath(), $encoded . "\n");
-    }
-
-    private function buildStatePayload(IpSaltState $state): array
-    {
-        return [
-            'salt' => $state->salt(),
-            'fingerprint' => $state->fingerprint(),
-            'status' => $state->status(),
-            'generation' => $state->generation(),
-            'updated_at' => gmdate('c'),
-        ];
+        $this->stateStore->writeState($state);
     }
 
     private function assertInProgressState(IpSaltState $state): void
@@ -114,10 +93,5 @@ final class IpSaltResetExecutor
             return;
         }
         throw new \RuntimeException('IP-Salt-State hat keine gueltige Generation.');
-    }
-
-    private function statePath(): string
-    {
-        return $this->stateDir . DIRECTORY_SEPARATOR . self::STATE_FILE;
     }
 }

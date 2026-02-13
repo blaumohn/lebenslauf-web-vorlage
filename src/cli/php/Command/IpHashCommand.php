@@ -2,7 +2,7 @@
 
 namespace App\Cli\Command;
 
-use App\Http\Security\IpSaltRuntime;
+use App\Http\Security\IpSaltService;
 use App\Http\Security\RuntimeAtomicWriter;
 use App\Http\Security\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
@@ -28,9 +28,9 @@ final class IpHashCommand extends BaseCommand
             $output->writeln('<error>Usage: ip-hash [reset]</error>');
             return Command::FAILURE;
         }
-        $runtime = $this->buildRuntime();
+        $service = $this->buildService();
         try {
-            $runtime->resetSalt();
+            $service->resetSalt();
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -39,13 +39,13 @@ final class IpHashCommand extends BaseCommand
         return Command::SUCCESS;
     }
 
-    private function buildRuntime(): IpSaltRuntime
+    private function buildService(): IpSaltService
     {
         $rootPath = $this->rootPath();
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
         $writer = new RuntimeAtomicWriter();
-        return new IpSaltRuntime(
+        return new IpSaltService(
             $storage,
             $lockRunner,
             $writer,

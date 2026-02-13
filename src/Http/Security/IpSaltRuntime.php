@@ -6,12 +6,7 @@ use App\Http\Storage\FileStorage;
 
 final class IpSaltRuntime
 {
-    private const LOCK_KEY = 'ip_salt_runtime';
-
-    private RuntimeLockRunner $lockRunner;
-    private IpSaltStateReader $stateReader;
-    private IpSaltDecisionPolicy $decisionPolicy;
-    private IpSaltActionPlan $actionPlan;
+    private IpSaltService $service;
 
     public function __construct(
         FileStorage $storage,
@@ -21,61 +16,33 @@ final class IpSaltRuntime
         string $captchaDir,
         string $rateLimitDir
     ) {
-        $this->lockRunner = $lockRunner;
-        $validator = new IpSaltStateValidator();
-        $this->stateReader = new IpSaltStateReader($storage, $stateDir);
-        $this->decisionPolicy = new IpSaltDecisionPolicy($validator);
-        $resetExecutor = new IpSaltResetExecutor(
+        $this->service = new IpSaltService(
+            $storage,
+            $lockRunner,
             $writer,
-            $validator,
             $stateDir,
             $captchaDir,
             $rateLimitDir
         );
-        $this->actionPlan = new IpSaltActionPlan($resetExecutor);
     }
 
     public function resolveSalt(): string
     {
-        $result = $this->lockRunner->runWithLock(self::LOCK_KEY, [$this, 'resolveSaltLocked']);
-        return $this->requireSalt($result, 'resolveSalt');
+        return $this->service->resolveSalt();
     }
 
     public function resetSalt(): string
     {
-        $result = $this->lockRunner->runWithLock(self::LOCK_KEY, [$this, 'resetSaltLocked']);
-        return $this->requireSalt($result, 'resetSalt');
+        return $this->service->resetSalt();
     }
 
     public function resolveSaltLocked(): string
     {
-        $state = $this->stateReader->readState();
-        $reason = $this->decideResolveReason($state);
-        $next = $this->actionPlan->execute($reason, $state);
-        return $this->requireSalt($next->salt(), 'resolveSaltLocked');
+        return $this->service->resolveSaltLocked();
     }
 
     public function resetSaltLocked(): string
     {
-        $state = $this->stateReader->readState();
-        $reason = $this->decisionPolicy->decideForReset();
-        $next = $this->actionPlan->execute($reason, $state);
-        return $this->requireSalt($next->salt(), 'resetSaltLocked');
-    }
-
-    private function decideResolveReason(IpSaltState $state): TriggerReason
-    {
-        if (!$state->hasReadyMarker()) {
-            return TriggerReason::MISSING;
-        }
-        return $this->decisionPolicy->decideForResolve($state);
-    }
-
-    private function requireSalt(mixed $value, string $method): string
-    {
-        if (is_string($value) && $value !== '') {
-            return $value;
-        }
-        throw new \RuntimeException("Ungueltiges Ergebnis fuer {$method}.");
+        return $this->service->resetSaltLocked();
     }
 }

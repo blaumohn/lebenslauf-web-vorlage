@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Security\IpHashService;
-use App\Http\Security\IpSaltRuntime;
+use App\Http\Security\IpSaltService;
 use App\Http\Security\RuntimeAtomicWriter;
 use App\Http\Security\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
@@ -58,10 +58,10 @@ abstract class FeatureTestCase extends TestCase
 
     protected function ipHashFor(string $ip): string
     {
-        $runtime = $this->buildIpSaltRuntime();
-        $salt = $runtime->resolveSalt();
-        $service = new IpHashService($salt);
-        return $service->hashIp($ip);
+        $ipSaltService = $this->buildIpSaltService();
+        $salt = $ipSaltService->resolveSalt();
+        $ipHashService = new IpHashService($salt);
+        return $ipHashService->hashIp($ip);
     }
 
     private function configSourceDir(): string
@@ -102,12 +102,12 @@ abstract class FeatureTestCase extends TestCase
         $configService->compile('dev', 'runtime');
     }
 
-    private function buildIpSaltRuntime(): IpSaltRuntime
+    private function buildIpSaltService(): IpSaltService
     {
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
-        return new IpSaltRuntime(
+        return new IpSaltService(
             $storage,
             $lockRunner,
             $writer,
