@@ -14,5 +14,5 @@
 
 ## Ablauf-Merker
 - `ISS-005` ist Integrations-Branch fuer den Preview-Pfad.
-- Reihenfolge bis `dev`: zuerst `ISS-011`, dann `ISS-012`, danach gemeinsamer Merge ueber `feature/iss-005-preview`.
+- Reihenfolge bis `dev`: `ISS-011` ist abgeschlossen; aktuell `ISS-012`, danach gemeinsamer Merge ueber `feature/iss-005-preview`.
 - Detail-Referenz: [ISS-005](issues/ISS-005-preview-workflow-reenable-from-dev.md) (Abschnitt "Umsetzungsreihenfolge und Branch-Strategie").

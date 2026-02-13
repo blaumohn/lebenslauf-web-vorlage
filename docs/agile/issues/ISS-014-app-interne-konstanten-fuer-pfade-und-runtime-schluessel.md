@@ -23,7 +23,7 @@
 
 ## Referenz-Zitat (Anforderung)
 ```php
-+        return new IpSaltRuntime(
++        return new IpSaltService(
 +            $storage,
 +            $lockRunner,
 +            $writer,
@@ -38,8 +38,8 @@
   - Bereichsuebergreifend: kleine, thematische Konstantenklasse (kein globaler Sammelcontainer).
 - Mindestens diese Bereiche konsolidieren:
   - Runtime-Pfade (`var/state`, `var/tmp/captcha`, `var/tmp/ratelimit`, `var/state/locks`)
-  - Dateinamen/Keys fuer `IP_SALT`-Runtime (`ip_salt.txt`, `ip_salt.fingerprint`, Lock-Key)
-- Nutzung in `AppContext`, `IpSaltRuntime`, `IpHashCommand` und testsnahen Hilfspfaden vereinheitlichen.
+  - Dateinamen/Keys fuer `IP_SALT`-Runtime (`ip_salt.state.json`, Marker-Keys, Lock-Key)
+- Nutzung in `AppContext`, `IpSaltService`, `IpHashCommand` und testsnahen Hilfspfaden vereinheitlichen.
 - Leitplanke dokumentieren:
   - Nur app-interne technische Konstanten.
   - Keine fachlichen/env-abhaengigen Config-Werte in diese Komponente verschieben.

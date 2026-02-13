@@ -32,7 +32,7 @@
 - Gemeinsame Bausteine als Komposition:
   - `LockRunner` (mit `symfony/lock`)
   - `AtomicWriter`
-  - `StateReader` / `StateValidator`
+  - `StateStore` / `StateValidator`
   - `ResetExecutor`
 - Nicht als Zielbild:
   - keine große abstrakte Basisklasse fuer alle Verwalter.
@@ -72,24 +72,30 @@
 | Trigger-/Policy-Modell | Pflicht (minimal fuer IP_SALT) | Pflicht (konsistent ueber alle Verwalter) |
 | Lock-Policy/Betriebsannahmen | Pflicht | Pflicht |
 
-## Vorgeschlagene Commit-Folge
+## Vergleichbarkeit der Arbeitsfolge
+- Vergleichbar ist das Muster, nicht die konkrete Mutationslogik jeder Ressource.
+- Gemeinsames Muster: Lock -> State lesen/validieren -> Trigger/Entscheidung -> notwendige Mutation -> Lock freigeben.
+- Nicht 1:1 uebertragbar: `IN_PROGRESS`/`READY` ist fuer `IP_SALT` verbindlich, fuer andere Verwalter nur falls fachlich noetig.
+- Die Tabelle beschreibt die Abstraktionsebene (Rahmen + Verantwortung), nicht identische Code-Schritte pro Verwalter.
+
+## Commit-Folge (historisch + aktueller Stand)
 Hinweis:
-- Die komplette Folge kann später verfeinert werden.
-- Für den Start reichen die ersten 4 Commits als belastbare Basis.
+- Die Folge bleibt als Referenz fuer die Reviewbarkeit erhalten.
+- Fuer die aktuelle Umsetzung ist nur der aktive Block relevant.
 
-### Startsequenz (konkret)
-1. `docs(agile): dokumentiere ISS-011/012-Näherung und Commit-Folge (iss-011)`
-2. `refactor(runtime): fuehre LockRunner, AtomicWriter, StateReader/StateValidator und ResetExecutor ein (iss-011)`
-3. `feat(runtime): fuehre TriggerReason, DecisionPolicy und ActionPlan fuer IP_SALT ein (iss-011)`
-4. `feat(runtime): integriere IP_SALT-Manager mit symfony/lock und Fingerprint-Guardrails (iss-011)`
-5. `chore(cli+config): entferne --rotate-ip-salt und nutze ip-hash reset (iss-011)`
+### Startsequenz (historisch, ISS-011 abgeschlossen)
+1. [x] `docs(agile): dokumentiere ISS-011/012-Näherung und Commit-Folge (iss-011)`
+2. [x] `refactor(runtime): fuehre LockRunner, AtomicWriter, StateStore/StateValidator und ResetExecutor ein (iss-011)`
+3. [x] `feat(runtime): fuehre TriggerReason, DecisionPolicy und ActionPlan fuer IP_SALT ein (iss-011)`
+4. [x] `feat(runtime): integriere IP_SALT-Manager mit symfony/lock und Fingerprint-Guardrails (iss-011)`
+5. [x] `chore(cli+config): entferne --rotate-ip-salt und nutze ip-hash reset (iss-011)`
+6. [x] `test(runtime): ergaenze IP_SALT-Parallel- und Guardrail-Tests (iss-011)`
 
-### Folgeblöcke (nachgelagert)
-6. `test(runtime): ergaenze IP_SALT-Parallel- und Guardrail-Tests (iss-011)`
-7. `refactor(runtime): uebernehme Locking-Rahmen fuer Rate-Limit und CAPTCHA-Verify (iss-012)`
-8. `refactor(runtime): uebernehme Locking-Rahmen fuer Token-Rotation (iss-012)`
-9. `test(runtime): ergaenze Race-nahe Tests fuer Rate-Limit, CAPTCHA und Token (iss-012)`
-10. `docs(runtime): aktualisiere Nachweise und Betriebsnotiz fuer ISS-012 (iss-012)`
+### Folgeblöcke (aktiv fuer ISS-012)
+7. [ ] `refactor(runtime): uebernehme Locking-Rahmen fuer Rate-Limit und CAPTCHA-Verify (iss-012)`
+8. [ ] `refactor(runtime): uebernehme Locking-Rahmen fuer Token-Rotation (iss-012)`
+9. [ ] `test(runtime): ergaenze Race-nahe Tests fuer Rate-Limit, CAPTCHA und Token (iss-012)`
+10. [ ] `docs(runtime): aktualisiere Nachweise und Betriebsnotiz fuer ISS-012 (iss-012)`
 
 ## Einschätzung des Ablaufs
 - Kohärenz: hoch, weil `ISS-011` als schmaler Referenzpfad den Rahmen setzt.
@@ -98,13 +104,15 @@ Hinweis:
 - Hauptgefahr: Scope-Drift durch zu frühe flächige Abstraktion.
 - Gegenmaßnahme: in `ISS-011` nur minimalen Rahmen bauen und erst in `ISS-012` breit ausrollen.
 
-## Status Nachschärfung aus Branch-Abgleich (Stand 2026-02-12)
-- `ISS-012`: Fallback von `symfony/lock` auf eigenes `flock` zurückbauen; bei fehlender Dependency Fail-Fast.
-- `ISS-012`: Lock-Erwerb mit begrenzter Wartezeit umsetzen (Polling + Timeout), nicht unbegrenzt blockieren.
-- `ISS-011`: Zusätzlichen Konsistenzmarker und Recovery-Regel für den IP-bezogenen Runtime-State festgelegt und umgesetzt.
+## Statusabgleich aus Branch-Review (Stand 2026-02-13)
+- [x] `ISS-012`: Kein Fallback von `symfony/lock` auf eigenes `flock` (Fail-Fast bei fehlender Dependency).
+- [x] `ISS-012`: Lock-Erwerb mit Polling + Timeout statt unbegrenztem Blockieren.
+- [x] `ISS-011`: Konsistenzmarker und Recovery-Regel für den IP-bezogenen Runtime-State umgesetzt.
+- [ ] `ISS-012`: Rahmen auf `RateLimiter`, `CaptchaService`, `TokenService` ausrollen.
+- [ ] `ISS-012`: Race-nahe Tests für diese Bereiche als Abschlussnachweis ergänzen.
 
 ## Entscheidungsfestlegung (festgelegt)
-Stand: 2026-02-12
+Stand: 2026-02-13
 
 1. `ISS-012`: Kein Fallback von `symfony/lock` auf eigenes `flock`.
 2. `ISS-012`: Lock-Erwerb via Polling + Timeout statt unbegrenztem `acquire(true)`.
@@ -112,14 +120,16 @@ Stand: 2026-02-12
 
 ### Architekturentwurf (MVP)
 - Gemeinsamer schlanker Ablauf pro Ressource:
-  - Lock erwerben.
+  - Eingaben prüfen und Lock-Key bestimmen.
+  - Bei Write-Race einen Lock erwerben.
   - State lesen und validieren.
-  - `IN_PROGRESS` markieren.
-  - atomar schreiben.
-  - `READY` markieren.
+  - Trigger/Entscheidung ableiten.
+  - Nur notwendige Mutation atomar schreiben.
   - Lock freigeben.
+- Marker-Regel:
+  - `IN_PROGRESS`/`READY` ist für mehrstufige Übergänge sinnvoll (verbindlich für `IP_SALT`, optional für andere Verwalter).
 - Recovery:
-  - Inkonsistenter Markerzustand führt zu deterministischer Wiederherstellung unter Lock.
+  - Inkonsistenter Zustand führt zu deterministischer Wiederherstellung unter Lock, domänenspezifisch je Verwalter.
 
 ### Risiken und Gegenmaßnahmen
 - Risiko: Zu kurzer Timeout erzeugt unnötige Fehlschläge.

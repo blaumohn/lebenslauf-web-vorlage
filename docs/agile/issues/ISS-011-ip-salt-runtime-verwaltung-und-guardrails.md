@@ -23,7 +23,7 @@
 - Architekturrahmen für `IP_SALT` umgesetzt:
   - `LockRunner` mit `symfony/lock` und Fail-Fast-Timeout.
   - `AtomicWriter` für atomare Runtime-Schreibvorgänge.
-  - `StateReader` / `StateValidator` / `ResetExecutor`.
+  - `StateStore` / `StateValidator` / `ResetExecutor`.
   - Trigger-/Policy-Modell über `TriggerReason`, `DecisionPolicy`, `ActionPlan`.
 - Konsistenzmodell umgesetzt:
   - Ein-Datei-State unter `var/state/ip_salt.state.json`.
@@ -53,7 +53,7 @@
   - Rate-Limit (`var/tmp/ratelimit`)
   - CAPTCHA-Verify (`var/tmp/captcha`)
   - Token-Rotation (`var/state/tokens`)
-- `AppContext::buildIpSaltRuntime` dient als Referenz für Komposition und Instanziierung des Lock-Runners.
+- `AppContext::buildIpSaltService` dient als Referenz für Komposition und Instanziierung des Lock-Runners.
 
 ## Abhängigkeiten
 - Story-Kontext:

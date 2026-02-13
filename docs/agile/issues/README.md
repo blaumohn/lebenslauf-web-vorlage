@@ -1,4 +1,4 @@
-# Issue-Plan (Stand 2026-02-12)
+# Issue-Plan (Stand 2026-02-13)
 
 ## Ueberblick
 
@@ -19,7 +19,7 @@
 - [ISS-008](ISS-008-i18n-cli-runtime-messages-app-und-config-lib.md): i18n fuer CLI- und Runtime-Nachrichten (neu)
 - [ISS-010](ISS-010-preview-workflow-testmatrix-und-entscheidungen.md): P1-D Testmatrix und offene Entscheidungen (neu)
 - [ISS-011](ISS-011-ip-salt-runtime-verwaltung-und-guardrails.md): `IP_SALT` runtime-intern verwalten und Guardrails (erledigt am 2026-02-12)
-- [ISS-012](ISS-012-runtime-concurrency-locking-und-atomare-zugriffe.md): Runtime-Concurrency und atomare Dateizugriffe (neu)
+- [ISS-012](ISS-012-runtime-concurrency-locking-und-atomare-zugriffe.md): Runtime-Concurrency und atomare Dateizugriffe (aktiv; Lock-Entscheidungen festgelegt, Ausrollung offen)
 - [ISS-014](ISS-014-app-interne-konstanten-fuer-pfade-und-runtime-schluessel.md): App-interne technische Konstanten fuer Pfade/Runtime-Schluessel (neu)
 - [ISS-013](ISS-013-ftp-ftps-verwaltungs-skripte-fuer-preview-betrieb.md): FTP/FTPS-Verwaltungs-Skripte nach `feature/preview` (neu)
 - [STY-002](STY-002-i18n-seitenvorlagen-und-templates.md): i18n fuer Seitenvorlagen und Template-Texte (neu)
