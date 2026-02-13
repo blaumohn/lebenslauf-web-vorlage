@@ -70,6 +70,18 @@ Beispiele:
   - `var/tmp/ratelimit`
 - Bewusste Rotation erfolgt ueber `php bin/cli ip-hash reset`.
 
+## Runtime-Concurrency (Stand 2026-02-13)
+
+- Der gemeinsame Runtime-Rahmen besteht aus:
+  - `RuntimeLockRunner` (`symfony/lock`, Polling + Timeout, Fail-Fast).
+  - `RuntimeAtomicWriter` (atomare Dateiersetzung ueber Temp-Datei + `rename`).
+- Dieser Rahmen ist produktiv fuer `IP_SALT` im Einsatz.
+- `ISS-012` erweitert denselben Rahmen auf weitere Runtime-Modelle:
+  - `RateLimiter` (`var/tmp/ratelimit`)
+  - `CaptchaService` (`var/tmp/captcha`)
+  - `TokenService` (`var/state/tokens`)
+- Ziel: konsistente Read-Modify-Write-Pfade unter Parallelzugriff.
+
 ## Smoke-Test-Parameter
 
 - `SMOKE_CACHE_ROOT` setzt optionale Cache-Verzeichnisse für Composer/NPM/PIP.
