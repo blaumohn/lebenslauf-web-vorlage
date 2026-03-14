@@ -2,7 +2,20 @@
 
 Deutsch | [English](README.en.md)
 
-Modulare Lebenslauf-Vorlage für Shared Hosting (PHP + Twig). Inhalt und UI sind getrennt: Lebenslauf-Daten liegen außerhalb von `src/`, Labels/Übersetzungen liegen im Repo.
+Modulare Lebenslauf-Vorlage für Shared Hosting (PHP + Twig). Inhalt und UI
+sind getrennt: Lebenslauf-Daten liegen außerhalb von `src/`,
+Labels/Übersetzungen liegen im Repo.
+
+Dieses Repo enthält den Quelltext der App.
+Die öffentliche Projektdoku liegt nicht unter `docs/` in diesem Repo,
+sondern in GitHub Pages:
+
+- Öffentliche Doku: <https://docs.template.ysdani.com/de/>
+- GitHub-Pages-Repo: <https://github.com/blaumohn/lebenslauf-web-vorlage-docs>
+- Quellcode-Repo: <https://github.com/blaumohn/lebenslauf-web-vorlage>
+
+Bis zum Preview-Deployment ist `dev` der maßgebliche Arbeitsbranch.
+Die Verweise bleiben hier absichtlich branch-neutral.
 
 Funktionen:
 
@@ -32,15 +45,20 @@ php bin/cli run dev
 
 `run` kompiliert die Runtime-Config nach `var/config/config.php`.
 
-Vor dem ersten Start `.local/dev-runtime.yaml` anlegen (siehe `src/resources/config/dev-runtime.yaml`).
+Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
+(siehe `src/resources/config/dev-runtime.yaml`).
 
 ## Daten bearbeiten
 
-- YAML-Daten liegen standardmäßig in `.local/lebenslauf` (`LEBENSLAUF_DATEN_PFAD`).
-- Nur Dateien `daten-<profil>.yaml` werden berücksichtigt (z. B. `daten-entwickler.yaml`).
-- UI-Labels/Übersetzungen liegen in `src/resources/build/labels.json` (Repo-Beitrag möglich).
+- YAML-Daten liegen standardmäßig in `.local/lebenslauf`
+  (`LEBENSLAUF_DATEN_PFAD`).
+- Nur Dateien `daten-<profil>.yaml` werden berücksichtigt
+  (z. B. `daten-entwickler.yaml`).
+- UI-Labels/Übersetzungen liegen in `src/resources/build/labels.json`
+  (Repo-Beitrag möglich).
 - Seitentexte (z. B. Seitentitel/Kontakt) liegen direkt in Twig-Templates.
-- Build-Ressourcen (Schemas/Labels/Assets) liegen unter `src/resources/build/`.
+- Build-Ressourcen (Schemas/Labels/Assets) liegen unter
+  `src/resources/build/`.
 
 Relevante Config-Werte (Runtime/Build):
 - `LEBENSLAUF_PUBLIC_PROFILE` (Build)
@@ -54,11 +72,17 @@ php bin/cli build dev cv
 php bin/cli build dev
 ```
 
+## Weitere Doku
+
+- Einstieg: <https://docs.template.ysdani.com/de/getting-started/>
+- Betrieb und Runbooks: <https://docs.template.ysdani.com/de/operations/>
+- Richtlinien und Entscheidungen: <https://docs.template.ysdani.com/de/policies/>
+
 ## CLI-Modell
 
 Phasen werden direkt ausgefuehrt:
 
-```
+```text
 cli <phase> <pipeline> [args]
 ```
 
@@ -78,15 +102,15 @@ Beispiele:
 
 ## Projektstruktur
 
-```
+```text
 /lebenslauf-vorlage-2
 ├── src/
 │   ├── resources/
 │   │   ├── templates/          # Twig-Templates
 │   │   └── build/              # Build-Ressourcen
-│   │       ├── labels.json      # UI-Labels (Repo-Inhalt)
-│   │       ├── assets/          # Build-Assets (CSS)
-│   │       └── schemas/         # JSON-Schemas
+│   │       ├── labels.json     # UI-Labels (Repo-Inhalt)
+│   │       ├── assets/         # Build-Assets (CSS)
+│   │       └── schemas/        # JSON-Schemas
 │   ├── http/                   # HTTP-App
 │   └── cli/                    # CLI-Tools
 ├── .local/
@@ -98,6 +122,9 @@ Beispiele:
 
 ## Umgebungsvariablen
 
-Die Config-Policy (Pipeline/Phase) ist in `docs/ENVIRONMENTS.md` beschrieben.
-Beispielwerte stehen in `src/resources/config/dev-runtime.yaml`, Regeln in `src/resources/config/config.manifest.yaml`.
-Fuer Deployments wird die Runtime-Config als `var/config/config.php` erzeugt (siehe `php bin/cli config compile <pipeline>`).
+Die Config-Policy (Pipeline/Phase) ist in `docs/ENVIRONMENTS.md`
+beschrieben.
+Beispielwerte stehen in `src/resources/config/dev-runtime.yaml`,
+Regeln in `src/resources/config/config.manifest.yaml`.
+Fuer Deployments wird die Runtime-Config als `var/config/config.php`
+erzeugt (siehe `php bin/cli config compile <pipeline>`).
