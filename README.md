@@ -80,7 +80,7 @@ php bin/cli build dev
 
 ## CLI-Modell
 
-Phasen werden direkt ausgefuehrt:
+Phasen werden direkt ausgeführt:
 
 ```text
 cli <phase> <pipeline> [args]
@@ -126,5 +126,5 @@ Die Config-Policy (Pipeline/Phase) ist in `docs/ENVIRONMENTS.md`
 beschrieben.
 Beispielwerte stehen in `src/resources/config/dev-runtime.yaml`,
 Regeln in `src/resources/config/config.manifest.yaml`.
-Fuer Deployments wird die Runtime-Config als `var/config/config.php`
+Für Deployments wird die Runtime-Config als `var/config/config.php`
 erzeugt (siehe `php bin/cli config compile <pipeline>`).
