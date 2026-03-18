@@ -2,6 +2,8 @@
 
 namespace App\Cli\Command;
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -50,8 +52,10 @@ final class TokenCommand extends BaseCommand
 
     private function buildTokenService(): TokenService
     {
+        $rootPath = $this->rootPath();
         $storage = new FileStorage();
-        $path = Path::join($this->rootPath(), 'var', 'state', 'tokens');
-        return new TokenService($storage, $path);
+        $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
+        $writer = new RuntimeAtomicWriter();
+        return new TokenService($storage, $lockRunner, $writer, Path::join($rootPath, 'var', 'state', 'tokens'));
     }
 }

@@ -64,6 +64,19 @@ abstract class FeatureTestCase extends TestCase
         return $ipHashService->hashIp($ip);
     }
 
+    protected function buildTokenService(): \App\Http\Security\TokenService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Security\TokenService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/state/tokens'
+        );
+    }
+
     protected function buildCaptchaService(): \App\Http\Captcha\CaptchaService
     {
         $storage = new FileStorage();
