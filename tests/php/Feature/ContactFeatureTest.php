@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Captcha\CaptchaService;
-use App\Http\Storage\FileStorage;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
 final class ContactFeatureTest extends FeatureTestCase
@@ -24,8 +22,7 @@ final class ContactFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
 
-        $storage = new FileStorage();
-        $service = new CaptchaService($storage, $this->root . '/var/tmp/captcha', 600);
+        $service = $this->buildCaptchaService();
         $ip = '203.0.113.10';
         $ipHash = $this->ipHashFor($ip);
         $challenge = $service->createChallenge($ipHash);
@@ -53,8 +50,7 @@ final class ContactFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
 
-        $storage = new FileStorage();
-        $service = new CaptchaService($storage, $this->root . '/var/tmp/captcha', 600);
+        $service = $this->buildCaptchaService();
         $ip = '203.0.113.11';
         $ipHash = $this->ipHashFor($ip);
         $challenge = $service->createChallenge($ipHash);

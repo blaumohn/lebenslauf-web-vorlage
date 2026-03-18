@@ -64,6 +64,20 @@ abstract class FeatureTestCase extends TestCase
         return $ipHashService->hashIp($ip);
     }
 
+    protected function buildCaptchaService(): \App\Http\Captcha\CaptchaService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Captcha\CaptchaService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/tmp/captcha',
+            600
+        );
+    }
+
     private function configSourceDir(): string
     {
         return $this->projectRoot() . '/src/resources/config';

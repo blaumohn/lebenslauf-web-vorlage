@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Captcha\CaptchaService;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +26,9 @@ final class CaptchaServiceTest extends TestCase
     public function testChallengeLifecycle(): void
     {
         $storage = new FileStorage();
-        $service = new CaptchaService($storage, $this->tempDir, 60);
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $service = new CaptchaService($storage, $lockRunner, $writer, $this->tempDir, 60);
 
         $challenge = $service->createChallenge('iphash');
         $this->assertNotEmpty($challenge['captcha_id']);
@@ -46,7 +50,9 @@ final class CaptchaServiceTest extends TestCase
         }
 
         $storage = new FileStorage();
-        $service = new CaptchaService($storage, $this->tempDir, 60);
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $service = new CaptchaService($storage, $lockRunner, $writer, $this->tempDir, 60);
 
         $png = $service->renderPng('ABC123');
         $this->assertNotEmpty($png);

@@ -31,6 +31,8 @@ final class AppContext
     {
         $rootPath = $config->rootPath();
         $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($rootPath . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
 
         $context = new self();
         $context->config = $config;
@@ -40,11 +42,13 @@ final class AppContext
         $context->tokenService = new TokenService($storage, $rootPath . '/var/state/tokens');
         $context->captchaService = new CaptchaService(
             $storage,
+            $lockRunner,
+            $writer,
             $rootPath . '/var/tmp/captcha',
             $config->getInt('CAPTCHA_TTL_SECONDS', 600)
         );
-        $context->rateLimiter = new RateLimiter($storage, $rootPath . '/var/tmp/ratelimit');
-        $ipSaltService = self::buildIpSaltService($storage, $rootPath);
+        $context->rateLimiter = new RateLimiter($storage, $lockRunner, $writer, $rootPath . '/var/tmp/ratelimit');
+        $ipSaltService = self::buildIpSaltService($storage, $lockRunner, $writer, $rootPath);
         $context->ipHashService = new IpHashService($ipSaltService->resolveSalt());
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
@@ -54,10 +58,10 @@ final class AppContext
 
     private static function buildIpSaltService(
         FileStorage $storage,
+        RuntimeLockRunner $lockRunner,
+        RuntimeAtomicWriter $writer,
         string $rootPath
     ): IpSaltService {
-        $lockRunner = new RuntimeLockRunner($rootPath . '/var/state/locks');
-        $writer = new RuntimeAtomicWriter();
         return new IpSaltService(
             $storage,
             $lockRunner,

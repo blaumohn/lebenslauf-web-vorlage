@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\RateLimiter;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +26,9 @@ final class RateLimiterTest extends TestCase
     public function testAllowsWithinWindow(): void
     {
         $storage = new FileStorage();
-        $limiter = new RateLimiter($storage, $this->tempDir);
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $limiter = new RateLimiter($storage, $lockRunner, $writer, $this->tempDir);
 
         $this->assertTrue($limiter->allow('key', 2, 60));
         $this->assertTrue($limiter->allow('key', 2, 60));
