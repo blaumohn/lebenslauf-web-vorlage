@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Security;
+namespace App\Http\Runtime;
 
 final class RuntimeAtomicWriter
 {

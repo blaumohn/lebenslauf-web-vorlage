@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;
-use App\Http\Security\RuntimeAtomicWriter;
-use App\Http\Security\RuntimeLockRunner;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use PipelineConfigSpec\PipelineConfigService;
 use App\Http\AppBuilder;

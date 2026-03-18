@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Security;
+namespace App\Http\Runtime;
 
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\FlockStore;

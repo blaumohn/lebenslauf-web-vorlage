@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Security\RuntimeLockRunner;
+use App\Http\Runtime\RuntimeLockRunner;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\FlockStore;
