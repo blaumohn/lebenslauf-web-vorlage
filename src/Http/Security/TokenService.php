@@ -2,16 +2,26 @@
 
 namespace App\Http\Security;
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 
 final class TokenService
 {
     private FileStorage $storage;
+    private RuntimeLockRunner $lockRunner;
+    private RuntimeAtomicWriter $writer;
     private string $dir;
 
-    public function __construct(FileStorage $storage, string $dir)
-    {
+    public function __construct(
+        FileStorage $storage,
+        RuntimeLockRunner $lockRunner,
+        RuntimeAtomicWriter $writer,
+        string $dir
+    ) {
         $this->storage = $storage;
+        $this->lockRunner = $lockRunner;
+        $this->writer = $writer;
         $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
         $this->storage->ensureDir($this->dir);
     }
@@ -40,10 +50,8 @@ final class TokenService
 
     public function rotate(string $profile, array $plainTokens): void
     {
-        $hashes = array_map(fn ($token) => $this->hashToken($token), $plainTokens);
-        $content = implode("\n", $hashes) . "\n";
-        $path = $this->tokenPath($profile);
-        $this->storage->writeText($path, $content);
+        $locked = fn() => $this->rotateLocked($profile, $plainTokens);
+        $this->lockRunner->runWithLock('token_' . $profile, $locked);
     }
 
     public function generateTokens(int $count): array
@@ -65,6 +73,13 @@ final class TokenService
 
         $lines = array_filter(array_map('trim', explode("\n", $content)));
         return array_values(array_unique($lines));
+    }
+
+    private function rotateLocked(string $profile, array $plainTokens): void
+    {
+        $hashes = array_map(fn ($token) => $this->hashToken($token), $plainTokens);
+        $content = implode("\n", $hashes) . "\n";
+        $this->writer->writeText($this->tokenPath($profile), $content);
     }
 
     private function tokenPath(string $profile): string

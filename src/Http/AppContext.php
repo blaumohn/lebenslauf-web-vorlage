@@ -39,7 +39,7 @@ final class AppContext
         $context->twig = TwigFactory::create($rootPath . '/src/resources/templates');
         TwigFactory::configure($context->twig, $config->basePath());
         $context->cvStorage = new CvStorage($storage, $rootPath . '/var/cache/html');
-        $context->tokenService = new TokenService($storage, $rootPath . '/var/state/tokens');
+        $context->tokenService = new TokenService($storage, $lockRunner, $writer, $rootPath . '/var/state/tokens');
         $context->captchaService = new CaptchaService(
             $storage,
             $lockRunner,
