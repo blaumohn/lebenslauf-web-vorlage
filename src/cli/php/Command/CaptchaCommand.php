@@ -5,6 +5,8 @@ namespace App\Cli\Command;
 use App\Cli\ConfigValues;
 use PipelineConfigSpec\PipelineConfigService;
 use App\Http\Captcha\CaptchaService;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -68,11 +70,15 @@ final class CaptchaCommand extends BaseCommand
 
     private function buildCaptchaService(ConfigValues $config): CaptchaService
     {
+        $rootPath = $this->rootPath();
         $storage = new FileStorage();
-        $path = Path::join($this->rootPath(), 'var', 'tmp', 'captcha');
+        $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
+        $writer = new RuntimeAtomicWriter();
         return new CaptchaService(
             $storage,
-            $path,
+            $lockRunner,
+            $writer,
+            Path::join($rootPath, 'var', 'tmp', 'captcha'),
             $config->getInt('CAPTCHA_TTL_SECONDS', 600)
         );
     }

@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Security\IpSaltRuntime;
-use App\Http\Security\RuntimeAtomicWriter;
-use App\Http\Security\RuntimeLockRunner;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
 

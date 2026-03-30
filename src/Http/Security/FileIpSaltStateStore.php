@@ -2,6 +2,7 @@
 
 namespace App\Http\Security;
 
+use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Storage\FileStorage;
 
 final class FileIpSaltStateStore implements IpSaltStateStore

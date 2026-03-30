@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;
-use App\Http\Security\RuntimeAtomicWriter;
-use App\Http\Security\RuntimeLockRunner;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use PipelineConfigSpec\PipelineConfigService;
 use App\Http\AppBuilder;
@@ -62,6 +62,33 @@ abstract class FeatureTestCase extends TestCase
         $salt = $ipSaltService->resolveSalt();
         $ipHashService = new IpHashService($salt);
         return $ipHashService->hashIp($ip);
+    }
+
+    protected function buildTokenService(): \App\Http\Security\TokenService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Security\TokenService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/state/tokens'
+        );
+    }
+
+    protected function buildCaptchaService(): \App\Http\Captcha\CaptchaService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Captcha\CaptchaService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/tmp/captcha',
+            600
+        );
     }
 
     private function configSourceDir(): string

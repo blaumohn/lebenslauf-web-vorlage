@@ -3,8 +3,8 @@
 namespace App\Cli\Command;
 
 use App\Http\Security\IpSaltService;
-use App\Http\Security\RuntimeAtomicWriter;
-use App\Http\Security\RuntimeLockRunner;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
