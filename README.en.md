@@ -5,6 +5,7 @@
 PHP template for a CV site on shared hosting: public view with redacted
 contact details, token-gated private access, build and deployment
 workflow included.
+It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) template for content and i18n and extends it with today’s dynamic PHP layer.
 [Full documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/)
 
 ## Setup

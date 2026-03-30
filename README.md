@@ -5,6 +5,7 @@ Deutsch | [English](README.en.md)
 PHP-Vorlage für eine Lebenslauf-Site auf Shared-Hosting: öffentliche
 Ansicht mit geschwärzten Kontaktdaten, privater Zugang per Token,
 Build- und Deployment-Ablauf inklusive.
+Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) für Inhalt und i18n auf und ergänzt sie um den heutigen dynamischen PHP-Bereich.
 [Vollständige Dokumentation → docs.template.ysdani.com](https://docs.template.ysdani.com/de/)
 
 ## Einrichten
