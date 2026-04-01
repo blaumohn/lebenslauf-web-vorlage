@@ -1,8 +1,11 @@
-APP_BASE_PATH: ""
+app:
+  APP_BASE_PATH: ""
+  APP_URL: https://preview.beispiel.de
 
-LEBENSLAUF_DATEN_PFAD: src/resources/fixtures/lebenslauf
-LEBENSLAUF_YAML_PFAD: ""
-LEBENSLAUF_JSON_PFAD: var/tmp/lebenslauf.preview.json
-LEBENSLAUF_PUBLIC_PROFILE: gueltig
-LEBENSLAUF_LANG_DEFAULT: de
-LEBENSLAUF_LANGS: "de,en"
+lebenslauf:
+  LEBENSLAUF_DATEN_PFAD: tests/fixtures/lebenslauf
+  LEBENSLAUF_YAML_PFAD: ""
+  LEBENSLAUF_JSON_PFAD: var/tmp/lebenslauf.preview.json
+  LEBENSLAUF_PUBLIC_PROFILE: gueltig
+  LEBENSLAUF_LANG_DEFAULT: de
+  LEBENSLAUF_LANGS: "de,en"

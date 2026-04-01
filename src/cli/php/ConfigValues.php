@@ -71,7 +71,7 @@ final class ConfigValues
 
     public function basePath(): string
     {
-        $value = trim((string) $this->get('APP_BASE_PATH', ''));
+        $value = trim((string) $this->get('APP_BASE_PATH'));
         if ($value === '' || $value === '/') {
             return '';
         }

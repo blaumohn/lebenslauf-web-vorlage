@@ -63,7 +63,7 @@ Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 Relevante Config-Werte (Runtime/Build):
 - `LEBENSLAUF_PUBLIC_PROFILE` (Build)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (Runtime)
-- `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` (Runtime)
+- `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (Runtime)
 
 ## Build (YAML -> JSON -> HTML)
 
@@ -92,7 +92,6 @@ Beispiele:
 - `php bin/cli build dev cv`
 - `php bin/cli run dev`
 - `php bin/cli python dev --add-path . tests/py/smoke.py`
-- `php bin/cli ip-hash reset`
 
 ## Python-Runner
 

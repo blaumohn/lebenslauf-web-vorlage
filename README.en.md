@@ -114,7 +114,7 @@ files are built.
 Relevant config keys:
 - `LEBENSLAUF_PUBLIC_PROFILE` (build)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
-- `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` (runtime)
+- `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (runtime)
 
 Details on environments and variables: `docs/ENVIRONMENTS.md`.
 Deployments use `var/config/config.php` as the compiled runtime config
@@ -171,14 +171,9 @@ composer run test
 composer run tests:smoke
 ```
 
-<<<<<<< HEAD
-The smoke test clones the repo into a temporary directory, installs dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
-Mock data comes from `src/resources/fixtures/lebenslauf/daten-gueltig.yaml`.
-=======
 The smoke test clones the repo into a temporary directory, installs
 dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
 Mock data comes from `tests/fixtures/lebenslauf/daten-gueltig.yaml`.
->>>>>>> dev
 
 Optional environment variables:
 - `CLONE_SOURCE` sets a local source or Git URL (default: local repo).
