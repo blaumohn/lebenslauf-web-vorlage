@@ -24,7 +24,7 @@ final class AppBuilder
 
         $app->addRoutingMiddleware();
 
-        $isDev = strtolower((string) $config->get('PIPELINE', '')) === 'dev';
+        $isDev = strtolower((string) $config->get('PIPELINE')) === 'dev';
         $errorMiddleware = $app->addErrorMiddleware($isDev, true, true);
         $errorMiddleware->setDefaultErrorHandler(new ErrorHandler($context));
 
