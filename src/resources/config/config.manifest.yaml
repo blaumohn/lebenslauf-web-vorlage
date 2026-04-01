@@ -97,12 +97,12 @@ variables:
         example: "tls"
     SMTP_FROM_EMAIL:
       meta:
-        desc: "Absenderadresse für SMTP"
+        desc: "From-Adresse der App für ausgehende E-Mails (überschreibt CONTACT_FROM_EMAIL)"
         example: "kontakt@example.invalid"
     SMTP_FROM_NAME:
       meta:
-        desc: "Absendername für SMTP"
-        example: "Beispiel"
+        desc: "From-Name der App für ausgehende E-Mails"
+        example: "Vorname Nachname"
 
   security:
     IP_SALT:
