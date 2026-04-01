@@ -20,7 +20,6 @@ captcha:
 contact:
   CONTACT_MAX_POST: 10
   CONTACT_TO_EMAIL: kontakt@beispiel.de
-  CONTACT_FROM_EMAIL: web@beispiel.de
 
 rate_limit:
   RATE_LIMIT_WINDOW_SECONDS: 600

@@ -62,7 +62,7 @@ final class MailService
         $mailer = new PHPMailer(true);
         $this->configureSmtp($mailer);
 
-        $fromEmail = $this->resolveFromEmail($to);
+        $fromEmail = $this->config->requireString('SMTP_FROM_EMAIL');
         $fromName = $this->config->requireString('SMTP_FROM_NAME');
         $mailer->setFrom($fromEmail, $fromName);
         $mailer->addAddress($to);
@@ -86,13 +86,5 @@ final class MailService
         $mailer->Username = (string) $this->config->get('SMTP_USER');
         $mailer->Password = (string) $this->config->get('SMTP_PASS');
         $mailer->SMTPSecure = (string) $this->config->get('SMTP_ENCRYPTION');
-    }
-
-    private function resolveFromEmail(string $recipient): string
-    {
-        $fromEmail = (string) $this->config->get('CONTACT_FROM_EMAIL');
-        $fromEmail = $fromEmail !== '' ? $fromEmail : $recipient;
-        $configuredFromEmail = (string) $this->config->get('SMTP_FROM_EMAIL');
-        return $configuredFromEmail !== '' ? $configuredFromEmail : $fromEmail;
     }
 }

@@ -61,10 +61,6 @@ variables:
       meta:
         desc: "Empfängeradresse für Kontaktformular"
         example: "kontakt@example.invalid"
-    CONTACT_FROM_EMAIL:
-      meta:
-        desc: "Absenderadresse für Kontaktformular"
-        example: "web@example.invalid"
 
   rate_limit:
     RATE_LIMIT_WINDOW_SECONDS:
@@ -97,12 +93,12 @@ variables:
         example: "tls"
     SMTP_FROM_EMAIL:
       meta:
-        desc: "From-Adresse der App für ausgehende E-Mails (überschreibt CONTACT_FROM_EMAIL)"
+        desc: "Absenderadresse der App für ausgehende E-Mails"
         example: "kontakt@example.invalid"
     SMTP_FROM_NAME:
       meta:
-        desc: "From-Name der App für ausgehende E-Mails"
-        example: "Vorname Nachname"
+        desc: "Absendername der App für ausgehende E-Mails"
+        example: "Lebenslauf"
 
   security:
     IP_SALT:
