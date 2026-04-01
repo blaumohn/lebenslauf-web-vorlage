@@ -1,8 +1,4 @@
 variables:
-  pipeline_phase:
-    PIPELINE: {}
-    PHASE: {}
-
   app:
     APP_BASE_PATH:
       meta:
