@@ -1,5 +1,5 @@
 variables:
-  context:
+  pipeline_phase:
     PIPELINE: {}
     PHASE: {}
 
@@ -64,31 +64,45 @@ variables:
 pipelines:
   common:
     setup:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, tooling, tests]
+      lebenslauf:
+        - LEBENSLAUF_PUBLIC_PROFILE
+      tooling: "*"
+      tests: "*"
     python:
-      required: [PIPELINE, PHASE]
-      allowed: [context, tooling]
+      tooling: "*"
     build:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, captcha, contact, rate_limit, mail, security, tooling, tests]
+      app:
+        - APP_BASE_PATH
+        - APP_URL
+      lebenslauf: "*"
+      captcha: "*"
+      contact: "*"
+      rate_limit: "*"
+      mail: "*"
+      security:
+        - IP_SALT
+      tooling: "*"
+      tests: "*"
     runtime:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, captcha, contact, rate_limit, mail, security]
+      app:
+        - APP_BASE_PATH
+        - TRUST_PROXY
+      lebenslauf:
+        - LEBENSLAUF_LANG_DEFAULT
+        - LEBENSLAUF_LANGS
+      captcha: "*"
+      contact: "*"
+      rate_limit: "*"
+      mail: "*"
+      security:
+        - IP_SALT
     deploy:
-      required: [PIPELINE, PHASE]
-      allowed: [context, deploy]
+      deploy: "*"
 
   dev:
-    setup:
-      required: []
-      allowed: []
-    runtime:
-      required:
-        - IP_SALT
-        - CAPTCHA_MAX_GET
-        - CONTACT_MAX_POST
-        - RATE_LIMIT_WINDOW_SECONDS
-        - MAIL_STDOUT
-        - SMTP_FROM_NAME
-      allowed: []
+    setup: {}
+    runtime: {}
+
+  preview:
+    deploy:
+      deploy: "*"

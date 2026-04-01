@@ -20,6 +20,7 @@ abstract class FeatureTestCase extends TestCase
             $this->configSourceDir(),
             $this->root . '/src/resources/config'
         );
+        $this->copyLocalConfig();
         $this->copyDir($this->projectRoot() . '/src/resources/templates', $this->root . '/src/resources/templates');
         $this->copyFile(
             $this->projectRoot() . '/src/resources/build/labels.json',
@@ -54,6 +55,17 @@ abstract class FeatureTestCase extends TestCase
     private function configSourceDir(): string
     {
         return $this->projectRoot() . '/src/resources/config';
+    }
+
+    private function copyLocalConfig(): void
+    {
+        $source = $this->projectRoot() . '/.local';
+        if (!is_dir($source)) {
+            return;
+        }
+        foreach (glob($source . '/*.yaml') ?: [] as $file) {
+            $this->copyFile($file, $this->root . '/.local/' . basename($file));
+        }
     }
 
     private function ensureDirs(array $dirs): void
