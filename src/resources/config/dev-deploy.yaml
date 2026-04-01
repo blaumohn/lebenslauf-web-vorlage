@@ -1,5 +1,6 @@
-FTP_SERVER_DIR: /home/preview/public
-FTP_PORT: 21
-FTP_HOST: ftp.beispiel.de
-FTP_USER: deploy
-FTP_PASS: secret
+deploy:
+  FTP_SERVER_DIR: /home/preview/public
+  FTP_PORT: 21
+  FTP_HOST: ftp.beispiel.de
+  FTP_USER: deploy
+  FTP_PASS: secret

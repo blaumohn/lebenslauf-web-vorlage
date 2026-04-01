@@ -1,24 +1,31 @@
-APP_BASE_PATH: ""
-TRUST_PROXY: 0
+app:
+  APP_BASE_PATH: ""
+  TRUST_PROXY: 0
 
-LEBENSLAUF_LANG_DEFAULT: de
-LEBENSLAUF_LANGS: "de,en"
+lebenslauf:
+  LEBENSLAUF_LANG_DEFAULT: de
+  LEBENSLAUF_LANGS: "de,en"
 
-IP_SALT: change-me
+security:
+  IP_SALT: change-me
 
-CAPTCHA_TTL_SECONDS: 600
-CAPTCHA_MAX_GET: 5
+captcha:
+  CAPTCHA_TTL_SECONDS: 600
+  CAPTCHA_MAX_GET: 5
 
-CONTACT_MAX_POST: 3
-CONTACT_TO_EMAIL: kontakt@beispiel.de
-CONTACT_FROM_EMAIL: web@beispiel.de
+contact:
+  CONTACT_MAX_POST: 3
+  CONTACT_TO_EMAIL: kontakt@beispiel.de
+  CONTACT_FROM_EMAIL: web@beispiel.de
 
-RATE_LIMIT_WINDOW_SECONDS: 600
+rate_limit:
+  RATE_LIMIT_WINDOW_SECONDS: 600
 
-MAIL_STDOUT: 1
-SMTP_HOST: smtp.beispiel.de
-SMTP_PORT: 587
-SMTP_USER: user
-SMTP_ENCRYPTION: tls
-SMTP_FROM_EMAIL: kontakt@beispiel.de
-SMTP_FROM_NAME: Lebenslauf
+mail:
+  MAIL_STDOUT: 1
+  SMTP_HOST: smtp.beispiel.de
+  SMTP_PORT: 587
+  SMTP_USER: user
+  SMTP_ENCRYPTION: tls
+  SMTP_FROM_EMAIL: kontakt@beispiel.de
+  SMTP_FROM_NAME: Lebenslauf
