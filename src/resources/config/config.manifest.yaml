@@ -4,8 +4,17 @@ variables:
     PHASE: {}
 
   app:
-    APP_BASE_PATH: {}
-    APP_URL: {}
+    APP_BASE_PATH:
+      meta:
+        desc: "URL-Basis-Pfad der Anwendung (Routing)"
+        notes: >-
+          Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
+          https://domain.tld/public
+        example: "/public"
+    APP_URL:
+      meta:
+        desc: "Basis-URL der Anwendung"
+        example: "https://example.invalid"
     TRUST_PROXY: {}
 
   lebenslauf:
@@ -22,26 +31,47 @@ variables:
 
   contact:
     CONTACT_MAX_POST: {}
-    CONTACT_TO_EMAIL: {}
-    CONTACT_FROM_EMAIL: {}
+    CONTACT_TO_EMAIL:
+      meta:
+        desc: "Empfängeradresse für Kontaktformular"
+        example: "kontakt@example.invalid"
+    CONTACT_FROM_EMAIL:
+      meta:
+        desc: "Absenderadresse für Kontaktformular"
+        example: "web@example.invalid"
 
   rate_limit:
     RATE_LIMIT_WINDOW_SECONDS: {}
 
   mail:
     MAIL_STDOUT: {}
-    SMTP_HOST: {}
+    SMTP_HOST:
+      meta:
+        desc: "SMTP-Host"
+        example: "smtp.example.invalid"
     SMTP_PORT: {}
-    SMTP_USER: {}
+    SMTP_USER:
+      meta:
+        desc: "SMTP-Benutzername"
+        example: "user"
     SMTP_PASS:
       sources: [system, local]
     SMTP_ENCRYPTION: {}
-    SMTP_FROM_EMAIL: {}
-    SMTP_FROM_NAME: {}
+    SMTP_FROM_EMAIL:
+      meta:
+        desc: "Absenderadresse für SMTP"
+        example: "kontakt@example.invalid"
+    SMTP_FROM_NAME:
+      meta:
+        desc: "Absendername für SMTP"
+        example: "Beispiel"
 
   security:
     IP_SALT:
       sources: [system, local, file]
+      meta:
+        desc: "Salt für IP-Hashing"
+        example: "change-me"
 
   deploy:
     FTP_SERVER_DIR: {}
