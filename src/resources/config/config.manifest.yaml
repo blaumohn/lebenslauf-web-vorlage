@@ -138,7 +138,6 @@ variables:
 
 pipelines:
   common:
-    setup: {}
     python:
       tooling: "*"
     build:
@@ -157,17 +156,7 @@ pipelines:
       contact: "*"
       rate_limit: "*"
       mail: "*"
-    deploy: {}
-
-  dev:
-    setup: {}
-    build: {}
-    python: {}
-    runtime: {}
 
   preview:
-    setup: {}
-    build: {}
-    runtime: {}
     deploy:
       deploy: "*"
