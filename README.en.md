@@ -45,7 +45,8 @@ If no `.local/dev-runtime.yaml` exists, copy the fixture from
 Note: `setup` creates `.venv` unless `--skip-python` is used.
 The sample seed uses the fixed fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
-`.local/lebenslauf/daten-sample.yaml`.
+`.local/lebenslauf/daten-sample.yaml`. If that target already exists, setup
+fails explicitly instead of overwriting local data.
 
 ## More docs
 
@@ -182,7 +183,8 @@ composer run tests:smoke
 
 The smoke test clones the repo into a temporary directory, installs
 dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
-Mock data comes from `tests/fixtures/lebenslauf/daten-gueltig.yaml`.
+Mock data for the setup seed comes from
+`src/resources/fixtures/lebenslauf/daten-gueltig.yaml`.
 
 Optional environment variables:
 - `CLONE_SOURCE` sets a local source or Git URL (default: local repo).
