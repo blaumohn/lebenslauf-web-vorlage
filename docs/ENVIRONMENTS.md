@@ -27,8 +27,9 @@ Beispiel: `src/resources/config/dev-build.yaml`, `.local/dev-runtime.yaml`.
 ## Regeln
 
 - `src/resources/config/config.manifest.yaml` definiert `variables` (Bereiche + Quellen) und `pipelines`.
-- Phasenlisten referenzieren Gruppen aus `variables` direkt per
-  `pipelines.<pipeline>.<phase>.<group>`.
+- `pipelines.global` traegt phasenunabhaengige Gruppen-Referenzen.
+- `pipelines.common.<phase>` traegt die phasenweite Schnittmenge.
+- `pipelines.<pipeline>.<phase>` traegt nur pipeline-spezifische Differenzen.
 - `sources` im Manifest erzwingt, aus welchen Quellen Variablen kommen duerfen (z. B. nur `system` oder `local`).
 - Build erzeugt `var/config/config.php` als aufgeloeste Runtime-Konfiguration.
 - Runtime liest nur `var/config/config.php` (kein `getenv()/putenv()`).

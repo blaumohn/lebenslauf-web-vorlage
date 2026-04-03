@@ -137,6 +137,8 @@ variables:
         example: "0"
 
 pipelines:
+  global: {}
+
   common:
     setup: {}
     python:
@@ -157,9 +159,17 @@ pipelines:
       contact: "*"
       rate_limit: "*"
       mail: "*"
-    deploy:
-      deploy: "*"
+    deploy: {}
 
   dev:
     setup: {}
+    build: {}
+    python: {}
     runtime: {}
+
+  preview:
+    setup: {}
+    build: {}
+    runtime: {}
+    deploy:
+      deploy: "*"
