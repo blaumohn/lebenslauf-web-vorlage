@@ -27,7 +27,8 @@ Beispiel: `src/resources/config/dev-build.yaml`, `.local/dev-runtime.yaml`.
 ## Regeln
 
 - `src/resources/config/config.manifest.yaml` definiert `variables` (Bereiche + Quellen) und `pipelines`.
-- `allowed` kann Gruppen aus `variables` oder einzelne Keys enthalten.
+- Phasenlisten referenzieren Gruppen aus `variables` direkt per
+  `pipelines.<pipeline>.<phase>.<group>`.
 - `sources` im Manifest erzwingt, aus welchen Quellen Variablen kommen duerfen (z. B. nur `system` oder `local`).
 - Build erzeugt `var/config/config.php` als aufgeloeste Runtime-Konfiguration.
 - Runtime liest nur `var/config/config.php` (kein `getenv()/putenv()`).
@@ -56,6 +57,8 @@ Beispiele:
 - `.local/` ist nicht versioniert und ueberschreibt jeweils `src/resources/config/`.
 - CI/CD kann Werte per `.local/<PIPELINE>-<PHASE>.yaml` bereitstellen oder ueberschreiben.
 - Required-Keys sollten in `src/resources/config/` liegen; `.local/` ist nur fuer Overrides/Secrets gedacht.
+- `setup --copy-sample-content` kopiert nur die feste Fixture nach
+  `.local/lebenslauf/daten-sample.yaml` und nutzt keinen Build-Parameter.
 
 ## IP_SALT Laufzeitverwaltung
 

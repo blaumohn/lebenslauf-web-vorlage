@@ -3,6 +3,7 @@
 namespace App\Cli\Command;
 
 use App\Cli\PythonResolver;
+use App\Cli\Setup\SampleContentCopier;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +20,7 @@ final class SetupCommand extends BaseCommand
     protected function configure(): void
     {
         $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addOption('reset-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalte nach .local kopieren')
+            ->addOption('copy-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt einmalig nach .local kopieren')
             ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
@@ -32,9 +33,8 @@ final class SetupCommand extends BaseCommand
             return Command::FAILURE;
         }
         $configValues = $this->resolveSetupConfigValues($pipeline, $output);
-        if ($input->getOption('reset-sample-content')) {
-            $profile = $this->resolveDefaultProfile($configValues);
-            if (!$this->resetSampleContent($profile)) {
+        if ($input->getOption('copy-sample-content')) {
+            if (!$this->copySampleContent($output)) {
                 return Command::FAILURE;
             }
         }
@@ -54,48 +54,16 @@ final class SetupCommand extends BaseCommand
         return Command::SUCCESS;
     }
 
-    private function resetSampleContent(string $profile): bool
+    private function copySampleContent(OutputInterface $output): bool
     {
-        $target = $this->demoTargetPath($profile);
-        $source = $this->demoSourcePath();
-        $this->copyFile($source, $target);
+        try {
+            $target = $this->sampleContentCopier()->copy();
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return false;
+        }
+        $output->writeln('<info>Sample-Inhalt kopiert: ' . $target . '</info>');
         return true;
-    }
-
-    private function resolveDefaultProfile(array $configValues): string
-    {
-        $value = trim((string) ($configValues['LEBENSLAUF_PUBLIC_PROFILE'] ?? ''));
-        return $value !== '' ? $value : 'default';
-    }
-
-    private function demoSourcePath(): string
-    {
-        return Path::join(
-            $this->rootPath(),
-            'src',
-            'resources',
-            'fixtures',
-            'lebenslauf',
-            'daten-gueltig.yaml'
-        );
-    }
-
-    private function demoTargetPath(string $profile): string
-    {
-        $filename = 'daten-' . $profile . '.yaml';
-        return Path::join($this->rootPath(), '.local', 'lebenslauf', $filename);
-    }
-
-    private function copyFile(string $source, string $target): void
-    {
-        if (!is_file($source)) {
-            throw new \RuntimeException("Datei fehlt: {$source}");
-        }
-        $dir = dirname($target);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
-        }
-        copy($source, $target);
     }
 
     private function ensureVenv(PythonResolver $resolver, InputInterface $input, OutputInterface $output): bool
@@ -126,6 +94,11 @@ final class SetupCommand extends BaseCommand
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return [];
         }
+    }
+
+    private function sampleContentCopier(): SampleContentCopier
+    {
+        return new SampleContentCopier($this->rootPath());
     }
 
     private function installPythonDeps(InputInterface $input, OutputInterface $output): bool

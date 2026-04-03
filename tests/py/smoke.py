@@ -36,7 +36,7 @@ class SmokeTests(unittest.TestCase):
         shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
     def test_smoke_create_templates(self):
-        """setup --reset-sample-content -> tests -> dev-server -> /cv check."""
+        """setup --copy-sample-content -> tests -> dev-server -> /cv check."""
         self.run_setup(create_templates=True)
 
         run(["php", "bin/cli", "build", "dev", "cv"], cwd=self.clone_path)
@@ -83,7 +83,7 @@ class SmokeTests(unittest.TestCase):
     def run_setup(self, create_templates=False):
         cmd = ["php", "bin/cli", "setup", "dev"]
         if create_templates:
-            cmd.append("--reset-sample-content")
+            cmd.append("--copy-sample-content")
         cmd.extend(self.setup_cache_args())
         run(cmd, cwd=self.clone_path)
 

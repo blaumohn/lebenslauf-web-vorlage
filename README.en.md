@@ -23,6 +23,12 @@ php bin/cli setup dev
 php bin/cli run dev
 ```
 
+Optional sample seed without overwriting existing content:
+
+```bash
+php bin/cli setup dev --copy-sample-content
+```
+
 `run` compiles the runtime config to `var/config/config.php`.
 
 Create `.local/dev-runtime.yaml` before the first run
@@ -37,6 +43,9 @@ If no `.local/dev-runtime.yaml` exists, copy the fixture from
 `php bin/cli setup` runs `npm install`.
 `php bin/cli run` starts the Python dev runner (option: `--build`).
 Note: `setup` creates `.venv` unless `--skip-python` is used.
+The sample seed uses the fixed fixture
+`src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
+`.local/lebenslauf/daten-sample.yaml`.
 
 ## More docs
 

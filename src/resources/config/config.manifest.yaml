@@ -138,9 +138,7 @@ variables:
 
 pipelines:
   common:
-    setup:
-      lebenslauf:
-        - LEBENSLAUF_PUBLIC_PROFILE
+    setup: {}
     python:
       tooling: "*"
     build:
