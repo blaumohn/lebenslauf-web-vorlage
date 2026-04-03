@@ -27,7 +27,6 @@ Beispiel: `src/resources/config/dev-build.yaml`, `.local/dev-runtime.yaml`.
 ## Regeln
 
 - `src/resources/config/config.manifest.yaml` definiert `variables` (Bereiche + Quellen) und `pipelines`.
-- `pipelines.global` traegt phasenunabhaengige Gruppen-Referenzen.
 - `pipelines.common.<phase>` traegt die phasenweite Schnittmenge.
 - `pipelines.<pipeline>.<phase>` traegt nur pipeline-spezifische Differenzen.
 - `sources` im Manifest erzwingt, aus welchen Quellen Variablen kommen duerfen (z. B. nur `system` oder `local`).

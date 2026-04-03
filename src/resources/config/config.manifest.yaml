@@ -137,8 +137,6 @@ variables:
         example: "0"
 
 pipelines:
-  global: {}
-
   common:
     setup: {}
     python:
