@@ -65,6 +65,8 @@ Beispiele:
   beschrieben; es gibt keine zusaetzliche `required`-/`policy`-Logik.
 - Fachliche Abhaengigkeiten wie `MAIL_STDOUT` versus `SMTP_*` werden in
   `meta.notes` dokumentiert statt im Manifest gesondert ausgewertet.
+- Im aktuellen Zielstand bleibt `MAIL_STDOUT` in `common/runtime`; `SMTP_*`
+  gehoert nur noch zu `preview/runtime`.
 - `setup --copy-sample-content` kopiert nur die feste Fixture nach
   `.local/lebenslauf/daten-sample.yaml` und nutzt keinen Build-Parameter.
 

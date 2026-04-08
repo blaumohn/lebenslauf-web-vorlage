@@ -92,9 +92,9 @@ variable-groups:
         meta:
           desc: "E-Mail-Ausgabe auf stdout statt SMTP (1 = aktiv, für Entwicklung)"
           notes: >-
-            Standardfall in dev und preview. Wenn echter SMTP-Versand gewünscht
-            ist, MAIL_STDOUT deaktivieren und die benötigten SMTP_*-Werte
-            passend setzen.
+            Gemeinsamer Runtime-Schalter für den stdout-Pfad. In dev ist dies
+            aktuell der einzige Mail-Key; preview kann zusätzlich SMTP_*-Werte
+            für echten SMTP-Betrieb führen.
           example: "1"
       - key: SMTP_HOST
         meta:
@@ -212,9 +212,20 @@ pipelines:
       - group-key: rate_limit
         select: "*"
       - group-key: mail
-        select: "*"
+        variables:
+          - key: MAIL_STDOUT
 
   preview:
+    runtime:
+      - group-key: mail
+        variables:
+          - key: SMTP_HOST
+          - key: SMTP_PORT
+          - key: SMTP_USER
+          - key: SMTP_PASS
+          - key: SMTP_ENCRYPTION
+          - key: SMTP_FROM_EMAIL
+          - key: SMTP_FROM_NAME
     deploy:
       - group-key: deploy
         select: "*"
