@@ -70,6 +70,9 @@ Relevante Config-Werte (Runtime/Build):
 - `LEBENSLAUF_PUBLIC_PROFILE` (Build)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (Runtime)
 - `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (Runtime)
+- `MAIL_STDOUT` steuert den Standardfall in dev/preview; `SMTP_*` bleibt
+  für echten SMTP-Betrieb verfügbar und ist über `meta.notes` im Manifest
+  fachlich beschrieben
 
 Der Setup-Sample-Pfad nutzt die feste Fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` und kopiert sie bei

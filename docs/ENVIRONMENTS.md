@@ -11,8 +11,9 @@ Dieses Dokument beschreibt die Config-Architektur mit Pipeline-Phase.
 ## Referenzen
 
 - Beispielwerte: im Manifest unter `meta.example` (keine aktiven Config-Dateien)
-- Zusatzhinweise: im Manifest unter `meta.notes`
-- Struktur/Regeln: `src/resources/config/config.manifest.yaml` (variables + pipelines)
+- Zusatzhinweise und Abhängigkeiten: im Manifest unter `meta.notes`
+- Struktur/Regeln: `src/resources/config/config.manifest.yaml`
+  (`variable-groups` + `pipelines`)
 
 ## Config-Ladereihenfolge
 
@@ -26,10 +27,14 @@ Beispiel: `src/resources/config/dev-build.yaml`, `.local/dev-runtime.yaml`.
 
 ## Regeln
 
-- `src/resources/config/config.manifest.yaml` definiert `variables` (Bereiche + Quellen) und `pipelines`.
+- `src/resources/config/config.manifest.yaml` definiert `variable-groups`
+  (Gruppen, Variablen, `meta`, `sources`) und `pipelines`.
 - `pipelines.common.<phase>` traegt die phasenweite Schnittmenge.
 - `pipelines.<pipeline>.<phase>` traegt nur pipeline-spezifische Differenzen.
-- `sources` im Manifest erzwingt, aus welchen Quellen Variablen kommen duerfen (z. B. nur `system` oder `local`).
+- Eine Gruppen-Referenz in einer Phase nutzt entweder `select: "*"` fuer
+  die ganze Gruppe oder `variables` fuer eine explizite Teilmenge.
+- `sources` im Manifest erzwingt, aus welchen Quellen Variablen kommen
+  duerfen (z. B. nur `system` oder `local`).
 - Build erzeugt `var/config/config.php` als aufgeloeste Runtime-Konfiguration.
 - Runtime liest nur `var/config/config.php` (kein `getenv()/putenv()`).
 - Kompilieren via `php bin/cli config compile <pipeline> --phase runtime` (Pipeline-Phase: `<pipeline>/runtime`).
@@ -56,7 +61,10 @@ Beispiele:
 
 - `.local/` ist nicht versioniert und ueberschreibt jeweils `src/resources/config/`.
 - CI/CD kann Werte per `.local/<PIPELINE>-<PHASE>.yaml` bereitstellen oder ueberschreiben.
-- Required-Keys sollten in `src/resources/config/` liegen; `.local/` ist nur fuer Overrides/Secrets gedacht.
+- Vollgruppen oder Teilmengen werden ueber `select: "*"` bzw. `variables`
+  beschrieben; es gibt keine zusaetzliche `required`-/`policy`-Logik.
+- Fachliche Abhaengigkeiten wie `MAIL_STDOUT` versus `SMTP_*` werden in
+  `meta.notes` dokumentiert statt im Manifest gesondert ausgewertet.
 - `setup --copy-sample-content` kopiert nur die feste Fixture nach
   `.local/lebenslauf/daten-sample.yaml` und nutzt keinen Build-Parameter.
 

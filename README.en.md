@@ -125,6 +125,9 @@ Relevant config keys:
 - `LEBENSLAUF_PUBLIC_PROFILE` (build)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
 - `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (runtime)
+- `MAIL_STDOUT` keeps the default dev/preview path on stdout; `SMTP_*`
+  stays available for real SMTP operation and is documented through
+  `meta.notes` in the manifest
 
 Details on environments and variables: `docs/ENVIRONMENTS.md`.
 Deployments use `var/config/config.php` as the compiled runtime config
