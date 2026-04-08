@@ -49,7 +49,7 @@ final class SampleContentCopierTest extends TestCase
     private function createRoot(): string
     {
         $suffix = '/sample-content-' . bin2hex(random_bytes(6));
-        $root = sys_get_temp_dir() . $suffix;
+        $root = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . $suffix;
         if (!@mkdir($root, 0775, true) && !is_dir($root)) {
             $root = dirname(__DIR__, 2) . '/var/tmp' . $suffix;
             if (!@mkdir($root, 0775, true) && !is_dir($root)) {
