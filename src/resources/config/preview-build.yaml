@@ -1,6 +1,5 @@
 app:
   APP_BASE_PATH: ""
-  APP_URL: https://preview.beispiel.de
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: tests/fixtures/lebenslauf

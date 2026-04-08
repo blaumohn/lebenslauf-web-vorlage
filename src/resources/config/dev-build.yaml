@@ -1,6 +1,5 @@
 app:
   APP_BASE_PATH: ""
-  APP_URL: https://beispiel.de
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: .local/lebenslauf

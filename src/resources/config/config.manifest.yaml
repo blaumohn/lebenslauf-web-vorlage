@@ -8,10 +8,6 @@ variable-groups:
             Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
             https://domain.tld/public
           example: "/public"
-      - key: APP_URL
-        meta:
-          desc: "Basis-URL der Anwendung"
-          example: "https://example.invalid"
       - key: TRUST_PROXY
         meta:
           desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
@@ -193,7 +189,6 @@ pipelines:
       - group-key: app
         variables:
           - key: APP_BASE_PATH
-          - key: APP_URL
       - group-key: lebenslauf
         select: "*"
     runtime:
