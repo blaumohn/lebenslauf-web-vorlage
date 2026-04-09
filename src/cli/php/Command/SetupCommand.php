@@ -34,7 +34,7 @@ final class SetupCommand extends BaseCommand
         }
         $configValues = $this->resolveSetupConfigValues($pipeline, $output);
         if ($input->getOption('copy-sample-content')) {
-            if (!$this->copySampleContent($output)) {
+            if (!$this->copySampleContent($configValues, $output)) {
                 return Command::FAILURE;
             }
         }
@@ -54,16 +54,26 @@ final class SetupCommand extends BaseCommand
         return Command::SUCCESS;
     }
 
-    private function copySampleContent(OutputInterface $output): bool
+    private function copySampleContent(array $configValues, OutputInterface $output): bool
     {
         try {
-            $target = $this->sampleContentCopier()->copy();
+            $profile = $this->requirePublicProfile($configValues);
+            $target = $this->sampleContentCopier()->copy($profile);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;
         }
         $output->writeln('<info>Sample-Inhalt kopiert: ' . $target . '</info>');
         return true;
+    }
+
+    private function requirePublicProfile(array $configValues): string
+    {
+        $profile = trim((string) ($configValues['LEBENSLAUF_PUBLIC_PROFILE'] ?? ''));
+        if ($profile === '') {
+            throw new \RuntimeException('LEBENSLAUF_PUBLIC_PROFILE fehlt fuer den Sample-Inhalt.');
+        }
+        return $profile;
     }
 
     private function ensureVenv(PythonResolver $resolver, InputInterface $input, OutputInterface $output): bool

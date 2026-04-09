@@ -26,9 +26,9 @@ final class SampleContentCopierTest extends TestCase
     {
         $copier = new SampleContentCopier($this->root);
 
-        $target = $copier->copy();
+        $target = $copier->copy('default');
 
-        self::assertSame($this->root . '/.local/lebenslauf/daten-sample.yaml', $target);
+        self::assertSame($this->root . '/.local/lebenslauf/daten-default.yaml', $target);
         self::assertFileExists($target);
         self::assertSame("titel: Beispiel\n", file_get_contents($target));
     }
@@ -36,14 +36,14 @@ final class SampleContentCopierTest extends TestCase
     public function testFailsWhenTargetAlreadyExists(): void
     {
         $copier = new SampleContentCopier($this->root);
-        $target = $copier->targetPath();
+        $target = $copier->targetPath('default');
         $this->ensureDir(dirname($target));
         file_put_contents($target, "titel: Echt\n");
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Sample-Ziel existiert bereits');
 
-        $copier->copy();
+        $copier->copy('default');
     }
 
     private function createRoot(): string

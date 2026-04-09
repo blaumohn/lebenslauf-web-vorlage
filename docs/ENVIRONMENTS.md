@@ -68,7 +68,11 @@ Beispiele:
 - Im aktuellen Zielstand bleibt `MAIL_STDOUT` in `common/runtime`; `SMTP_*`
   gehoert nur noch zu `preview/runtime`.
 - `setup --copy-sample-content` kopiert nur die feste Fixture nach
-  `.local/lebenslauf/daten-sample.yaml` und nutzt keinen Build-Parameter.
+  `.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`.
+- `LEBENSLAUF_PUBLIC_PROFILE` gehoert dafuer nicht in die gemeinsame
+  `setup`-Phase. Die Pipeline, die Sample-Seeding anbietet, muss den Key
+  fuer ihre `setup`-Phase im Manifest erlauben und einen Wert im
+  Pipeline-Spec liefern.
 
 ## IP_SALT Laufzeitverwaltung
 

@@ -45,8 +45,10 @@ If no `.local/dev-runtime.yaml` exists, copy the fixture from
 Note: `setup` creates `.venv` unless `--skip-python` is used.
 The sample seed uses the fixed fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
-`.local/lebenslauf/daten-sample.yaml`. If that target already exists, setup
-fails explicitly instead of overwriting local data.
+`.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`. The profile value
+must be allowed and set for the setup phase in the pipeline spec; in `dev`, the
+setup value comes from `src/resources/config/dev-setup.yaml`. If the target
+already exists, setup fails explicitly instead of overwriting local data.
 
 ## More docs
 
@@ -122,7 +124,7 @@ files are built.
 - Config rules live in `src/resources/config/config.manifest.yaml`.
 
 Relevant config keys:
-- `LEBENSLAUF_PUBLIC_PROFILE` (build)
+- `LEBENSLAUF_PUBLIC_PROFILE` (build; in `dev`, also setup seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
 - `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (runtime)
 - `MAIL_STDOUT` is the shared runtime switch; in `dev` this leaves only the

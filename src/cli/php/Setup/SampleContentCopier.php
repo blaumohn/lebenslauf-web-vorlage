@@ -13,10 +13,10 @@ final class SampleContentCopier
         $this->rootPath = rtrim($rootPath, DIRECTORY_SEPARATOR);
     }
 
-    public function copy(): string
+    public function copy(string $profile): string
     {
         $source = $this->sourcePath();
-        $target = $this->targetPath();
+        $target = $this->targetPath($profile);
         $this->assertSourceExists($source);
         $this->assertTargetMissing($target);
         $this->ensureTargetDir($target);
@@ -36,9 +36,17 @@ final class SampleContentCopier
         );
     }
 
-    public function targetPath(): string
+    public function targetPath(string $profile): string
     {
-        return Path::join($this->rootPath, '.local', 'lebenslauf', 'daten-sample.yaml');
+        $this->assertProfileName($profile);
+        return Path::join($this->rootPath, '.local', 'lebenslauf', "daten-{$profile}.yaml");
+    }
+
+    private function assertProfileName(string $profile): void
+    {
+        if (!preg_match('/^[A-Za-z0-9_.-]+$/', $profile)) {
+            throw new \RuntimeException("Profilname ist ungueltig: {$profile}");
+        }
     }
 
     private function assertSourceExists(string $source): void

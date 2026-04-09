@@ -198,7 +198,10 @@ phases:
   deploy: {}
 
 pipelines:
-  dev: {}
+  dev:
+    setup:
+      lebenslauf:
+        - LEBENSLAUF_PUBLIC_PROFILE
 
   preview:
     runtime:

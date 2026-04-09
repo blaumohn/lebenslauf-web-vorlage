@@ -66,8 +66,8 @@ Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 - Build-Ressourcen (Schemas/Labels/Assets) liegen unter
   `src/resources/build/`.
 
-Relevante Config-Werte (Runtime/Build):
-- `LEBENSLAUF_PUBLIC_PROFILE` (Build)
+Relevante Config-Werte:
+- `LEBENSLAUF_PUBLIC_PROFILE` (Build; in `dev` auch Setup-Seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (Runtime)
 - `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (Runtime)
 - `MAIL_STDOUT` ist der gemeinsame Runtime-Schalter; in `dev` bleibt damit
@@ -77,7 +77,10 @@ Relevante Config-Werte (Runtime/Build):
 
 Der Setup-Sample-Pfad nutzt die feste Fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` und kopiert sie bei
-Bedarf nach `.local/lebenslauf/daten-sample.yaml`.
+Bedarf nach `.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`.
+Der Profilwert muss in der Pipeline-Spec fuer die Setup-Phase erlaubt und
+gesetzt sein; in `dev` kommt er fuer Setup aus
+`src/resources/config/dev-setup.yaml`.
 
 ## Build (YAML -> JSON -> HTML)
 
