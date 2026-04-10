@@ -70,6 +70,14 @@ variable-groups:
           Bleibt unabhängig vom SMTP-Absenderpfad. Der Wert bestimmt das
           Ziel des Formulars, nicht den Absender der App.
         example: "kontakt@example.invalid"
+    MAIL_STDOUT:
+      meta:
+        desc: "Kontaktformular-Ausgabe auf stdout statt Transport (1 = aktiv, für Entwicklung)"
+        notes: >-
+          Kontaktformular-Runtime-Schalter fuer den stdout-Pfad. In dev ist
+          dies der Transportersatz; preview kann zusaetzlich SMTP_*-Werte fuer
+          echten SMTP-Betrieb fuehren.
+        example: "1"
 
   rate_limit:
     RATE_LIMIT_WINDOW_SECONDS:
@@ -77,15 +85,7 @@ variable-groups:
         desc: "Länge des Rate-Limit-Zeitfensters in Sekunden"
         example: "600"
 
-  mail:
-    MAIL_STDOUT:
-      meta:
-        desc: "E-Mail-Ausgabe auf stdout statt SMTP (1 = aktiv, für Entwicklung)"
-        notes: >-
-          Gemeinsamer Runtime-Schalter für den stdout-Pfad. In dev ist dies
-          aktuell der einzige Mail-Key; preview kann zusätzlich SMTP_*-Werte
-          für echten SMTP-Betrieb führen.
-        example: "1"
+  smtp:
     SMTP_HOST:
       meta:
         desc: "SMTP-Host"
@@ -192,8 +192,6 @@ phases:
     captcha: "*"
     contact: "*"
     rate_limit: "*"
-    mail:
-      - MAIL_STDOUT
 
   deploy: {}
 
@@ -205,13 +203,6 @@ pipelines:
 
   preview:
     runtime:
-      mail:
-        - SMTP_HOST
-        - SMTP_PORT
-        - SMTP_USER
-        - SMTP_PASS
-        - SMTP_ENCRYPTION
-        - SMTP_FROM_EMAIL
-        - SMTP_FROM_NAME
+      smtp: "*"
     deploy:
       ftp: "*"

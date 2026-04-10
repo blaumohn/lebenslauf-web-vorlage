@@ -13,9 +13,7 @@ captcha:
 contact:
   CONTACT_MAX_POST: 3
   CONTACT_TO_EMAIL: kontakt@beispiel.de
+  MAIL_STDOUT: 1
 
 rate_limit:
   RATE_LIMIT_WINDOW_SECONDS: 600
-
-mail:
-  MAIL_STDOUT: 1

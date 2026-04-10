@@ -63,10 +63,13 @@ Beispiele:
 - CI/CD kann Werte per `.local/<PIPELINE>-<PHASE>.yaml` bereitstellen oder ueberschreiben.
 - Vollgruppen oder Teilmengen werden ueber `select: "*"` bzw. `variables`
   beschrieben; es gibt keine zusaetzliche `required`-/`policy`-Logik.
-- Fachliche Abhaengigkeiten wie `MAIL_STDOUT` versus `SMTP_*` werden in
+- Fachliche Abhaengigkeiten wie Kontakt-stdout versus `SMTP_*` werden in
   `meta.notes` dokumentiert statt im Manifest gesondert ausgewertet.
-- Im aktuellen Zielstand bleibt `MAIL_STDOUT` in `common/runtime`; `SMTP_*`
-  gehoert nur noch zu `preview/runtime`.
+- `MAIL_STDOUT` gehoert zur Gruppe `contact`; `SMTP_*` gehoert zur Gruppe
+  `smtp` und nur noch zu `preview/runtime`.
+- `CONTACT_TO_EMAIL` wird als App-Config-Regel validiert, sobald der Key zur
+  Pipeline-Phase gehoert: Der Wert darf nicht leer sein und muss eine gueltige
+  E-Mail-Adresse sein.
 - `setup --copy-sample-content` kopiert nur die feste Fixture nach
   `.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`.
 - `LEBENSLAUF_PUBLIC_PROFILE` gehoert dafuer nicht in die gemeinsame

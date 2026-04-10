@@ -126,11 +126,10 @@ files are built.
 Relevant config keys:
 - `LEBENSLAUF_PUBLIC_PROFILE` (build; in `dev`, also setup seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
-- `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (runtime)
-- `MAIL_STDOUT` is the shared runtime switch; in `dev` this leaves only the
-  stdout path in the contract
-- `SMTP_*` belongs only to the `preview` runtime path in the current target
-  state and is documented through `meta.notes` in the manifest
+- `CONTACT_TO_EMAIL`, `MAIL_STDOUT` (contact runtime)
+- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, and other `SMTP_*` values
+  (only `preview` runtime, group `smtp`)
+- `CONTACT_TO_EMAIL` must be a valid email address in runtime phases.
 
 Details on environments and variables: `docs/ENVIRONMENTS.md`.
 Deployments use `var/config/config.php` as the compiled runtime config

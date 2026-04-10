@@ -2,6 +2,7 @@
 
 namespace App\Cli\Command;
 
+use App\Cli\Config\AppConfigValidator;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -142,7 +143,8 @@ final class ConfigCommand extends BaseCommand
     ): int {
         $context = $this->contextLabel($pipeline, $phase);
         try {
-            $pipelineSpec->validate($pipeline, $phase);
+            $values = $pipelineSpec->values($pipeline, $phase);
+            $this->validateAppConfig($values);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -169,6 +171,8 @@ final class ConfigCommand extends BaseCommand
         $phase = $this->resolvePhase($input, 'runtime');
         $context = $this->contextLabel($pipeline, $phase);
         try {
+            $values = $pipelineSpec->values($pipeline, $phase);
+            $this->validateAppConfig($values);
             $path = $pipelineSpec->compile($pipeline, $phase, $targetPath);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
@@ -178,6 +182,17 @@ final class ConfigCommand extends BaseCommand
         $output->writeln("Pipeline-Phase: {$context}");
         $output->writeln("Compiled config written: {$path}");
         return Command::SUCCESS;
+    }
+
+    private function validateAppConfig(array $values): void
+    {
+        $errors = (new AppConfigValidator())->validate($values);
+        if ($errors === []) {
+            return;
+        }
+        throw new \RuntimeException(
+            "Config-Validierung fehlgeschlagen:\n- " . implode("\n- ", $errors)
+        );
     }
 
     private function resolveOptionString(InputInterface $input, string $name): ?string

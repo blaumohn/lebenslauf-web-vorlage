@@ -20,11 +20,7 @@ final class MailService
             return $this->sendToStdout($replyName, $replyEmail, $message);
         }
 
-        $to = $this->contactRecipient();
-        if ($to === '') {
-            return false;
-        }
-
+        $to = $this->requireContactRecipient();
         $mailer = $this->createMailer($replyName, $replyEmail, $to);
         $mailer->Body = $this->buildMessageBody($replyName, $replyEmail, $message);
 
@@ -52,9 +48,13 @@ final class MailService
         return $payload;
     }
 
-    private function contactRecipient(): string
+    private function requireContactRecipient(): string
     {
-        return (string) $this->config->get('CONTACT_TO_EMAIL');
+        $email = $this->config->requireString('CONTACT_TO_EMAIL');
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \RuntimeException('CONTACT_TO_EMAIL muss eine gueltige E-Mail-Adresse sein.');
+        }
+        return $email;
     }
 
     private function createMailer(string $replyName, string $replyEmail, string $to): PHPMailer

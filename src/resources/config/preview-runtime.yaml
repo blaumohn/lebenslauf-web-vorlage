@@ -13,12 +13,12 @@ captcha:
 contact:
   CONTACT_MAX_POST: 5
   CONTACT_TO_EMAIL: kontakt@beispiel.de
+  MAIL_STDOUT: 1
 
 rate_limit:
   RATE_LIMIT_WINDOW_SECONDS: 600
 
-mail:
-  MAIL_STDOUT: 1
+smtp:
   SMTP_HOST: smtp.beispiel.de
   SMTP_PORT: 587
   SMTP_USER: user

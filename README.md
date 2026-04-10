@@ -69,11 +69,10 @@ Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 Relevante Config-Werte:
 - `LEBENSLAUF_PUBLIC_PROFILE` (Build; in `dev` auch Setup-Seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (Runtime)
-- `CONTACT_TO_EMAIL`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` (Runtime)
-- `MAIL_STDOUT` ist der gemeinsame Runtime-Schalter; in `dev` bleibt damit
-  nur der stdout-Pfad im Vertrag
-- `SMTP_*` gehört im aktuellen Zielstand nur noch zum `preview`-Runtime-Pfad
-  und ist über `meta.notes` im Manifest fachlich beschrieben
+- `CONTACT_TO_EMAIL`, `MAIL_STDOUT` (Kontakt-Runtime)
+- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` und weitere `SMTP_*`-Werte
+  (nur `preview`-Runtime, Gruppe `smtp`)
+- `CONTACT_TO_EMAIL` muss in Runtime-Phasen eine gültige E-Mail-Adresse sein.
 
 Der Setup-Sample-Pfad nutzt die feste Fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` und kopiert sie bei
