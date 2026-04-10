@@ -113,15 +113,17 @@ files are built.
 ## Configuration
 
 - Use `src/resources/config/<PIPELINE>-<PHASE>.yaml` and
-  `.local/<PIPELINE>-<PHASE>.yaml` (see `docs/ENVIRONMENTS.md`).
-- Example values live in `src/resources/config/dev-runtime.yaml`.
+  `.local/<PIPELINE>-<PHASE>.yaml`.
+- Example values live in manifest `meta.example` entries.
 - Important folders:
   - `var/tmp/` short-lived (CAPTCHA + rate limits)
   - `var/cache/` derived (rendered HTML)
   - `var/state/` important (token whitelist)
 - Labels for section titles: `src/resources/build/labels.json`.
 - Page texts (title/contact) live in Twig templates.
-- Config rules live in `src/resources/config/config.manifest.yaml`.
+- App config rules live in `src/resources/config/config.manifest.yaml`.
+  The pipeline spec model is documented at
+  <https://docs.template.ysdani.com/en/specs/systems/pipeline-spec/>.
 
 Relevant config keys:
 - `LEBENSLAUF_PUBLIC_PROFILE` (build; in `dev`, also setup seed)
@@ -131,9 +133,8 @@ Relevant config keys:
   (only `preview` runtime, group `smtp`)
 - `CONTACT_TO_EMAIL` must be a valid email address in runtime phases.
 
-Details on environments and variables: `docs/ENVIRONMENTS.md`.
 Deployments use `var/config/config.php` as the compiled runtime config
-(`php bin/cli config compile <pipeline>`).
+(`php bin/cli config compile <pipeline> --phase runtime`).
 
 Preview build in CI: `composer install --no-dev --optimize-autoloader
 --no-interaction` + `php bin/cli setup preview` + `php bin/cli build preview`

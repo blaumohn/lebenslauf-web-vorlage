@@ -138,9 +138,11 @@ Beispiele:
 
 ## Umgebungsvariablen
 
-Die Config-Policy (Pipeline/Phase) ist in `docs/ENVIRONMENTS.md`
-beschrieben.
-Beispielwerte stehen in `src/resources/config/dev-runtime.yaml`,
-Regeln in `src/resources/config/config.manifest.yaml`.
+Config-Werte liegen in `src/resources/config/<PIPELINE>-<PHASE>.yaml`
+und lokalen Overrides unter `.local/<PIPELINE>-<PHASE>.yaml`.
+Beispielwerte stehen im Manifest unter `meta.example`.
+Die App-Regeln stehen in `src/resources/config/config.manifest.yaml`;
+das Pipeline-Spec-Modell beschreibt die öffentliche Doku:
+<https://docs.template.ysdani.com/de/specs/systeme/pipeline-spec/>.
 Für Deployments wird die Runtime-Config als `var/config/config.php`
-erzeugt (siehe `php bin/cli config compile <pipeline>`).
+erzeugt (siehe `php bin/cli config compile <pipeline> --phase runtime`).
