@@ -2,61 +2,53 @@
 
 namespace App\Cli\Util;
 
-use App\Cli\Command\BaseCommand;
+use App\Cli\Command\BasePipelineCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'python', description: 'Fuehrt ein Python-Skript ueber den CLI-Runner aus.')]
-final class PythonCommand extends BaseCommand
+final class PythonCommand extends BasePipelineCommand
 {
-    protected function configure(): void
+    protected function commandPhase(): string
     {
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
-            ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente fuer das Skript')
-            ->addOption(
-                'add-path',
-                null,
-                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                'Python-Pfade'
-            );
+        return 'python';
+    }
+
+    protected function configurePipelineCommand(): void
+    {
+        $this->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
+            ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente fuer das Skript');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->resolvePipeline($input, $output);
+        $pipeline = $this->requirePipeline($input, $output);
         if ($pipeline === null) {
+            return Command::FAILURE;
+        }
+        $overrides = $this->requireOverrides($input, $output);
+        if ($overrides === null) {
             return Command::FAILURE;
         }
         $script = $this->resolveScript($input, $output);
         if ($script === null) {
             return Command::FAILURE;
         }
-        $runner = new PythonRunner($this->rootPath(), $this->configDir());
-        return $runner->runWithContext(
-            $pipeline,
+        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
+        if ($config === null) {
+            return Command::FAILURE;
+        }
+
+        $runner = new PythonRunner($this->rootPath());
+        return $runner->runScript(
+            $config,
             $script,
             $this->scriptArgs($input),
-            $input->isInteractive(),
-            $this->pythonPaths($input)
+            $input->isInteractive()
         );
-    }
-
-    private function resolvePipeline(InputInterface $input, OutputInterface $output): ?string
-    {
-        $value = $input->getArgument('pipeline');
-        if (is_string($value)) {
-            $value = trim($value);
-        }
-        if (!is_string($value) || $value === '') {
-            $output->writeln('<error>Pipeline fehlt. Beispiel: dev</error>');
-            return null;
-        }
-        return $value;
     }
 
     private function resolveScript(InputInterface $input, OutputInterface $output): ?string
@@ -82,17 +74,6 @@ final class PythonCommand extends BaseCommand
         }
         $args = array_map('strval', $args);
         $filtered = array_filter($args, [$this, 'isNonEmptyString']);
-        return array_values($filtered);
-    }
-
-    private function pythonPaths(InputInterface $input): array
-    {
-        $paths = $input->getOption('add-path');
-        if (!is_array($paths)) {
-            return [];
-        }
-        $paths = array_map('strval', $paths);
-        $filtered = array_filter($paths, [$this, 'isNonEmptyString']);
         return array_values($filtered);
     }
 

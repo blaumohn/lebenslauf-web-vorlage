@@ -18,6 +18,11 @@ final class ConfigValues
         return $this->rootPath;
     }
 
+    public function all(): array
+    {
+        return $this->values;
+    }
+
     public function get(string $key, mixed $default = null): mixed
     {
         if (array_key_exists($key, $this->values)) {

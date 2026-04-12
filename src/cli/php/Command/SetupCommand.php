@@ -4,10 +4,8 @@ namespace App\Cli\Command;
 
 use App\Cli\PythonResolver;
 use App\Cli\Setup\SampleContentCopier;
-use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,12 +13,16 @@ use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'setup', description: 'Richtet die Entwicklungsumgebung ein.')]
-final class SetupCommand extends BaseCommand
+final class SetupCommand extends BasePipelineCommand
 {
-    protected function configure(): void
+    protected function commandPhase(): string
     {
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addOption('copy-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt einmalig nach .local kopieren')
+        return 'setup';
+    }
+
+    protected function configurePipelineCommand(): void
+    {
+        $this->addOption('copy-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt einmalig nach .local kopieren')
             ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
@@ -32,7 +34,16 @@ final class SetupCommand extends BaseCommand
         if ($pipeline === null) {
             return Command::FAILURE;
         }
-        $configValues = $this->resolveSetupConfigValues($pipeline, $output);
+        $overrides = $this->requireOverrides($input, $output);
+        if ($overrides === null) {
+            return Command::FAILURE;
+        }
+        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
+        if ($config === null) {
+            return Command::FAILURE;
+        }
+        $configValues = $config->all();
+
         if ($input->getOption('copy-sample-content')) {
             if (!$this->copySampleContent($configValues, $output)) {
                 return Command::FAILURE;
@@ -83,27 +94,6 @@ final class SetupCommand extends BaseCommand
         }
         $output->writeln('<error>Python 3 fehlt. Bitte installieren.</error>');
         return false;
-    }
-
-    private function resolveSetupConfigValues(
-        string $pipeline,
-        OutputInterface $output
-    ): array {
-        $pipelineSpec = $this->configService();
-        return $this->loadConfigValues($pipelineSpec, $pipeline, $output);
-    }
-
-    private function loadConfigValues(
-        PipelineConfigService $pipelineSpec,
-        string $pipeline,
-        OutputInterface $output
-    ): array {
-        try {
-            return $pipelineSpec->values($pipeline, 'setup');
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
-            return [];
-        }
     }
 
     private function sampleContentCopier(): SampleContentCopier

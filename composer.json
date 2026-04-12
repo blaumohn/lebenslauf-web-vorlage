@@ -57,7 +57,7 @@
     "setup:preview": "php bin/cli setup preview",
     "tests:smoke": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev --add-path . tests/py/smoke.py"
+      "php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py"
     ],
     "deploy:preview": [
       "php bin/cli build preview"

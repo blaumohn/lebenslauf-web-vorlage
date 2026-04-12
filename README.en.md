@@ -63,7 +63,7 @@ already exists, setup fails explicitly instead of overwriting local data.
 php bin/cli setup <pipeline>
 php bin/cli build <pipeline> [cv|css|upload]
 php bin/cli run <pipeline> [--build]
-php bin/cli python <pipeline> [--add-path <path>] <script> [args...]
+php bin/cli python <pipeline> [--override KEY=VALUE] <script> [args...]
 
 # Content
 php bin/cli build <pipeline> cv
@@ -88,7 +88,7 @@ Examples:
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
 - `php bin/cli run dev`
-- `php bin/cli python dev --add-path . tests/py/smoke.py`
+- `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 - `php bin/cli ip-hash reset`
 
 ## Python runner
@@ -96,7 +96,8 @@ Examples:
 - Phase: `python`
 - Defaults: `src/resources/config/dev-python.yaml`
 - Keys: `PYTHON_CMD`, `PYTHON_PATHS` (e.g. `src`)
-- Extra import paths via CLI: `--add-path <path>`
+- CLI overrides: `--override KEY=VALUE`
+- `run` is only the convenience facade for the dev runner `src/cli/py/dev/dev.py`
 
 ## Build + dev (YAML -> JSON -> HTML)
 

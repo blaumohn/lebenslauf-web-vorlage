@@ -3,7 +3,6 @@
 namespace App\Cli\Command;
 
 use App\Cli\ConfigValues;
-use PipelineConfigSpec\PipelineConfigService;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
@@ -16,12 +15,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 
 #[AsCommand(name: 'captcha', description: 'CAPTCHA-Tools (cleanup).')]
-final class CaptchaCommand extends BaseCommand
+final class CaptchaCommand extends BasePipelineCommand
 {
-    protected function configure(): void
+    protected function commandPhase(): string
     {
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addArgument('action', InputArgument::OPTIONAL, 'cleanup', 'cleanup');
+        return 'runtime';
+    }
+
+    protected function configurePipelineCommand(): void
+    {
+        $this->addArgument('action', InputArgument::OPTIONAL, 'cleanup', 'cleanup');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -36,16 +39,12 @@ final class CaptchaCommand extends BaseCommand
         if ($pipeline === null) {
             return Command::FAILURE;
         }
-        $pipelineSpec = $this->configService();
-        $values = $this->resolveValues($pipelineSpec, $pipeline, $output);
-        if ($values === null) {
+        $overrides = $this->requireOverrides($input, $output);
+        if ($overrides === null) {
             return Command::FAILURE;
         }
-
-        try {
-            $config = $this->configValues($values);
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
+        if ($config === null) {
             return Command::FAILURE;
         }
 
@@ -53,19 +52,6 @@ final class CaptchaCommand extends BaseCommand
         $deleted = $service->cleanupExpired();
         $output->writeln("Deleted {$deleted} expired CAPTCHA files.");
         return Command::SUCCESS;
-    }
-
-    private function resolveValues(
-        PipelineConfigService $pipelineSpec,
-        string $pipeline,
-        OutputInterface $output
-    ): ?array {
-        try {
-            return $pipelineSpec->values($pipeline, 'runtime');
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
-            return null;
-        }
     }
 
     private function buildCaptchaService(ConfigValues $config): CaptchaService

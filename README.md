@@ -49,7 +49,7 @@ php bin/cli setup dev --copy-sample-content
 php bin/cli run dev
 ```
 
-`run` kompiliert die Runtime-Config nach `var/config/config.php`.
+`run` startet den Python-Dev-Runner fuer `src/cli/py/dev/dev.py`.
 
 Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 (siehe `src/resources/config/dev-runtime.yaml`).
@@ -107,14 +107,15 @@ Beispiele:
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
 - `php bin/cli run dev`
-- `php bin/cli python dev --add-path . tests/py/smoke.py`
+- `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 
 ## Python-Runner
 
 - Config-Phase: `python`
 - Defaults: `src/resources/config/dev-python.yaml`
 - Wichtige Keys: `PYTHON_CMD`, `PYTHON_PATHS` (z. B. `src`)
-- Zusatzelemente per CLI: `--add-path <pfad>`
+- CLI-Ueberschreibungen: `--override KEY=VALUE`
+- `run` ist nur die bequeme Fassade fuer den Dev-Runner `src/cli/py/dev/dev.py`
 
 ## Projektstruktur
 

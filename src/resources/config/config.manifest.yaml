@@ -157,6 +157,7 @@ variable-groups:
         desc: "Python-Befehl oder Pfad zur Python-Executable"
         example: ".venv/bin/python"
     PYTHON_PATHS:
+      sources: [file, local, cli]
       meta:
         desc: "Kommagetrennte zusätzliche Python-Suchpfade"
         example: "src"
