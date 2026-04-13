@@ -11,7 +11,7 @@ def start(clone_path):
         popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         popen_kwargs["preexec_fn"] = os.setsid
-    cmd = ["php", "bin/cli", "run", "dev"]
+    cmd = ["composer", "run", "dev"]
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, **popen_kwargs)
 
 
