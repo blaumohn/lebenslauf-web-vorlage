@@ -46,10 +46,11 @@ php bin/cli setup dev --copy-sample-content
 3) **Starten**
 
 ```bash
-php bin/cli run dev
+composer run dev
 ```
 
-`run` startet den Python-Dev-Runner fuer `src/cli/py/dev/dev.py`.
+`composer run dev` startet den Python-Dev-Runner `src/cli/py/dev/dev.py`.
+Mit Vorab-Build: `composer run dev:build`.
 
 Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 (siehe `src/resources/config/dev-runtime.yaml`).
@@ -106,7 +107,7 @@ Beispiele:
 
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
-- `php bin/cli run dev`
+- `composer run dev`
 - `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 
 ## Python-Runner
@@ -115,7 +116,8 @@ Beispiele:
 - Defaults: `src/resources/config/dev-python.yaml`
 - Wichtige Keys: `PYTHON_CMD`, `PYTHON_PATHS` (z. B. `src`)
 - CLI-Ueberschreibungen: `--override KEY=VALUE`
-- `run` ist nur die bequeme Fassade fuer den Dev-Runner `src/cli/py/dev/dev.py`
+- Dev-Betrieb bleibt auf der `composer`-Ebene: `composer run dev`
+- `dev.py` bleibt ein Python-Skript in der Phase `python`, kein eigener CLI-Pipeline-Befehl
 
 ## Projektstruktur
 

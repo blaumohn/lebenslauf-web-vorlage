@@ -20,7 +20,7 @@ The links here stay branch-neutral on purpose.
 ```bash
 composer install
 php bin/cli setup dev
-php bin/cli run dev
+composer run dev
 ```
 
 Optional sample seed without overwriting existing content:
@@ -29,7 +29,8 @@ Optional sample seed without overwriting existing content:
 php bin/cli setup dev --copy-sample-content
 ```
 
-`run` compiles the runtime config to `var/config/config.php`.
+`composer run dev` starts the Python dev runner `src/cli/py/dev/dev.py`.
+Use `composer run dev:build` for the initial build variant.
 
 Create `.local/dev-runtime.yaml` before the first run
 (see `src/resources/config/dev-runtime.yaml`).
@@ -41,7 +42,6 @@ Defaults come from YAML config files (see `src/resources/config/`).
 If no `.local/dev-runtime.yaml` exists, copy the fixture from
 `tests/fixtures/dev-runtime.yaml`.
 `php bin/cli setup` runs `npm install`.
-`php bin/cli run` starts the Python dev runner (option: `--build`).
 Note: `setup` creates `.venv` unless `--skip-python` is used.
 The sample seed uses the fixed fixture
 `src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
@@ -62,7 +62,6 @@ already exists, setup fails explicitly instead of overwriting local data.
 # Lifecycle
 php bin/cli setup <pipeline>
 php bin/cli build <pipeline> [cv|css|upload]
-php bin/cli run <pipeline> [--build]
 php bin/cli python <pipeline> [--override KEY=VALUE] <script> [args...]
 
 # Content
@@ -87,7 +86,7 @@ Examples:
 
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
-- `php bin/cli run dev`
+- `composer run dev`
 - `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 - `php bin/cli ip-hash reset`
 
@@ -97,7 +96,8 @@ Examples:
 - Defaults: `src/resources/config/dev-python.yaml`
 - Keys: `PYTHON_CMD`, `PYTHON_PATHS` (e.g. `src`)
 - CLI overrides: `--override KEY=VALUE`
-- `run` is only the convenience facade for the dev runner `src/cli/py/dev/dev.py`
+- Dev startup stays on the `composer` layer: `composer run dev`
+- `dev.py` remains a Python script in phase `python`, not its own CLI pipeline command
 
 ## Build + dev (YAML -> JSON -> HTML)
 

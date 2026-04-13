@@ -34,10 +34,14 @@
       "App\\Cli\\Shared\\": "src/cli/php/shared/"
     }
   },
-  "scripts": {
-    "dev": [
+    "scripts": {
+      "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli run dev"
+      "php bin/cli python dev src/cli/py/dev/dev.py --"
+      ],
+    "dev:build": [
+      "Composer\\Config::disableProcessTimeout",
+      "php bin/cli python dev src/cli/py/dev/dev.py -- --build"
     ],
     "cv:build": "php bin/cli build dev cv",
     "cv:upload": "php bin/cli build dev upload",
