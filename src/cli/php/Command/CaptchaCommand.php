@@ -27,7 +27,7 @@ final class CaptchaCommand extends BasePipelineCommand
         $this->addArgument('action', InputArgument::OPTIONAL, 'cleanup', 'cleanup');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
         $action = strtolower(trim((string) $input->getArgument('action')));
         if ($action !== 'cleanup') {
@@ -35,20 +35,7 @@ final class CaptchaCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
-        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
-        if ($config === null) {
-            return Command::FAILURE;
-        }
-
-        $service = $this->buildCaptchaService($config);
+        $service = $this->buildCaptchaService($this->commandConfig());
         $deleted = $service->cleanupExpired();
         $output->writeln("Deleted {$deleted} expired CAPTCHA files.");
         return Command::SUCCESS;

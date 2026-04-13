@@ -5,13 +5,26 @@ declare(strict_types=1);
 use App\Cli\Command\BasePipelineCommand;
 use PipelineConfigSpec\PipelineConfigService;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class PipelineCommandConfigTest extends TestCase
 {
+    public function testBasePipelineCommandResolvesPipelineAndConfigEarly(): void
+    {
+        $command = new PipelineCommandConfigTestCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute([
+            'pipeline' => 'dev',
+        ]);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('pipeline=dev', $tester->getDisplay());
+        self::assertStringContainsString('config=src', $tester->getDisplay());
+    }
+
     public function testOverrideRequiresKeyValueSyntax(): void
     {
         $command = new PipelineCommandConfigTestCommand();
@@ -22,7 +35,7 @@ final class PipelineCommandConfigTest extends TestCase
             '--override' => ['PYTHON_PATHS'],
         ]);
 
-        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertSame(1, $exitCode);
         self::assertStringContainsString(
             'Override muss als KEY=VALUE angegeben werden.',
             $tester->getDisplay()
@@ -50,24 +63,10 @@ final class PipelineCommandConfigTestCommand extends BasePipelineCommand
         return 'python';
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
-
-        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
-        if ($config === null) {
-            return Command::FAILURE;
-        }
-
-        $output->writeln((string) $config->get('PYTHON_PATHS', ''));
-        return Command::SUCCESS;
+        $output->writeln('pipeline=' . $this->pipelineName());
+        $output->writeln('config=' . (string) $this->commandConfig()->get('PYTHON_PATHS', ''));
+        return 0;
     }
 }

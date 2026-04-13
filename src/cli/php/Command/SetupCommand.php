@@ -28,21 +28,9 @@ final class SetupCommand extends BasePipelineCommand
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
-        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
-        if ($config === null) {
-            return Command::FAILURE;
-        }
-        $configValues = $config->all();
+        $configValues = $this->commandConfig()->all();
 
         if ($input->getOption('copy-sample-content')) {
             if (!$this->copySampleContent($configValues, $output)) {

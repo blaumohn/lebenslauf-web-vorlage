@@ -22,38 +22,26 @@ final class RunCommand extends BasePipelineCommand
         $this->addOption('build', null, InputOption::VALUE_NONE, 'Vor dem Start cv build ausfuehren');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-        if (strtolower($pipeline) !== 'dev') {
+        if (strtolower($this->pipelineName()) !== 'dev') {
             $output->writeln('<error>run ist nur fuer die Pipeline dev erlaubt.</error>');
-            return Command::FAILURE;
-        }
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
-        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
-        if ($config === null) {
             return Command::FAILURE;
         }
 
         $runner = new PythonRunner($this->rootPath());
-        $args = $this->devArgs($input, $pipeline);
+        $args = $this->devArgs($input);
         return $runner->runScript(
-            $config,
+            $this->commandConfig(),
             'src/cli/py/dev/dev.py',
             $args,
             $input->isInteractive()
         );
     }
 
-    private function devArgs(InputInterface $input, string $pipeline): array
+    private function devArgs(InputInterface $input): array
     {
-        $args = ['--pipeline', $pipeline];
+        $args = ['--pipeline', $this->pipelineName()];
         if ($input->getOption('build')) {
             $args[] = '--build';
         }

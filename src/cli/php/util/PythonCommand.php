@@ -23,28 +23,16 @@ final class PythonCommand extends BasePipelineCommand
             ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente fuer das Skript');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
         $script = $this->resolveScript($input, $output);
         if ($script === null) {
-            return Command::FAILURE;
-        }
-        $config = $this->resolvePipelineConfig($pipeline, $this->commandPhase(), $overrides, $output);
-        if ($config === null) {
             return Command::FAILURE;
         }
 
         $runner = new PythonRunner($this->rootPath());
         return $runner->runScript(
-            $config,
+            $this->commandConfig(),
             $script,
             $this->scriptArgs($input),
             $input->isInteractive()

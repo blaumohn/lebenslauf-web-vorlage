@@ -28,70 +28,48 @@ final class BuildCommand extends BasePipelineCommand
             ->addArgument('arg2', InputArgument::OPTIONAL, 'JSON-Pfad (bei upload)');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $pipeline = $this->requirePipeline($input, $output);
-        if ($pipeline === null) {
-            return Command::FAILURE;
-        }
-        $overrides = $this->requireOverrides($input, $output);
-        if ($overrides === null) {
-            return Command::FAILURE;
-        }
-
         $task = strtolower(trim((string) $input->getArgument('task')));
         if ($task === '' || $task === 'all') {
-            return $this->runAll($pipeline, $overrides, $output);
+            return $this->runAll($output);
         }
         if ($task === 'css') {
             return $this->runCssBuild($output);
         }
         if ($task === 'cv') {
-            return $this->runCvOnly($pipeline, $overrides, $output);
+            return $this->runCvOnly($output);
         }
         if ($task === 'upload') {
-            return $this->runCvUpload($pipeline, $overrides, $input, $output);
+            return $this->runCvUpload($input, $output);
         }
 
         $output->writeln('<error>Usage: build <PIPELINE> [cv|css|upload|all] [ARGS]</error>');
         return Command::FAILURE;
     }
 
-    private function runAll(string $pipeline, array $overrides, OutputInterface $output): int
+    private function runAll(OutputInterface $output): int
     {
         $exitCode = $this->runCssBuild($output);
         if ($exitCode !== 0) {
             return $exitCode;
         }
-        return $this->runCvOnly($pipeline, $overrides, $output);
+        return $this->runCvOnly($output);
     }
 
-    private function runCvOnly(string $pipeline, array $overrides, OutputInterface $output): int
+    private function runCvOnly(OutputInterface $output): int
     {
-        $buildConfig = $this->resolvePipelineConfig(
-            $pipeline,
-            $this->commandPhase(),
-            $overrides,
-            $output
-        );
-        if ($buildConfig === null) {
+        if (!$this->compileRuntimeConfig($output)) {
             return Command::FAILURE;
         }
-        if (!$this->compileRuntimeConfig($pipeline, $output)) {
-            return Command::FAILURE;
-        }
-        if (!$this->runCvBuild($buildConfig, $output)) {
+        if (!$this->runCvBuild($this->commandConfig(), $output)) {
             return Command::FAILURE;
         }
         return Command::SUCCESS;
     }
 
-    private function runCvUpload(
-        string $pipeline,
-        array $overrides,
-        InputInterface $input,
-        OutputInterface $output
-    ): int {
+    private function runCvUpload(InputInterface $input, OutputInterface $output): int
+    {
         $cvProfile = trim((string) $input->getArgument('arg1'));
         $jsonPath = trim((string) $input->getArgument('arg2'));
         if ($cvProfile === '' || $jsonPath === '') {
@@ -99,17 +77,7 @@ final class BuildCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $buildConfig = $this->resolvePipelineConfig(
-            $pipeline,
-            $this->commandPhase(),
-            $overrides,
-            $output
-        );
-        if ($buildConfig === null) {
-            return Command::FAILURE;
-        }
-
-        $service = new CvUploadService($buildConfig);
+        $service = new CvUploadService($this->commandConfig());
         try {
             $service->upload($cvProfile, $jsonPath, $output);
         } catch (\RuntimeException $exception) {
@@ -133,16 +101,16 @@ final class BuildCommand extends BasePipelineCommand
         return true;
     }
 
-    private function compileRuntimeConfig(string $pipeline, OutputInterface $output): bool
+    private function compileRuntimeConfig(OutputInterface $output): bool
     {
-        $runtimeConfig = $this->resolvePipelineConfig($pipeline, 'runtime', [], $output);
+        $runtimeConfig = $this->resolvePipelineConfig($this->pipelineName(), 'runtime', [], $output);
         if ($runtimeConfig === null) {
             return false;
         }
 
         try {
             $this->validateAppConfig($runtimeConfig->all());
-            $this->configService()->compile($pipeline, 'runtime');
+            $this->configService()->compile($this->pipelineName(), 'runtime');
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;
