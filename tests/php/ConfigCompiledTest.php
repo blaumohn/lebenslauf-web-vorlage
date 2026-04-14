@@ -23,18 +23,27 @@ final class ConfigCompiledTest extends TestCase
         self::assertSame('/public', $config->basePath());
     }
 
-    public function testFallsBackToLegacyPipelinePhaseKeys(): void
+    public function testThrowsWhenContextFileIsMissing(): void
     {
         $root = $this->createRoot();
-        $this->writePhp($root . '/var/config/config.php', [
-            'PIPELINE' => 'preview',
-            'PHASE' => 'runtime',
-        ]);
+        $this->writePhp($root . '/var/config/config.php', []);
 
-        $config = new ConfigCompiled($root);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Compiled config context fehlt');
 
-        self::assertSame('preview', $config->pipeline());
-        self::assertSame('runtime', $config->phase());
+        new ConfigCompiled($root);
+    }
+
+    public function testThrowsWhenContextFileIsInvalid(): void
+    {
+        $root = $this->createRoot();
+        $this->writePhp($root . '/var/config/config.php', []);
+        file_put_contents($root . '/var/config/config.context.php', "<?php\n\nreturn 'invalid';\n");
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Compiled config context ungueltig');
+
+        new ConfigCompiled($root);
     }
 
     private function createRoot(): string

@@ -23,7 +23,7 @@ final class ConfigCompiled
             throw new \RuntimeException("Compiled config ungueltig: {$path}");
         }
         $this->data = $data;
-        $this->context = $this->loadContext($path, $data);
+        $this->context = $this->loadContext($path);
     }
 
     public function rootPath(): string
@@ -100,16 +100,18 @@ final class ConfigCompiled
         return '/' . trim($value, '/');
     }
 
-    private function loadContext(string $configPath, array $data): array
+    private function loadContext(string $configPath): array
     {
         $path = $this->contextPath($configPath);
-        if (is_file($path)) {
-            $context = require $path;
-            if (is_array($context)) {
-                return $context;
-            }
+        if (!is_file($path)) {
+            throw new \RuntimeException("Compiled config context fehlt: {$path}");
         }
-        return $this->legacyContext($data);
+
+        $context = require $path;
+        if (!is_array($context)) {
+            throw new \RuntimeException("Compiled config context ungueltig: {$path}");
+        }
+        return $context;
     }
 
     private function contextPath(string $configPath): string
@@ -118,13 +120,5 @@ final class ConfigCompiled
             return substr($configPath, 0, -4) . '.context.php';
         }
         return $configPath . '.context.php';
-    }
-
-    private function legacyContext(array $data): array
-    {
-        return [
-            'pipeline' => (string) ($data['PIPELINE'] ?? ''),
-            'phase' => (string) ($data['PHASE'] ?? ''),
-        ];
     }
 }
