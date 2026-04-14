@@ -19,7 +19,31 @@ final class ConfigCommand extends BaseCommand
             ->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
-            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase-Name');
+            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase-Name')
+            ->setHelp(<<<'HELP'
+Aktionen:
+
+  get      Liest einen einzelnen Konfigurationsschlüssel aus.
+             Pflicht: <arg1> = KEY
+             Beispiel: config get myapp APP_BASE_PATH
+             Beispiel: config get myapp APP_BASE_PATH --phase build
+
+  show     Zeigt alle aufgelösten Werte der Pipeline/Phase an.
+             Keine weiteren Argumente.
+             Beispiel: config show myapp
+             Beispiel: config show myapp --phase build
+
+  lint     Prüft die Konfiguration auf Gültigkeit (Schema + Pflichtfelder).
+             Keine weiteren Argumente.
+             Beispiel: config lint myapp
+
+  compile  Schreibt die aufgelöste Konfiguration als Datei heraus.
+             Optional: <arg2> = TARGET (Pfad relativ zum Projekt-Root)
+             Beispiel: config compile myapp
+             Beispiel: config compile myapp --phase build output/.env
+
+Standard-Phase wenn --phase fehlt: runtime
+HELP);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -38,7 +62,8 @@ final class ConfigCommand extends BaseCommand
             return $this->handleCompile($input, $output);
         }
 
-        $output->writeln('<error>Usage: config <action> <PIPELINE> [ARGS]</error>');
+        $output->writeln("<error>Unbekannte Aktion: {$action}. Gültige Werte: get, show, lint, compile</error>");
+        $output->writeln('<comment>Hilfe: bin/cli config --help</comment>');
         return Command::FAILURE;
     }
 
