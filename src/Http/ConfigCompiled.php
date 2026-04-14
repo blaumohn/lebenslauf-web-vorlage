@@ -7,8 +7,8 @@ use Symfony\Component\Filesystem\Path;
 final class ConfigCompiled
 {
     private string $rootPath;
-    private array $data;
-    private array $context;
+    private array $values;
+    private array $pipelinePhase;
 
     public function __construct(string $rootPath)
     {
@@ -22,8 +22,8 @@ final class ConfigCompiled
         if (!is_array($data)) {
             throw new \RuntimeException("Compiled config ungueltig: {$path}");
         }
-        $this->data = $data;
-        $this->context = $this->loadContext($path);
+        $this->values = $this->loadValues($path, $data);
+        $this->pipelinePhase = $this->loadPipelinePhase($path, $data);
     }
 
     public function rootPath(): string
@@ -33,20 +33,20 @@ final class ConfigCompiled
 
     public function get(string $key, mixed $default = null): mixed
     {
-        if (!array_key_exists($key, $this->data)) {
+        if (!array_key_exists($key, $this->values)) {
             return $default;
         }
-        return $this->data[$key];
+        return $this->values[$key];
     }
 
     public function pipeline(): string
     {
-        return (string) ($this->context['pipeline'] ?? '');
+        return (string) ($this->pipelinePhase['pipeline'] ?? '');
     }
 
     public function phase(): string
     {
-        return (string) ($this->context['phase'] ?? '');
+        return (string) ($this->pipelinePhase['phase'] ?? '');
     }
 
     public function getBool(string $key, bool $default = false): bool
@@ -100,25 +100,34 @@ final class ConfigCompiled
         return '/' . trim($value, '/');
     }
 
-    private function loadContext(string $configPath): array
+    private function loadValues(string $configPath, array $data): array
     {
-        $path = $this->contextPath($configPath);
-        if (!is_file($path)) {
-            throw new \RuntimeException("Compiled config context fehlt: {$path}");
+        $values = $data['values'] ?? null;
+        if (!is_array($values)) {
+            throw new \RuntimeException("Compiled config values ungueltig: {$configPath}");
         }
-
-        $context = require $path;
-        if (!is_array($context)) {
-            throw new \RuntimeException("Compiled config context ungueltig: {$path}");
-        }
-        return $context;
+        return $values;
     }
 
-    private function contextPath(string $configPath): string
+    private function loadPipelinePhase(string $configPath, array $data): array
     {
-        if (str_ends_with($configPath, '.php')) {
-            return substr($configPath, 0, -4) . '.context.php';
+        $pipelinePhase = $data['pipeline_phase'] ?? null;
+        if (!is_array($pipelinePhase)) {
+            throw new \RuntimeException("Compiled config pipeline_phase ungueltig: {$configPath}");
         }
-        return $configPath . '.context.php';
+
+        $pipeline = $pipelinePhase['pipeline'] ?? null;
+        $phase = $pipelinePhase['phase'] ?? null;
+        if (!is_string($pipeline) || trim($pipeline) === '') {
+            throw new \RuntimeException("Compiled config pipeline_phase.pipeline fehlt: {$configPath}");
+        }
+        if (!is_string($phase) || trim($phase) === '') {
+            throw new \RuntimeException("Compiled config pipeline_phase.phase fehlt: {$configPath}");
+        }
+
+        return [
+            'pipeline' => trim($pipeline),
+            'phase' => trim($phase),
+        ];
     }
 }

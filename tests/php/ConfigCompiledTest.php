@@ -7,13 +7,17 @@ use PHPUnit\Framework\TestCase;
 
 final class ConfigCompiledTest extends TestCase
 {
-    public function testReadsPipelinePhaseFromSeparateContextFile(): void
+    public function testReadsPipelinePhaseFromCompiledPayload(): void
     {
         $root = $this->createRoot();
-        $this->writePhp($root . '/var/config/config.php', ['APP_BASE_PATH' => '/public']);
-        $this->writePhp($root . '/var/config/config.context.php', [
-            'pipeline' => 'dev',
-            'phase' => 'runtime',
+        $this->writeConfig($root, [
+            'pipeline_phase' => [
+                'pipeline' => 'dev',
+                'phase' => 'runtime',
+            ],
+            'values' => [
+                'APP_BASE_PATH' => '/public',
+            ],
         ]);
 
         $config = new ConfigCompiled($root);
@@ -23,25 +27,29 @@ final class ConfigCompiledTest extends TestCase
         self::assertSame('/public', $config->basePath());
     }
 
-    public function testThrowsWhenContextFileIsMissing(): void
+    public function testThrowsWhenPipelinePhaseIsMissing(): void
     {
         $root = $this->createRoot();
-        $this->writePhp($root . '/var/config/config.php', []);
+        $this->writeConfig($root, ['values' => []]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Compiled config context fehlt');
+        $this->expectExceptionMessage('Compiled config pipeline_phase ungueltig');
 
         new ConfigCompiled($root);
     }
 
-    public function testThrowsWhenContextFileIsInvalid(): void
+    public function testThrowsWhenValuesAreMissing(): void
     {
         $root = $this->createRoot();
-        $this->writePhp($root . '/var/config/config.php', []);
-        file_put_contents($root . '/var/config/config.context.php', "<?php\n\nreturn 'invalid';\n");
+        $this->writeConfig($root, [
+            'pipeline_phase' => [
+                'pipeline' => 'dev',
+                'phase' => 'runtime',
+            ],
+        ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Compiled config context ungueltig');
+        $this->expectExceptionMessage('Compiled config values ungueltig');
 
         new ConfigCompiled($root);
     }
@@ -53,8 +61,9 @@ final class ConfigCompiledTest extends TestCase
         return $root;
     }
 
-    private function writePhp(string $path, array $payload): void
+    private function writeConfig(string $root, array $payload): void
     {
+        $path = $root . '/var/config/config.php';
         $content = "<?php\n\nreturn " . var_export($payload, true) . ";\n";
         file_put_contents($path, $content);
     }

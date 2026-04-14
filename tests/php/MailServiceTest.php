@@ -40,10 +40,14 @@ final class MailServiceTest extends TestCase
     {
         $path = $this->root . '/var/config/config.php';
         $this->ensureDir(dirname($path));
-        file_put_contents($path, '<?php return ' . var_export($config, true) . ';');
-        $contextPath = $this->root . '/var/config/config.context.php';
-        $context = ['pipeline' => 'dev', 'phase' => 'runtime'];
-        file_put_contents($contextPath, '<?php return ' . var_export($context, true) . ';');
+        $payload = [
+            'pipeline_phase' => [
+                'pipeline' => 'dev',
+                'phase' => 'runtime',
+            ],
+            'values' => $config,
+        ];
+        file_put_contents($path, '<?php return ' . var_export($payload, true) . ';');
     }
 
     private function createRoot(): string
