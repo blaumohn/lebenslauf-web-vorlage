@@ -8,6 +8,7 @@ final class ConfigCompiled
 {
     private string $rootPath;
     private array $data;
+    private array $context;
 
     public function __construct(string $rootPath)
     {
@@ -22,6 +23,7 @@ final class ConfigCompiled
             throw new \RuntimeException("Compiled config ungueltig: {$path}");
         }
         $this->data = $data;
+        $this->context = $this->loadContext($path, $data);
     }
 
     public function rootPath(): string
@@ -35,6 +37,16 @@ final class ConfigCompiled
             return $default;
         }
         return $this->data[$key];
+    }
+
+    public function pipeline(): string
+    {
+        return (string) ($this->context['pipeline'] ?? '');
+    }
+
+    public function phase(): string
+    {
+        return (string) ($this->context['phase'] ?? '');
     }
 
     public function getBool(string $key, bool $default = false): bool
@@ -86,5 +98,33 @@ final class ConfigCompiled
             return '';
         }
         return '/' . trim($value, '/');
+    }
+
+    private function loadContext(string $configPath, array $data): array
+    {
+        $path = $this->contextPath($configPath);
+        if (is_file($path)) {
+            $context = require $path;
+            if (is_array($context)) {
+                return $context;
+            }
+        }
+        return $this->legacyContext($data);
+    }
+
+    private function contextPath(string $configPath): string
+    {
+        if (str_ends_with($configPath, '.php')) {
+            return substr($configPath, 0, -4) . '.context.php';
+        }
+        return $configPath . '.context.php';
+    }
+
+    private function legacyContext(array $data): array
+    {
+        return [
+            'pipeline' => (string) ($data['PIPELINE'] ?? ''),
+            'phase' => (string) ($data['PHASE'] ?? ''),
+        ];
     }
 }
