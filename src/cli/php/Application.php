@@ -6,9 +6,9 @@ use App\Cli\Command\BuildCommand;
 use App\Cli\Command\CaptchaCommand;
 use App\Cli\Command\ConfigCommand;
 use App\Cli\Command\IpHashCommand;
-use App\Cli\Util\PythonCommand;
 use App\Cli\Command\SetupCommand;
 use App\Cli\Command\TokenCommand;
+use App\Cli\Util\PythonCommand;
 use Symfony\Component\Console\Application as SymfonyApplication;
 
 final class Application extends SymfonyApplication
