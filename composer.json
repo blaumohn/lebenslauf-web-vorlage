@@ -20,7 +20,8 @@
     "symfony/config": "^7.0",
     "symfony/yaml": "^7.0",
     "symfony/process": "^7.0",
-    "symfony/filesystem": "^7.0"
+    "symfony/filesystem": "^7.0",
+    "symfony/lock": "^7.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.0"
@@ -33,10 +34,14 @@
       "App\\Cli\\Shared\\": "src/cli/php/shared/"
     }
   },
-  "scripts": {
-    "dev": [
+    "scripts": {
+      "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli run dev"
+      "php bin/cli python dev src/cli/py/dev/dev.py --"
+      ],
+    "dev:build": [
+      "Composer\\Config::disableProcessTimeout",
+      "php bin/cli python dev src/cli/py/dev/dev.py -- --build"
     ],
     "cv:build": "php bin/cli build dev cv",
     "cv:upload": "php bin/cli build dev upload",
@@ -56,7 +61,7 @@
     "setup:preview": "php bin/cli setup preview",
     "tests:smoke": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev --add-path . tests/py/smoke.py"
+      "php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py"
     ],
     "deploy:preview": [
       "php bin/cli build preview"

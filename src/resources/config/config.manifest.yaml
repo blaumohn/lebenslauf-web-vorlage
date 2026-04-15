@@ -1,51 +1,149 @@
-variables:
-  context:
-    PIPELINE: {}
-    PHASE: {}
-
+variable-groups:
   app:
-    APP_BASE_PATH: {}
-    APP_URL: {}
-    TRUST_PROXY: {}
+    APP_BASE_PATH:
+      meta:
+        desc: "URL-Basis-Pfad der Anwendung (Routing)"
+        notes: >-
+          Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
+          https://domain.tld/public
+        example: "/public"
+    TRUST_PROXY:
+      meta:
+        desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
+        example: "1"
 
   lebenslauf:
-    LEBENSLAUF_DATEN_PFAD: {}
-    LEBENSLAUF_YAML_PFAD: {}
-    LEBENSLAUF_JSON_PFAD: {}
-    LEBENSLAUF_PUBLIC_PROFILE: {}
-    LEBENSLAUF_LANG_DEFAULT: {}
-    LEBENSLAUF_LANGS: {}
+    LEBENSLAUF_DATEN_PFAD:
+      meta:
+        desc: "Pfad zum Lebenslauf-Datenverzeichnis"
+        example: ".local/lebenslauf"
+    LEBENSLAUF_YAML_PFAD:
+      meta:
+        desc: "Pfad zur Lebenslauf-YAML-Quelldatei (leer = Standard im Datenpfad)"
+        notes: >-
+          Leer bedeutet: nutze den Datenpfad als Verzeichnis und lese dort
+          alle daten-<profil>.yaml-Dateien.
+        example: ""
+    LEBENSLAUF_PUBLIC_PROFILE:
+      meta:
+        desc: "Profilname für den öffentlichen Lebenslauf"
+        notes: >-
+          Nur im Build relevant. Das Profil muss zu einer vorhandenen
+          daten-<profil>.yaml-Datei im YAML-Pfad passen.
+        example: "default"
+    LEBENSLAUF_LANG_DEFAULT:
+      meta:
+        desc: "Standard-Sprache des Lebenslaufs"
+        notes: >-
+          Muss in LEBENSLAUF_LANGS enthalten sein.
+        example: "de"
+    LEBENSLAUF_LANGS:
+      meta:
+        desc: "Kommagetrennte Liste unterstützter Sprachen"
+        notes: >-
+          Muss die Standard-Sprache enthalten und zum vorhandenen
+          Übersetzungsstand der Labels passen.
+        example: "de,en"
 
   captcha:
-    CAPTCHA_TTL_SECONDS: {}
-    CAPTCHA_MAX_GET: {}
+    CAPTCHA_TTL_SECONDS:
+      meta:
+        desc: "Gültigkeitsdauer eines Captcha-Tokens in Sekunden"
+        notes: >-
+          Gilt sowohl für die HTTP-Runtime als auch für das CLI-Cleanup, das
+          noch gültige Captchas nicht vorzeitig entfernen soll.
+        example: "600"
+    CAPTCHA_MAX_GET:
+      meta:
+        desc: "Maximale Captcha-Anfragen pro Zeitfenster"
+        example: "5"
 
   contact:
-    CONTACT_MAX_POST: {}
-    CONTACT_TO_EMAIL: {}
-    CONTACT_FROM_EMAIL: {}
+    CONTACT_MAX_POST:
+      meta:
+        desc: "Maximale Kontaktformular-Absendungen pro Zeitfenster"
+        example: "3"
+    CONTACT_TO_EMAIL:
+      meta:
+        desc: "Empfängeradresse für Kontaktformular"
+        notes: >-
+          Bleibt unabhängig vom SMTP-Absenderpfad. Der Wert bestimmt das
+          Ziel des Formulars, nicht den Absender der App.
+        example: "kontakt@example.invalid"
+    MAIL_STDOUT:
+      meta:
+        desc: "Kontaktformular-Ausgabe auf stdout statt Transport (1 = aktiv, für Entwicklung)"
+        notes: >-
+          Kontaktformular-Runtime-Schalter fuer den stdout-Pfad. In dev ist
+          dies der Transportersatz; preview kann zusaetzlich SMTP_*-Werte fuer
+          echten SMTP-Betrieb fuehren.
+        example: "1"
 
   rate_limit:
-    RATE_LIMIT_WINDOW_SECONDS: {}
+    RATE_LIMIT_WINDOW_SECONDS:
+      meta:
+        desc: "Länge des Rate-Limit-Zeitfensters in Sekunden"
+        example: "600"
 
-  mail:
-    MAIL_STDOUT: {}
-    SMTP_HOST: {}
-    SMTP_PORT: {}
-    SMTP_USER: {}
+  smtp:
+    SMTP_HOST:
+      meta:
+        desc: "SMTP-Host"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_PORT,
+          SMTP_USER, SMTP_PASS, SMTP_ENCRYPTION, SMTP_FROM_EMAIL und
+          SMTP_FROM_NAME.
+        example: "smtp.example.invalid"
+    SMTP_PORT:
+      meta:
+        desc: "SMTP-Port"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST.
+        example: "587"
+    SMTP_USER:
+      meta:
+        desc: "SMTP-Benutzername"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_PASS.
+        example: "user"
     SMTP_PASS:
       sources: [system, local]
-    SMTP_ENCRYPTION: {}
-    SMTP_FROM_EMAIL: {}
-    SMTP_FROM_NAME: {}
+      meta:
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_USER. Gehört nicht in versionierte Beispielkonfigurationen.
+    SMTP_ENCRYPTION:
+      meta:
+        desc: "SMTP-Verschlüsselung (tls, ssl oder leer)"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_PORT.
+        example: "tls"
+    SMTP_FROM_EMAIL:
+      meta:
+        desc: "Absenderadresse der App für ausgehende E-Mails"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit
+          SMTP_FROM_NAME. Nicht mit CONTACT_TO_EMAIL verwechseln.
+        example: "kontakt@example.invalid"
+    SMTP_FROM_NAME:
+      meta:
+        desc: "Absendername der App für ausgehende E-Mails"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit
+          SMTP_FROM_EMAIL.
+        example: "Lebenslauf"
 
-  security:
-    IP_SALT:
-      sources: [system, local, file]
-
-  deploy:
-    FTP_SERVER_DIR: {}
-    FTP_PORT: {}
+  ftp:
+    FTP_SERVER_DIR:
+      meta:
+        desc: "Zielverzeichnis auf dem FTP-Server"
+        example: "/home/user/public"
+    FTP_PORT:
+      meta:
+        desc: "FTP-Port"
+        example: "21"
     FTP_HOST:
       sources: [system, local]
     FTP_USER:
@@ -54,41 +152,58 @@ variables:
       sources: [system, local]
 
   tooling:
-    PYTHON_CMD: {}
-    PYTHON_PATHS: {}
+    PYTHON_CMD:
+      meta:
+        desc: "Python-Befehl oder Pfad zur Python-Executable"
+        example: ".venv/bin/python"
+    PYTHON_PATHS:
+      sources: [file, local, cli]
+      meta:
+        desc: "Kommagetrennte zusätzliche Python-Suchpfade"
+        example: "src"
 
   tests:
-    CLONE_SOURCE: {}
-    KEEP_SMOKE_CLONE: {}
+    CLONE_SOURCE:
+      meta:
+        desc: "Quelle für Smoke-Test-Clone (local oder remote)"
+        example: "local"
+    KEEP_SMOKE_CLONE:
+      meta:
+        desc: "Smoke-Clone nach Test behalten (1 = ja, für Debugging)"
+        example: "0"
+
+phases:
+  setup: {}
+
+  python:
+    tooling: "*"
+
+  build:
+    app:
+      - APP_BASE_PATH
+    lebenslauf: "*"
+
+  runtime:
+    app:
+      - APP_BASE_PATH
+      - TRUST_PROXY
+    lebenslauf:
+      - LEBENSLAUF_LANG_DEFAULT
+      - LEBENSLAUF_LANGS
+    captcha: "*"
+    contact: "*"
+    rate_limit: "*"
+
+  deploy: {}
 
 pipelines:
-  common:
-    setup:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, tooling, tests]
-    python:
-      required: [PIPELINE, PHASE]
-      allowed: [context, tooling]
-    build:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, captcha, contact, rate_limit, mail, security, tooling, tests]
-    runtime:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, captcha, contact, rate_limit, mail, security]
-    deploy:
-      required: [PIPELINE, PHASE]
-      allowed: [context, deploy]
-
   dev:
     setup:
-      required: []
-      allowed: []
+      lebenslauf:
+        - LEBENSLAUF_PUBLIC_PROFILE
+
+  preview:
     runtime:
-      required:
-        - IP_SALT
-        - CAPTCHA_MAX_GET
-        - CONTACT_MAX_POST
-        - RATE_LIMIT_WINDOW_SECONDS
-        - MAIL_STDOUT
-        - SMTP_FROM_NAME
-      allowed: []
+      smtp: "*"
+    deploy:
+      ftp: "*"

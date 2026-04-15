@@ -2,17 +2,28 @@
 
 namespace App\Http\Captcha;
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 
 final class CaptchaService
 {
     private FileStorage $storage;
+    private RuntimeLockRunner $lockRunner;
+    private RuntimeAtomicWriter $writer;
     private string $dir;
     private int $ttlSeconds;
 
-    public function __construct(FileStorage $storage, string $dir, int $ttlSeconds)
-    {
+    public function __construct(
+        FileStorage $storage,
+        RuntimeLockRunner $lockRunner,
+        RuntimeAtomicWriter $writer,
+        string $dir,
+        int $ttlSeconds
+    ) {
         $this->storage = $storage;
+        $this->lockRunner = $lockRunner;
+        $this->writer = $writer;
         $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
         $this->ttlSeconds = $ttlSeconds;
         $this->storage->ensureDir($this->dir);
@@ -33,7 +44,7 @@ final class CaptchaService
             'fail_count' => 0,
         ];
 
-        $this->storage->writeJson($this->pathFor($id), $data);
+        $this->writeJson($this->pathFor($id), $data);
         return $data;
     }
 
@@ -44,28 +55,8 @@ final class CaptchaService
 
     public function verify(string $id, string $answer, string $ipHash): bool
     {
-        $path = $this->pathFor($id);
-        $data = $this->loadActiveChallenge($id);
-        if ($data === null) {
-            return false;
-        }
-
-        if (!hash_equals($data['ip_hash'] ?? '', $ipHash)) {
-            return false;
-        }
-
-        $expected = strtoupper((string) ($data['solution_text'] ?? ''));
-        $actual = strtoupper(trim($answer));
-
-        if (!hash_equals($expected, $actual)) {
-            $data['fail_count'] = (int) ($data['fail_count'] ?? 0) + 1;
-            $this->storage->writeJson($path, $data);
-            return false;
-        }
-
-        $data['used_at'] = time();
-        $this->storage->writeJson($path, $data);
-        return true;
+        $locked = fn() => $this->verifyLocked($id, $answer, $ipHash);
+        return (bool) $this->lockRunner->runWithLock('captcha_' . $id, $locked);
     }
 
     public function cleanupExpired(): int
@@ -119,6 +110,41 @@ final class CaptchaService
         imagepng($image);
         $png = ob_get_clean();
         return $png === false ? '' : $png;
+    }
+
+    private function verifyLocked(string $id, string $answer, string $ipHash): bool
+    {
+        $path = $this->pathFor($id);
+        $data = $this->loadActiveChallenge($id);
+        if ($data === null) {
+            return false;
+        }
+
+        if (!hash_equals($data['ip_hash'] ?? '', $ipHash)) {
+            return false;
+        }
+
+        $expected = strtoupper((string) ($data['solution_text'] ?? ''));
+        $actual = strtoupper(trim($answer));
+
+        if (!hash_equals($expected, $actual)) {
+            $data['fail_count'] = (int) ($data['fail_count'] ?? 0) + 1;
+            $this->writeJson($path, $data);
+            return false;
+        }
+
+        $data['used_at'] = time();
+        $this->writeJson($path, $data);
+        return true;
+    }
+
+    private function writeJson(string $path, array $data): void
+    {
+        $encoded = json_encode($data);
+        if (!is_string($encoded)) {
+            throw new \RuntimeException("CAPTCHA-Datei konnte nicht serialisiert werden: {$path}");
+        }
+        $this->writer->writeText($path, $encoded . "\n");
     }
 
     private function pathFor(string $id): string

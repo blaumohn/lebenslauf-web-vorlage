@@ -5,7 +5,7 @@
 PHP template for a CV site on shared hosting: public view with redacted
 contact details, token-gated private access, build and deployment
 workflow included.
-It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) template for content and i18n and extends it with today’s dynamic PHP layer.
+It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) template for content and i18n and extends it with today's dynamic PHP layer.
 [Full documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/)
 
 ## Setup
@@ -20,7 +20,13 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
    Python environment. Requires step 1.
 
    ```bash
-   php bin/cli setup dev --reset-sample-content
+   php bin/cli setup dev
+   ```
+
+   Optional, without overwriting existing data:
+
+   ```bash
+   php bin/cli setup dev --copy-sample-content
    ```
 
 3. **Build CV** — render sample data into HTML views.
@@ -32,7 +38,7 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
 4. **Start** — compile runtime config and start the development server.
 
    ```bash
-   php bin/cli run dev
+   composer run dev
    ```
 
 Own data and configuration (email, SMTP, deployment):

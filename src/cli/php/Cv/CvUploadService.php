@@ -148,20 +148,20 @@ final class CvUploadService
 
     private function resolvePublicProfile(): string
     {
-        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE', 'default'));
+        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
         return $value === '' ? 'default' : $value;
     }
 
     private function resolveDefaultLang(): string
     {
-        $raw = (string) $this->config->get('LEBENSLAUF_LANG_DEFAULT', 'de');
+        $raw = (string) $this->config->get('LEBENSLAUF_LANG_DEFAULT');
         $value = strtolower(trim($raw));
         return $value === '' ? 'de' : $value;
     }
 
     private function resolveLangs(): array
     {
-        $raw = (string) $this->config->get('LEBENSLAUF_LANGS', '');
+        $raw = (string) $this->config->get('LEBENSLAUF_LANGS');
         return $this->parseLangs($raw, $this->defaultLang);
     }
 

@@ -20,7 +20,13 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
    Python-Umgebung einrichten. Setzt Schritt 1 voraus.
 
    ```bash
-   php bin/cli setup dev --reset-sample-content
+   php bin/cli setup dev
+   ```
+
+   Optional, ohne bestehende Daten zu überschreiben:
+
+   ```bash
+   php bin/cli setup dev --copy-sample-content
    ```
 
 3. **Lebenslauf bauen** — Beispieldaten in HTML-Ansichten rendern.
@@ -32,7 +38,7 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
 4. **Starten** — Runtime-Config kompilieren und Entwicklungsserver starten.
 
    ```bash
-   php bin/cli run dev
+   composer run dev
    ```
 
 Eigene Daten und Konfiguration (E-Mail, SMTP, Deployment):

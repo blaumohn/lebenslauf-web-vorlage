@@ -32,8 +32,7 @@ final class ContactFormAction
     {
         $trustProxy = $this->context->config->getBool('TRUST_PROXY', false);
         $ip = $this->context->ipResolver->resolve($request, $trustProxy);
-        $salt = $this->context->config->requireString('IP_SALT');
-        return hash_hmac('sha256', $ip, $salt);
+        return $this->context->ipHashService->hashIp($ip);
     }
 
     private function isRateLimited(string $ipHash): bool

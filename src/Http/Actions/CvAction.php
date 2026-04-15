@@ -126,13 +126,13 @@ final class CvAction
 
     private function supportedLangs(): array
     {
-        $raw = (string) $this->context->config->get('LEBENSLAUF_LANGS', '');
+        $raw = (string) $this->context->config->get('LEBENSLAUF_LANGS');
         return $this->parseLangs($raw, $this->resolveDefaultLang());
     }
 
     private function resolveDefaultLang(): string
     {
-        $raw = (string) $this->context->config->get('LEBENSLAUF_LANG_DEFAULT', 'de');
+        $raw = (string) $this->context->config->get('LEBENSLAUF_LANG_DEFAULT');
         $value = strtolower(trim($raw));
         return $value === '' ? 'de' : $value;
     }

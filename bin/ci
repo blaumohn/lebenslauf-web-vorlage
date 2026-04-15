@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  set -x
+fi
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMMAND="${1:-}"
+PIPELINE="${2:-}"
+
+usage() {
+  echo "Usage: ci <command> <pipeline>"
+  echo "Commands: config-check, smoke"
+}
+
+require_args() {
+  if [[ "$COMMAND" != "" && "$PIPELINE" != "" ]]; then
+    return 0
+  fi
+  usage
+  exit 1
+}
+
+ensure_preview_pipeline() {
+  local pipeline="$1"
+  if [[ "$pipeline" == "preview" ]]; then
+    return 0
+  fi
+  echo "Unbekannte Pipeline fuer $COMMAND: $pipeline" >&2
+  exit 1
+}
+
+run_config_check() {
+  local pipeline="$1"
+  ensure_preview_pipeline "$pipeline"
+
+  local profile
+  profile="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" LEBENSLAUF_PUBLIC_PROFILE --phase build)"
+  if [[ "$profile" != "gueltig" ]]; then
+    echo "Erwartet LEBENSLAUF_PUBLIC_PROFILE=gueltig, erhalten: $profile" >&2
+    exit 1
+  fi
+
+  local mail_stdout
+  mail_stdout="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" MAIL_STDOUT --phase runtime)"
+  if [[ "$mail_stdout" != "1" ]]; then
+    echo "Erwartet MAIL_STDOUT=1, erhalten: $mail_stdout" >&2
+    exit 1
+  fi
+
+  php "$ROOT_DIR/bin/cli" config lint "$pipeline"
+}
+
+prepare_deploy_dir() {
+  rm -rf "$ROOT_DIR/deploy"
+  mkdir -p "$ROOT_DIR/deploy/var/cache"
+  mkdir -p "$ROOT_DIR/deploy/src"
+  cp -a public vendor "$ROOT_DIR/deploy/"
+  cp -a src/http src/resources "$ROOT_DIR/deploy/src/"
+  cp -a var/cache/html "$ROOT_DIR/deploy/var/cache/"
+}
+
+verify_artifact() {
+  test -f "$ROOT_DIR/deploy/public/index.php"
+  test -f "$ROOT_DIR/deploy/var/cache/html/cv-public.html"
+}
+
+smoke_http() {
+  php -S 127.0.0.1:8081 -t "$ROOT_DIR/public" > /tmp/preview-http.log 2>&1 &
+  local server_pid=$!
+  trap 'kill $server_pid' EXIT
+  sleep 1
+  curl --fail --silent --show-error http://127.0.0.1:8081/ > /tmp/preview-home.html
+  curl --fail --silent --show-error http://127.0.0.1:8081/cv > /tmp/preview-cv.html
+  curl --fail --silent --show-error http://127.0.0.1:8081/contact > /tmp/preview-contact.html
+}
+
+run_smoke() {
+  local pipeline="$1"
+  ensure_preview_pipeline "$pipeline"
+  prepare_deploy_dir
+  verify_artifact
+  smoke_http
+}
+
+main() {
+  require_args
+  case "$COMMAND" in
+    config-check)
+      run_config_check "$PIPELINE"
+      ;;
+    smoke)
+      run_smoke "$PIPELINE"
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

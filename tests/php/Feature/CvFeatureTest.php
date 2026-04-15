@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Security\TokenService;
-use App\Http\Storage\FileStorage;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
 final class CvFeatureTest extends FeatureTestCase
@@ -66,8 +64,7 @@ final class CvFeatureTest extends FeatureTestCase
         $profile = 'entw';
         $token = 'secret-token';
 
-        $storage = new FileStorage();
-        $tokenService = new TokenService($storage, $this->root . '/var/state/tokens');
+        $tokenService = $this->buildTokenService();
         $tokenService->rotate($profile, [$token]);
 
         $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.html';
@@ -87,8 +84,7 @@ final class CvFeatureTest extends FeatureTestCase
         $profile = 'entw';
         $token = 'secret-token';
 
-        $storage = new FileStorage();
-        $tokenService = new TokenService($storage, $this->root . '/var/state/tokens');
+        $tokenService = $this->buildTokenService();
         $tokenService->rotate($profile, [$token]);
 
         $dePath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';

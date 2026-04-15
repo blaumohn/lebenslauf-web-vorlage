@@ -7,7 +7,8 @@ use Symfony\Component\Filesystem\Path;
 final class ConfigCompiled
 {
     private string $rootPath;
-    private array $data;
+    private array $values;
+    private array $pipelinePhase;
 
     public function __construct(string $rootPath)
     {
@@ -21,7 +22,8 @@ final class ConfigCompiled
         if (!is_array($data)) {
             throw new \RuntimeException("Compiled config ungueltig: {$path}");
         }
-        $this->data = $data;
+        $this->values = $this->loadValues($path, $data);
+        $this->pipelinePhase = $this->loadPipelinePhase($path, $data);
     }
 
     public function rootPath(): string
@@ -31,10 +33,20 @@ final class ConfigCompiled
 
     public function get(string $key, mixed $default = null): mixed
     {
-        if (!array_key_exists($key, $this->data)) {
+        if (!array_key_exists($key, $this->values)) {
             return $default;
         }
-        return $this->data[$key];
+        return $this->values[$key];
+    }
+
+    public function pipeline(): string
+    {
+        return (string) ($this->pipelinePhase['pipeline'] ?? '');
+    }
+
+    public function phase(): string
+    {
+        return (string) ($this->pipelinePhase['phase'] ?? '');
     }
 
     public function getBool(string $key, bool $default = false): bool
@@ -81,10 +93,41 @@ final class ConfigCompiled
 
     public function basePath(): string
     {
-        $value = trim((string) $this->get('APP_BASE_PATH', ''));
+        $value = trim((string) $this->get('APP_BASE_PATH'));
         if ($value === '' || $value === '/') {
             return '';
         }
         return '/' . trim($value, '/');
+    }
+
+    private function loadValues(string $configPath, array $data): array
+    {
+        $values = $data['values'] ?? null;
+        if (!is_array($values)) {
+            throw new \RuntimeException("Compiled config values ungueltig: {$configPath}");
+        }
+        return $values;
+    }
+
+    private function loadPipelinePhase(string $configPath, array $data): array
+    {
+        $pipelinePhase = $data['pipeline_phase'] ?? null;
+        if (!is_array($pipelinePhase)) {
+            throw new \RuntimeException("Compiled config pipeline_phase ungueltig: {$configPath}");
+        }
+
+        $pipeline = $pipelinePhase['pipeline'] ?? null;
+        $phase = $pipelinePhase['phase'] ?? null;
+        if (!is_string($pipeline) || trim($pipeline) === '') {
+            throw new \RuntimeException("Compiled config pipeline_phase.pipeline fehlt: {$configPath}");
+        }
+        if (!is_string($phase) || trim($phase) === '') {
+            throw new \RuntimeException("Compiled config pipeline_phase.phase fehlt: {$configPath}");
+        }
+
+        return [
+            'pipeline' => trim($pipeline),
+            'phase' => trim($phase),
+        ];
     }
 }

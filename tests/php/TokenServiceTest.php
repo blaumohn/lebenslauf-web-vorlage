@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +26,9 @@ final class TokenServiceTest extends TestCase
     public function testRotateAndVerify(): void
     {
         $storage = new FileStorage();
-        $service = new TokenService($storage, $this->tempDir);
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
 
         $tokens = ['alpha', 'beta'];
         $service->rotate('DEFAULT', $tokens);
@@ -36,7 +40,9 @@ final class TokenServiceTest extends TestCase
     public function testFindProfileForToken(): void
     {
         $storage = new FileStorage();
-        $service = new TokenService($storage, $this->tempDir);
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
 
         $service->rotate('A', ['token-a']);
         $service->rotate('B', ['token-b']);

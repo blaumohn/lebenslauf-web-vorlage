@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build:css": "postcss src/resources/build/assets/css/cv/index.css -o public/css/cv.css && postcss src/resources/build/assets/css/site.css -o public/css/site.css",
-    "css:watch": "python3 src/cli/py/shared/dev/css-watch.py || python src/cli/py/shared/dev/css-watch.py"
+    "css:watch": "python3 src/cli/py/dev/css-watch.py || python src/cli/py/dev/css-watch.py"
   },
   "devDependencies": {
     "postcss": "^8.4.38",

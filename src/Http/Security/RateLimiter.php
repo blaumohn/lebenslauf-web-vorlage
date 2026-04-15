@@ -2,24 +2,41 @@
 
 namespace App\Http\Security;
 
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
 
 final class RateLimiter
 {
     private FileStorage $storage;
+    private RuntimeLockRunner $lockRunner;
+    private RuntimeAtomicWriter $writer;
     private string $dir;
 
-    public function __construct(FileStorage $storage, string $dir)
-    {
+    public function __construct(
+        FileStorage $storage,
+        RuntimeLockRunner $lockRunner,
+        RuntimeAtomicWriter $writer,
+        string $dir
+    ) {
         $this->storage = $storage;
+        $this->lockRunner = $lockRunner;
+        $this->writer = $writer;
         $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
         $this->storage->ensureDir($this->dir);
     }
 
     public function allow(string $key, int $max, int $windowSeconds): bool
     {
-        $path = $this->dir . DIRECTORY_SEPARATOR . $this->safeKey($key) . '.json';
+        $safeKey = $this->safeKey($key);
+        $path = $this->dir . DIRECTORY_SEPARATOR . $safeKey . '.json';
         $now = time();
+        $locked = fn() => $this->allowLocked($path, $max, $windowSeconds, $now);
+        return (bool) $this->lockRunner->runWithLock('ratelimit_' . $safeKey, $locked);
+    }
+
+    private function allowLocked(string $path, int $max, int $windowSeconds, int $now): bool
+    {
         $data = $this->storage->readJson($path) ?? ['timestamps' => []];
         $timestamps = array_filter($data['timestamps'] ?? [], fn ($ts) => is_int($ts));
 
@@ -35,8 +52,17 @@ final class RateLimiter
         }
 
         $filtered[] = $now;
-        $this->storage->writeJson($path, ['timestamps' => array_values($filtered)]);
+        $this->writeJson($path, ['timestamps' => array_values($filtered)]);
         return true;
+    }
+
+    private function writeJson(string $path, array $data): void
+    {
+        $encoded = json_encode($data);
+        if (!is_string($encoded)) {
+            throw new \RuntimeException("Rate-Limit-Datei konnte nicht serialisiert werden: {$path}");
+        }
+        $this->writer->writeText($path, $encoded . "\n");
     }
 
     private function safeKey(string $key): string

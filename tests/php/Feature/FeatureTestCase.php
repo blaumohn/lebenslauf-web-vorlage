@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Http\Security\IpHashService;
+use App\Http\Security\IpSaltService;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use App\Http\Runtime\RuntimeLockRunner;
+use App\Http\Storage\FileStorage;
 use PipelineConfigSpec\PipelineConfigService;
 use App\Http\AppBuilder;
 use App\Http\ConfigCompiled;
@@ -14,8 +19,7 @@ abstract class FeatureTestCase extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/php-mvp-app-' . bin2hex(random_bytes(6));
-        mkdir($this->root, 0775, true);
+        $this->root = $this->createTestRoot();
         $this->copyDir(
             $this->configSourceDir(),
             $this->root . '/src/resources/config'
@@ -31,6 +35,7 @@ abstract class FeatureTestCase extends TestCase
             $this->root . '/var/cache/html',
             $this->root . '/var/state/tokens',
             $this->root . '/var/config',
+            $this->root . '/var/state/locks',
         ]);
         $this->compileConfig();
     }
@@ -51,9 +56,62 @@ abstract class FeatureTestCase extends TestCase
         return dirname(__DIR__, 3);
     }
 
+    protected function ipHashFor(string $ip): string
+    {
+        $ipSaltService = $this->buildIpSaltService();
+        $salt = $ipSaltService->resolveSalt();
+        $ipHashService = new IpHashService($salt);
+        return $ipHashService->hashIp($ip);
+    }
+
+    protected function buildTokenService(): \App\Http\Security\TokenService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Security\TokenService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/state/tokens'
+        );
+    }
+
+    protected function buildCaptchaService(): \App\Http\Captcha\CaptchaService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new \App\Http\Captcha\CaptchaService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/tmp/captcha',
+            600
+        );
+    }
+
     private function configSourceDir(): string
     {
         return $this->projectRoot() . '/src/resources/config';
+    }
+
+    private function createTestRoot(): string
+    {
+        $suffix = '/php-mvp-app-' . bin2hex(random_bytes(6));
+        $baseDir = sys_get_temp_dir();
+        $root = $baseDir . $suffix;
+        if (@mkdir($root, 0775, true)) {
+            return $root;
+        }
+
+        $fallback = $this->projectRoot() . '/var/tmp';
+        $root = $fallback . $suffix;
+        if (@mkdir($root, 0775, true)) {
+            return $root;
+        }
+
+        throw new RuntimeException('Konnte Test-Verzeichnis nicht anlegen: ' . $root);
     }
 
     private function ensureDirs(array $dirs): void
@@ -69,6 +127,21 @@ abstract class FeatureTestCase extends TestCase
     {
         $configService = new PipelineConfigService($this->root, 'src/resources/config');
         $configService->compile('dev', 'runtime');
+    }
+
+    private function buildIpSaltService(): IpSaltService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
+        $writer = new RuntimeAtomicWriter();
+        return new IpSaltService(
+            $storage,
+            $lockRunner,
+            $writer,
+            $this->root . '/var/state',
+            $this->root . '/var/tmp/captcha',
+            $this->root . '/var/tmp/ratelimit'
+        );
     }
 
     private function copyDir(string $source, string $dest): void

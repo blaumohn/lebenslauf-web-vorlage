@@ -20,7 +20,6 @@ final class TwigFactory
     public static function configure(Environment $twig, string $basePath): void
     {
         $normalized = self::normalizeBasePath($basePath);
-        $twig->addGlobal('base_path', $normalized);
         $twig->addFunction(new TwigFunction('path', fn(string $path) => self::prefixPath($normalized, $path)));
     }
 
