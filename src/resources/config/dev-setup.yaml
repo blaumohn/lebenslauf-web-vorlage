@@ -1,1 +1,2 @@
-LEBENSLAUF_PUBLIC_PROFILE: default
+lebenslauf:
+  LEBENSLAUF_PUBLIC_PROFILE: default

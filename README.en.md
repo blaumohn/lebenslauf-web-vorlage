@@ -20,10 +20,17 @@ The links here stay branch-neutral on purpose.
 ```bash
 composer install
 php bin/cli setup dev
-php bin/cli run dev
+composer run dev
 ```
 
-`run` compiles the runtime config to `var/config/config.php`.
+Optional sample seed without overwriting existing content:
+
+```bash
+php bin/cli setup dev --copy-sample-content
+```
+
+`composer run dev` starts the Python dev runner `src/cli/py/dev/dev.py`.
+Use `composer run dev:build` for the initial build variant.
 
 Create `.local/dev-runtime.yaml` before the first run
 (see `src/resources/config/dev-runtime.yaml`).
@@ -35,8 +42,13 @@ Defaults come from YAML config files (see `src/resources/config/`).
 If no `.local/dev-runtime.yaml` exists, copy the fixture from
 `tests/fixtures/dev-runtime.yaml`.
 `php bin/cli setup` runs `npm install`.
-`php bin/cli run` starts the Python dev runner (option: `--build`).
 Note: `setup` creates `.venv` unless `--skip-python` is used.
+The sample seed uses the fixed fixture
+`src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
+`.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`. The profile value
+must be allowed and set for the setup phase in the pipeline spec; in `dev`, the
+setup value comes from `src/resources/config/dev-setup.yaml`. If the target
+already exists, setup fails explicitly instead of overwriting local data.
 
 ## More docs
 
@@ -50,8 +62,7 @@ Note: `setup` creates `.venv` unless `--skip-python` is used.
 # Lifecycle
 php bin/cli setup <pipeline>
 php bin/cli build <pipeline> [cv|css|upload]
-php bin/cli run <pipeline> [--build]
-php bin/cli python <pipeline> [--add-path <path>] <script> [args...]
+php bin/cli python <pipeline> [--override KEY=VALUE] <script> [args...]
 
 # Content
 php bin/cli build <pipeline> cv
@@ -75,8 +86,8 @@ Examples:
 
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
-- `php bin/cli run dev`
-- `php bin/cli python dev --add-path . tests/py/smoke.py`
+- `composer run dev`
+- `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 - `php bin/cli ip-hash reset`
 
 ## Python runner
@@ -84,7 +95,9 @@ Examples:
 - Phase: `python`
 - Defaults: `src/resources/config/dev-python.yaml`
 - Keys: `PYTHON_CMD`, `PYTHON_PATHS` (e.g. `src`)
-- Extra import paths via CLI: `--add-path <path>`
+- CLI overrides: `--override KEY=VALUE`
+- Dev startup stays on the `composer` layer: `composer run dev`
+- `dev.py` remains a Python script in phase `python`, not its own CLI pipeline command
 
 ## Build + dev (YAML -> JSON -> HTML)
 
@@ -101,24 +114,28 @@ files are built.
 ## Configuration
 
 - Use `src/resources/config/<PIPELINE>-<PHASE>.yaml` and
-  `.local/<PIPELINE>-<PHASE>.yaml` (see `docs/ENVIRONMENTS.md`).
-- Example values live in `src/resources/config/dev-runtime.yaml`.
+  `.local/<PIPELINE>-<PHASE>.yaml`.
+- Example values live in manifest `meta.example` entries.
 - Important folders:
   - `var/tmp/` short-lived (CAPTCHA + rate limits)
   - `var/cache/` derived (rendered HTML)
   - `var/state/` important (token whitelist)
 - Labels for section titles: `src/resources/build/labels.json`.
 - Page texts (title/contact) live in Twig templates.
-- Config rules live in `src/resources/config/config.manifest.yaml`.
+- App config rules live in `src/resources/config/config.manifest.yaml`.
+  The pipeline spec model is documented at
+  <https://docs.template.ysdani.com/en/specs/systems/pipeline-spec/>.
 
 Relevant config keys:
-- `LEBENSLAUF_PUBLIC_PROFILE` (build)
+- `LEBENSLAUF_PUBLIC_PROFILE` (build; in `dev`, also setup seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
-- `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` (runtime)
+- `CONTACT_TO_EMAIL`, `MAIL_STDOUT` (contact runtime)
+- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, and other `SMTP_*` values
+  (only `preview` runtime, group `smtp`)
+- `CONTACT_TO_EMAIL` must be a valid email address in runtime phases.
 
-Details on environments and variables: `docs/ENVIRONMENTS.md`.
 Deployments use `var/config/config.php` as the compiled runtime config
-(`php bin/cli config compile <pipeline>`).
+(`php bin/cli config compile <pipeline> --phase runtime`).
 
 Preview build in CI: `composer install --no-dev --optimize-autoloader
 --no-interaction` + `php bin/cli setup preview` + `php bin/cli build preview`
@@ -171,14 +188,10 @@ composer run test
 composer run tests:smoke
 ```
 
-<<<<<<< HEAD
-The smoke test clones the repo into a temporary directory, installs dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
-Mock data comes from `src/resources/fixtures/lebenslauf/daten-gueltig.yaml`.
-=======
 The smoke test clones the repo into a temporary directory, installs
 dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
-Mock data comes from `tests/fixtures/lebenslauf/daten-gueltig.yaml`.
->>>>>>> dev
+Mock data for the setup seed comes from
+`src/resources/fixtures/lebenslauf/daten-gueltig.yaml`.
 
 Optional environment variables:
 - `CLONE_SOURCE` sets a local source or Git URL (default: local repo).

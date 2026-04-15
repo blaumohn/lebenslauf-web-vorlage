@@ -32,6 +32,21 @@ abstract class BaseCommand extends Command
         return $config;
     }
 
+    protected function resolvePipelineConfig(
+        string $pipeline,
+        string $phase,
+        array $overrides,
+        OutputInterface $output
+    ): ?ConfigValues {
+        try {
+            $values = $this->configService()->values($pipeline, $phase, $overrides);
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return null;
+        }
+        return $this->configValues($values);
+    }
+
     protected function requirePipeline(InputInterface $input, OutputInterface $output): ?string
     {
         $pipeline = $this->resolveStringArgument($input, 'pipeline');

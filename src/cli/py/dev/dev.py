@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 ROOT_PATH = os.getcwd()
+DEV_PIPELINE = "dev"
 
 from cli.py.dev.process_supervisor import ProcessSupervisor
 from cli.py.util.run_helpers import run
@@ -26,8 +27,7 @@ def main():
         start_php_server(root_path, supervisor)
         file_watcher = setup_watchers(
             supervisor,
-            root_path,
-            args.pipeline
+            root_path
         )
 
         exit_code = supervisor.run(file_watcher)
@@ -39,7 +39,6 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Dev-Server mit Watchern starten.")
-    parser.add_argument("--pipeline", required=True, help="Pipeline-Name.")
     parser.add_argument("--build", action="store_true", help="CV-Build vor dem Start ausfuehren.")
     return parser.parse_args()
 
@@ -50,16 +49,16 @@ def resolve_root_path():
 
 def ensure_initial_build(args, root_path):
     if args.build:
-        run_cv_build(root_path, args.pipeline)
+        run_cv_build(root_path)
 
 
-def setup_watchers(supervisor, root_path, pipeline):
+def setup_watchers(supervisor, root_path):
     start_css_watch(supervisor)
     file_watcher = FileWatcher()
-    yaml_path, yaml_dir = resolve_yaml_inputs(root_path, pipeline)
+    yaml_path, yaml_dir = resolve_yaml_inputs(root_path)
 
     def build_fn(build_root):
-        run_cv_build(build_root, pipeline)
+        run_cv_build(build_root)
 
     schedule_yaml(
         file_watcher,
@@ -84,18 +83,18 @@ def start_css_watch(supervisor):
         supervisor.start(f"css-{index}", cmd)
 
 
-def resolve_yaml_inputs(root_path, pipeline):
+def resolve_yaml_inputs(root_path):
     yaml_path = get_config_value(
-        "LEBENSLAUF_YAML_PFAD", root_path, pipeline
+        "LEBENSLAUF_YAML_PFAD", root_path
     )
     yaml_dir = get_config_value(
-        "LEBENSLAUF_DATEN_PFAD", root_path, pipeline
+        "LEBENSLAUF_DATEN_PFAD", root_path
     )
     return resolve_path(root_path, yaml_path), resolve_path(root_path, yaml_dir)
 
 
-def get_config_value(key, root_path, pipeline):
-    cmd = ["php", "bin/cli", "config", "get", pipeline, key]
+def get_config_value(key, root_path):
+    cmd = ["php", "bin/cli", "config", "get", DEV_PIPELINE, key]
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -115,9 +114,9 @@ def resolve_path(root_path, value):
     return os.path.join(root_path, value)
 
 
-def run_cv_build(root_path, pipeline):
+def run_cv_build(root_path):
     run(
-        ["php", "bin/cli", "build", pipeline, "cv"],
+        ["php", "bin/cli", "build", DEV_PIPELINE, "cv"],
         cwd=root_path,
     )
 

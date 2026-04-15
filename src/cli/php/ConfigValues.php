@@ -18,6 +18,11 @@ final class ConfigValues
         return $this->rootPath;
     }
 
+    public function all(): array
+    {
+        return $this->values;
+    }
+
     public function get(string $key, mixed $default = null): mixed
     {
         if (array_key_exists($key, $this->values)) {
@@ -71,7 +76,7 @@ final class ConfigValues
 
     public function basePath(): string
     {
-        $value = trim((string) $this->get('APP_BASE_PATH', ''));
+        $value = trim((string) $this->get('APP_BASE_PATH'));
         if ($value === '' || $value === '/') {
             return '';
         }

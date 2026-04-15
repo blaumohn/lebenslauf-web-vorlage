@@ -1,0 +1,3 @@
+deploy:
+  FTP_SERVER_DIR: /home/preview/public
+  FTP_PORT: 21

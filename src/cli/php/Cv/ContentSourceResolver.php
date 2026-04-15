@@ -30,10 +30,6 @@ final class ContentSourceResolver
 
     public function jsonPath(): string
     {
-        $value = $this->configValue('LEBENSLAUF_JSON_PFAD');
-        if ($value !== '') {
-            return $this->resolvePath($value);
-        }
         return $this->defaultJsonPath();
     }
 

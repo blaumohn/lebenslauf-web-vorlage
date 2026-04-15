@@ -82,7 +82,7 @@ final class CvBuildService
 
     private function publicProfile(): string
     {
-        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE', 'default'));
+        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
         return $value === '' ? 'default' : $value;
     }
 

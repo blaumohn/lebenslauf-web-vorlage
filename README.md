@@ -37,13 +37,20 @@ composer install
 php bin/cli setup dev
 ```
 
+Optional für Demo-Inhalt, ohne bestehende Daten zu überschreiben:
+
+```bash
+php bin/cli setup dev --copy-sample-content
+```
+
 3) **Starten**
 
 ```bash
-php bin/cli run dev
+composer run dev
 ```
 
-`run` kompiliert die Runtime-Config nach `var/config/config.php`.
+`composer run dev` startet den Python-Dev-Runner `src/cli/py/dev/dev.py`.
+Mit Vorab-Build: `composer run dev:build`.
 
 Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 (siehe `src/resources/config/dev-runtime.yaml`).
@@ -60,10 +67,20 @@ Vor dem ersten Start `.local/dev-runtime.yaml` anlegen
 - Build-Ressourcen (Schemas/Labels/Assets) liegen unter
   `src/resources/build/`.
 
-Relevante Config-Werte (Runtime/Build):
-- `LEBENSLAUF_PUBLIC_PROFILE` (Build)
+Relevante Config-Werte:
+- `LEBENSLAUF_PUBLIC_PROFILE` (Build; in `dev` auch Setup-Seed)
 - `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (Runtime)
-- `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` (Runtime)
+- `CONTACT_TO_EMAIL`, `MAIL_STDOUT` (Kontakt-Runtime)
+- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` und weitere `SMTP_*`-Werte
+  (nur `preview`-Runtime, Gruppe `smtp`)
+- `CONTACT_TO_EMAIL` muss in Runtime-Phasen eine gültige E-Mail-Adresse sein.
+
+Der Setup-Sample-Pfad nutzt die feste Fixture
+`src/resources/fixtures/lebenslauf/daten-gueltig.yaml` und kopiert sie bei
+Bedarf nach `.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`.
+Der Profilwert muss in der Pipeline-Spec fuer die Setup-Phase erlaubt und
+gesetzt sein; in `dev` kommt er fuer Setup aus
+`src/resources/config/dev-setup.yaml`.
 
 ## Build (YAML -> JSON -> HTML)
 
@@ -90,16 +107,17 @@ Beispiele:
 
 - `php bin/cli setup dev`
 - `php bin/cli build dev cv`
-- `php bin/cli run dev`
-- `php bin/cli python dev --add-path . tests/py/smoke.py`
-- `php bin/cli ip-hash reset`
+- `composer run dev`
+- `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
 
 ## Python-Runner
 
 - Config-Phase: `python`
 - Defaults: `src/resources/config/dev-python.yaml`
 - Wichtige Keys: `PYTHON_CMD`, `PYTHON_PATHS` (z. B. `src`)
-- Zusatzelemente per CLI: `--add-path <pfad>`
+- CLI-Ueberschreibungen: `--override KEY=VALUE`
+- Dev-Betrieb bleibt auf der `composer`-Ebene: `composer run dev`
+- `dev.py` bleibt ein Python-Skript in der Phase `python`, kein eigener CLI-Pipeline-Befehl
 
 ## Projektstruktur
 
@@ -123,9 +141,11 @@ Beispiele:
 
 ## Umgebungsvariablen
 
-Die Config-Policy (Pipeline/Phase) ist in `docs/ENVIRONMENTS.md`
-beschrieben.
-Beispielwerte stehen in `src/resources/config/dev-runtime.yaml`,
-Regeln in `src/resources/config/config.manifest.yaml`.
+Config-Werte liegen in `src/resources/config/<PIPELINE>-<PHASE>.yaml`
+und lokalen Overrides unter `.local/<PIPELINE>-<PHASE>.yaml`.
+Beispielwerte stehen im Manifest unter `meta.example`.
+Die App-Regeln stehen in `src/resources/config/config.manifest.yaml`;
+das Pipeline-Spec-Modell beschreibt die öffentliche Doku:
+<https://docs.template.ysdani.com/de/specs/systeme/pipeline-spec/>.
 Für Deployments wird die Runtime-Config als `var/config/config.php`
-erzeugt (siehe `php bin/cli config compile <pipeline>`).
+erzeugt (siehe `php bin/cli config compile <pipeline> --phase runtime`).

@@ -2,42 +2,35 @@
 
 namespace App\Cli\Util;
 
+use App\Cli\ConfigValues;
 use App\Cli\PythonResolver;
-use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Process\Process;
 
 final class PythonRunner
 {
     private string $rootPath;
-    private string $configDir;
 
-    public function __construct(string $rootPath, string $configDir)
+    public function __construct(string $rootPath)
     {
         $this->rootPath = rtrim($rootPath, DIRECTORY_SEPARATOR);
-        $this->configDir = $this->normalizeConfigDir($configDir);
     }
 
-    public function runWithContext(
-        string $pipeline,
+    public function runScript(
+        ConfigValues $config,
         string $script,
         array $args = [],
-        bool $interactive = false,
-        array $extraPaths = []
+        bool $interactive = false
     ): int {
-        $configValues = $this->loadConfigValues($pipeline);
-        if ($configValues === null) {
-            return 1;
-        }
-        $resolver = new PythonResolver($this->rootPath, $configValues);
+        $resolver = new PythonResolver($this->rootPath, $config->all());
         $command = $resolver->findPythonCommand();
         if ($command === null) {
-            fwrite(STDERR, "PYTHON_CMD fehlt fuer {$pipeline}/python.\n");
+            fwrite(STDERR, "PYTHON_CMD fehlt fuer den Python-Runner.\n");
             return 1;
         }
 
         $scriptPath = $resolver->scriptPath($script);
         $cmd = array_merge($command, [$scriptPath], $args);
-        $env = $this->buildEnv($resolver, $configValues, $extraPaths);
+        $env = $this->buildEnv($resolver, $config);
         $process = new Process($cmd, $this->rootPath, $env);
         if ($interactive && Process::isTtySupported()) {
             $process->setTty(true);
@@ -49,27 +42,10 @@ final class PythonRunner
         return (int) $process->getExitCode();
     }
 
-    private function loadConfigValues(string $pipeline): ?array
+    private function buildEnv(PythonResolver $resolver, ConfigValues $config): array
     {
-        $pipelineSpec = new PipelineConfigService($this->rootPath, $this->configDir);
-        try {
-            return $pipelineSpec->values($pipeline, 'python');
-        } catch (\RuntimeException $exception) {
-            fwrite(STDERR, $exception->getMessage() . "\n");
-            return null;
-        }
-    }
-
-    private function buildEnv(
-        PythonResolver $resolver,
-        array $configValues,
-        array $extraPaths
-    ): array
-    {
-        $paths = $this->normalizePaths($resolver, $extraPaths);
         $paths = array_merge(
-            $paths,
-            $this->configPaths($resolver, $configValues),
+            $this->configPaths($resolver, $config),
             $this->existingPaths($resolver)
         );
         $paths = $this->uniquePaths($paths);
@@ -77,8 +53,27 @@ final class PythonRunner
             return $_ENV;
         }
         $pythonPath = implode(PATH_SEPARATOR, $paths);
-        $env = array_merge($_ENV, ['PYTHONPATH' => $pythonPath]);
-        return $env;
+        return array_merge($_ENV, ['PYTHONPATH' => $pythonPath]);
+    }
+
+    private function configPaths(PythonResolver $resolver, ConfigValues $config): array
+    {
+        $value = trim((string) $config->get('PYTHON_PATHS', ''));
+        if ($value === '') {
+            return [];
+        }
+        $parts = explode(PATH_SEPARATOR, $value);
+        return $this->normalizePaths($resolver, $parts);
+    }
+
+    private function existingPaths(PythonResolver $resolver): array
+    {
+        $value = getenv('PYTHONPATH');
+        if ($value === false || trim($value) === '') {
+            return [];
+        }
+        $parts = explode(PATH_SEPARATOR, $value);
+        return $this->normalizePaths($resolver, $parts);
     }
 
     private function normalizePaths(PythonResolver $resolver, array $paths): array
@@ -108,26 +103,6 @@ final class PythonRunner
         return $resolver->scriptPath($path);
     }
 
-    private function configPaths(PythonResolver $resolver, array $configValues): array
-    {
-        $value = trim((string) ($configValues['PYTHON_PATHS'] ?? ''));
-        if ($value === '') {
-            return [];
-        }
-        $parts = explode(PATH_SEPARATOR, $value);
-        return $this->normalizePaths($resolver, $parts);
-    }
-
-    private function existingPaths(PythonResolver $resolver): array
-    {
-        $value = getenv('PYTHONPATH');
-        if ($value === false || trim($value) === '') {
-            return [];
-        }
-        $parts = explode(PATH_SEPARATOR, $value);
-        return $this->normalizePaths($resolver, $parts);
-    }
-
     private function uniquePaths(array $paths): array
     {
         $seen = [];
@@ -140,14 +115,5 @@ final class PythonRunner
             $unique[] = $path;
         }
         return $unique;
-    }
-
-    private function normalizeConfigDir(string $configDir): string
-    {
-        $trimmed = trim($configDir, DIRECTORY_SEPARATOR);
-        if ($trimmed === '') {
-            return 'src/resources/config';
-        }
-        return $trimmed;
     }
 }

@@ -1,8 +1,4 @@
-variables:
-  context:
-    PIPELINE: {}
-    PHASE: {}
-
+variable-groups:
   app:
     APP_BASE_PATH:
       meta:
@@ -11,66 +7,143 @@ variables:
           Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
           https://domain.tld/public
         example: "/public"
-    APP_URL:
+    TRUST_PROXY:
       meta:
-        desc: "Basis-URL der Anwendung"
-        example: "https://example.invalid"
-    TRUST_PROXY: {}
+        desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
+        example: "1"
 
   lebenslauf:
-    LEBENSLAUF_DATEN_PFAD: {}
-    LEBENSLAUF_YAML_PFAD: {}
-    LEBENSLAUF_JSON_PFAD: {}
-    LEBENSLAUF_PUBLIC_PROFILE: {}
-    LEBENSLAUF_LANG_DEFAULT: {}
-    LEBENSLAUF_LANGS: {}
+    LEBENSLAUF_DATEN_PFAD:
+      meta:
+        desc: "Pfad zum Lebenslauf-Datenverzeichnis"
+        example: ".local/lebenslauf"
+    LEBENSLAUF_YAML_PFAD:
+      meta:
+        desc: "Pfad zur Lebenslauf-YAML-Quelldatei (leer = Standard im Datenpfad)"
+        notes: >-
+          Leer bedeutet: nutze den Datenpfad als Verzeichnis und lese dort
+          alle daten-<profil>.yaml-Dateien.
+        example: ""
+    LEBENSLAUF_PUBLIC_PROFILE:
+      meta:
+        desc: "Profilname für den öffentlichen Lebenslauf"
+        notes: >-
+          Nur im Build relevant. Das Profil muss zu einer vorhandenen
+          daten-<profil>.yaml-Datei im YAML-Pfad passen.
+        example: "default"
+    LEBENSLAUF_LANG_DEFAULT:
+      meta:
+        desc: "Standard-Sprache des Lebenslaufs"
+        notes: >-
+          Muss in LEBENSLAUF_LANGS enthalten sein.
+        example: "de"
+    LEBENSLAUF_LANGS:
+      meta:
+        desc: "Kommagetrennte Liste unterstützter Sprachen"
+        notes: >-
+          Muss die Standard-Sprache enthalten und zum vorhandenen
+          Übersetzungsstand der Labels passen.
+        example: "de,en"
 
   captcha:
-    CAPTCHA_TTL_SECONDS: {}
-    CAPTCHA_MAX_GET: {}
+    CAPTCHA_TTL_SECONDS:
+      meta:
+        desc: "Gültigkeitsdauer eines Captcha-Tokens in Sekunden"
+        notes: >-
+          Gilt sowohl für die HTTP-Runtime als auch für das CLI-Cleanup, das
+          noch gültige Captchas nicht vorzeitig entfernen soll.
+        example: "600"
+    CAPTCHA_MAX_GET:
+      meta:
+        desc: "Maximale Captcha-Anfragen pro Zeitfenster"
+        example: "5"
 
   contact:
-    CONTACT_MAX_POST: {}
+    CONTACT_MAX_POST:
+      meta:
+        desc: "Maximale Kontaktformular-Absendungen pro Zeitfenster"
+        example: "3"
     CONTACT_TO_EMAIL:
       meta:
-        desc: "Empfaengeradresse fuer Kontaktformular"
+        desc: "Empfängeradresse für Kontaktformular"
+        notes: >-
+          Bleibt unabhängig vom SMTP-Absenderpfad. Der Wert bestimmt das
+          Ziel des Formulars, nicht den Absender der App.
         example: "kontakt@example.invalid"
-    CONTACT_FROM_EMAIL:
-      meta:
-        desc: "Absenderadresse fuer Kontaktformular"
-        example: "web@example.invalid"
-
-  rate_limit:
-    RATE_LIMIT_WINDOW_SECONDS: {}
-
-  mail:
     MAIL_STDOUT:
       meta:
-        notes: "SMTP_* nur notwendig, wenn MAIL_STDOUT=0."
+        desc: "Kontaktformular-Ausgabe auf stdout statt Transport (1 = aktiv, für Entwicklung)"
+        notes: >-
+          Kontaktformular-Runtime-Schalter fuer den stdout-Pfad. In dev ist
+          dies der Transportersatz; preview kann zusaetzlich SMTP_*-Werte fuer
+          echten SMTP-Betrieb fuehren.
+        example: "1"
+
+  rate_limit:
+    RATE_LIMIT_WINDOW_SECONDS:
+      meta:
+        desc: "Länge des Rate-Limit-Zeitfensters in Sekunden"
+        example: "600"
+
+  smtp:
     SMTP_HOST:
       meta:
         desc: "SMTP-Host"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_PORT,
+          SMTP_USER, SMTP_PASS, SMTP_ENCRYPTION, SMTP_FROM_EMAIL und
+          SMTP_FROM_NAME.
         example: "smtp.example.invalid"
-    SMTP_PORT: {}
+    SMTP_PORT:
+      meta:
+        desc: "SMTP-Port"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST.
+        example: "587"
     SMTP_USER:
       meta:
-        desc: "SMTP-User"
+        desc: "SMTP-Benutzername"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_PASS.
         example: "user"
     SMTP_PASS:
       sources: [system, local]
-    SMTP_ENCRYPTION: {}
+      meta:
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_USER. Gehört nicht in versionierte Beispielkonfigurationen.
+    SMTP_ENCRYPTION:
+      meta:
+        desc: "SMTP-Verschlüsselung (tls, ssl oder leer)"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
+          SMTP_PORT.
+        example: "tls"
     SMTP_FROM_EMAIL:
       meta:
-        desc: "Absenderadresse fuer SMTP"
+        desc: "Absenderadresse der App für ausgehende E-Mails"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit
+          SMTP_FROM_NAME. Nicht mit CONTACT_TO_EMAIL verwechseln.
         example: "kontakt@example.invalid"
     SMTP_FROM_NAME:
       meta:
-        desc: "Absendername fuer SMTP"
-        example: "Beispiel"
+        desc: "Absendername der App für ausgehende E-Mails"
+        notes: >-
+          Nur relevant bei echtem SMTP-Betrieb zusammen mit
+          SMTP_FROM_EMAIL.
+        example: "Lebenslauf"
 
-  deploy:
-    FTP_SERVER_DIR: {}
-    FTP_PORT: {}
+  ftp:
+    FTP_SERVER_DIR:
+      meta:
+        desc: "Zielverzeichnis auf dem FTP-Server"
+        example: "/home/user/public"
+    FTP_PORT:
+      meta:
+        desc: "FTP-Port"
+        example: "21"
     FTP_HOST:
       sources: [system, local]
     FTP_USER:
@@ -79,65 +152,58 @@ variables:
       sources: [system, local]
 
   tooling:
-    PYTHON_CMD: {}
-    PYTHON_PATHS: {}
+    PYTHON_CMD:
+      meta:
+        desc: "Python-Befehl oder Pfad zur Python-Executable"
+        example: ".venv/bin/python"
+    PYTHON_PATHS:
+      sources: [file, local, cli]
+      meta:
+        desc: "Kommagetrennte zusätzliche Python-Suchpfade"
+        example: "src"
 
   tests:
-    CLONE_SOURCE: {}
-    KEEP_SMOKE_CLONE: {}
+    CLONE_SOURCE:
+      meta:
+        desc: "Quelle für Smoke-Test-Clone (local oder remote)"
+        example: "local"
+    KEEP_SMOKE_CLONE:
+      meta:
+        desc: "Smoke-Clone nach Test behalten (1 = ja, für Debugging)"
+        example: "0"
+
+phases:
+  setup: {}
+
+  python:
+    tooling: "*"
+
+  build:
+    app:
+      - APP_BASE_PATH
+    lebenslauf: "*"
+
+  runtime:
+    app:
+      - APP_BASE_PATH
+      - TRUST_PROXY
+    lebenslauf:
+      - LEBENSLAUF_LANG_DEFAULT
+      - LEBENSLAUF_LANGS
+    captcha: "*"
+    contact: "*"
+    rate_limit: "*"
+
+  deploy: {}
 
 pipelines:
-  common:
-    setup:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, tooling, tests]
-    python:
-      required: [PIPELINE, PHASE]
-      allowed: [context, tooling]
-    build:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf]
-    runtime:
-      required: [PIPELINE, PHASE]
-      allowed: [context, app, lebenslauf, captcha, contact, rate_limit, mail]
-    deploy:
-      required: [PIPELINE, PHASE]
-      allowed: [context, deploy]
-
   dev:
     setup:
-      required: []
-      allowed: []
-    runtime:
-      required:
-        - CAPTCHA_MAX_GET
-        - CONTACT_MAX_POST
-        - RATE_LIMIT_WINDOW_SECONDS
-        - MAIL_STDOUT
-      allowed: []
+      lebenslauf:
+        - LEBENSLAUF_PUBLIC_PROFILE
 
   preview:
-    build:
-      required:
-        - LEBENSLAUF_DATEN_PFAD
-        - LEBENSLAUF_PUBLIC_PROFILE
-        - LEBENSLAUF_LANG_DEFAULT
-        - LEBENSLAUF_LANGS
-      allowed: []
     runtime:
-      required:
-        - CAPTCHA_MAX_GET
-        - CONTACT_MAX_POST
-        - RATE_LIMIT_WINDOW_SECONDS
-        - MAIL_STDOUT
-        - LEBENSLAUF_PUBLIC_PROFILE
-        - LEBENSLAUF_LANG_DEFAULT
-        - LEBENSLAUF_LANGS
-      allowed: []
+      smtp: "*"
     deploy:
-      required:
-        - FTP_SERVER_DIR
-        - FTP_HOST
-        - FTP_USER
-        - FTP_PASS
-      allowed: []
+      ftp: "*"
