@@ -2,220 +2,44 @@
 
 [Deutsch](README.md) | [English](#resume-template-php)
 
-Shared-hosting-friendly PHP MVP with Twig, file-based persistence, and no
-cookies.
+PHP template for a CV site on shared hosting: public view with redacted
+contact details, token-gated private access, build and deployment
+workflow included.
+It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) template for content and i18n and extends it with today's dynamic PHP layer.
+[Full documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/)
 
-This repository contains the application source code.
-Public project docs do not live under `docs/` here. They live in GitHub Pages:
+## Setup
 
-- Public docs: <https://docs.template.ysdani.com/en/>
-- GitHub Pages repo: <https://github.com/blaumohn/lebenslauf-web-vorlage-docs>
-- Source repo: <https://github.com/blaumohn/lebenslauf-web-vorlage>
+1. **Load dependencies** — install PHP packages, including the CLI.
 
-Until preview deployment is finished, `dev` is the relevant working branch.
-The links here stay branch-neutral on purpose.
+   ```bash
+   composer install
+   ```
 
-## Local start
+2. **Set up project** — create directories, install npm packages and
+   Python environment. Requires step 1.
 
-```bash
-composer install
-php bin/cli setup dev
-composer run dev
-```
+   ```bash
+   php bin/cli setup dev
+   ```
 
-Optional sample seed without overwriting existing content:
+   Optional, without overwriting existing data:
 
-```bash
-php bin/cli setup dev --copy-sample-content
-```
+   ```bash
+   php bin/cli setup dev --copy-sample-content
+   ```
 
-`composer run dev` starts the Python dev runner `src/cli/py/dev/dev.py`.
-Use `composer run dev:build` for the initial build variant.
+3. **Build CV** — render sample data into HTML views.
 
-Create `.local/dev-runtime.yaml` before the first run
-(see `src/resources/config/dev-runtime.yaml`).
+   ```bash
+   php bin/cli build dev
+   ```
 
-The same commands are also available as `composer` scripts.
+4. **Start** — compile runtime config and start the development server.
 
-Requirements: PHP >= 8.1, Node.js, Python 3.
-Defaults come from YAML config files (see `src/resources/config/`).
-If no `.local/dev-runtime.yaml` exists, copy the fixture from
-`tests/fixtures/dev-runtime.yaml`.
-`php bin/cli setup` runs `npm install`.
-Note: `setup` creates `.venv` unless `--skip-python` is used.
-The sample seed uses the fixed fixture
-`src/resources/fixtures/lebenslauf/daten-gueltig.yaml` and copies it to
-`.local/lebenslauf/daten-<LEBENSLAUF_PUBLIC_PROFILE>.yaml`. The profile value
-must be allowed and set for the setup phase in the pipeline spec; in `dev`, the
-setup value comes from `src/resources/config/dev-setup.yaml`. If the target
-already exists, setup fails explicitly instead of overwriting local data.
+   ```bash
+   composer run dev
+   ```
 
-## More docs
-
-- Getting started: <https://docs.template.ysdani.com/en/getting-started/>
-- Operations and runbooks: <https://docs.template.ysdani.com/en/operations/>
-- Policies and decisions: <https://docs.template.ysdani.com/en/policies/>
-
-## CLI syntax
-
-```bash
-# Lifecycle
-php bin/cli setup <pipeline>
-php bin/cli build <pipeline> [cv|css|upload]
-php bin/cli python <pipeline> [--override KEY=VALUE] <script> [args...]
-
-# Content
-php bin/cli build <pipeline> cv
-php bin/cli build <pipeline> upload <cv-profile> <json>
-
-# Security
-php bin/cli token rotate <profile> [count]
-php bin/cli captcha <pipeline> [cleanup]
-php bin/cli ip-hash reset
-```
-
-## CLI model
-
-Phases are executed directly:
-
-```text
-cli <phase> <pipeline> [args]
-```
-
-Examples:
-
-- `php bin/cli setup dev`
-- `php bin/cli build dev cv`
-- `composer run dev`
-- `php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py`
-- `php bin/cli ip-hash reset`
-
-## Python runner
-
-- Phase: `python`
-- Defaults: `src/resources/config/dev-python.yaml`
-- Keys: `PYTHON_CMD`, `PYTHON_PATHS` (e.g. `src`)
-- CLI overrides: `--override KEY=VALUE`
-- Dev startup stays on the `composer` layer: `composer run dev`
-- `dev.py` remains a Python script in phase `python`, not its own CLI pipeline command
-
-## Build + dev (YAML -> JSON -> HTML)
-
-```bash
-php bin/cli build dev cv
-php bin/cli build dev
-```
-
-`build <pipeline> cv` converts YAML to JSON and renders the static HTML via
-`build <pipeline> upload`.
-If `LEBENSLAUF_DATEN_PFAD` is a directory, all `daten-<profile>.yaml`
-files are built.
-
-## Configuration
-
-- Use `src/resources/config/<PIPELINE>-<PHASE>.yaml` and
-  `.local/<PIPELINE>-<PHASE>.yaml`.
-- Example values live in manifest `meta.example` entries.
-- Important folders:
-  - `var/tmp/` short-lived (CAPTCHA + rate limits)
-  - `var/cache/` derived (rendered HTML)
-  - `var/state/` important (token whitelist)
-- Labels for section titles: `src/resources/build/labels.json`.
-- Page texts (title/contact) live in Twig templates.
-- App config rules live in `src/resources/config/config.manifest.yaml`.
-  The pipeline spec model is documented at
-  <https://docs.template.ysdani.com/en/specs/systems/pipeline-spec/>.
-
-Relevant config keys:
-- `LEBENSLAUF_PUBLIC_PROFILE` (build; in `dev`, also setup seed)
-- `LEBENSLAUF_LANG_DEFAULT`, `LEBENSLAUF_LANGS` (runtime)
-- `CONTACT_TO_EMAIL`, `MAIL_STDOUT` (contact runtime)
-- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, and other `SMTP_*` values
-  (only `preview` runtime, group `smtp`)
-- `CONTACT_TO_EMAIL` must be a valid email address in runtime phases.
-
-Deployments use `var/config/config.php` as the compiled runtime config
-(`php bin/cli config compile <pipeline> --phase runtime`).
-
-Preview build in CI: `composer install --no-dev --optimize-autoloader
---no-interaction` + `php bin/cli setup preview` + `php bin/cli build preview`
-(deploy dir via `bin/ci/preview-copy.sh`).
-FTP target path for preview: environment variable `FTP_SERVER_DIR`.
-Base path for preview without rewrite: `APP_BASE_PATH` (e.g. `/public`).
-
-## Admin workflows (CLI)
-
-### Upload CV
-
-```bash
-php bin/cli build <PIPELINE> upload <CV_PROFILE> <JSON_PATH>
-```
-
-Creates `var/cache/html/cv-private-<profile>.<lang>.html` per language.
-If `<CV_PROFILE>` equals `LEBENSLAUF_PUBLIC_PROFILE`, it also creates
-`cv-public.<lang>.html`.
-The default language (from `LEBENSLAUF_LANG_DEFAULT`) also writes legacy
-files `cv-private-<profile>.html` and `cv-public.html`.
-JSON is validated against
-`src/resources/build/schemas/lebenslauf.schema.json`.
-
-### Rotate tokens
-
-```bash
-php bin/cli token rotate <TOKEN_PROFILE> [COUNT]
-```
-
-Outputs new tokens once and stores hashes only in
-`var/state/tokens/<profile>.txt`.
-
-### CAPTCHA cleanup
-
-```bash
-php bin/cli captcha <PIPELINE>
-```
-
-Deletes expired CAPTCHA files.
-
-## Tests
-
-```bash
-composer run test
-```
-
-## Smoke tests
-
-```bash
-composer run tests:smoke
-```
-
-The smoke test clones the repo into a temporary directory, installs
-dependencies, runs `setup` and `test`, and checks the dev server via `curl`.
-Mock data for the setup seed comes from
-`src/resources/fixtures/lebenslauf/daten-gueltig.yaml`.
-
-Optional environment variables:
-- `CLONE_SOURCE` sets a local source or Git URL (default: local repo).
-- `KEEP_SMOKE_CLONE=1` keeps the temporary clone.
-
-## Templates
-
-- Templates use Twig macros instead of includes.
-- Base UI building blocks:
-  `src/resources/templates/components/site/lib.html.twig`
-- Layout/navigation:
-  `src/resources/templates/components/site/layout.html.twig`
-- Form elements:
-  `src/resources/templates/components/site/form.html.twig`
-- CV:
-  `src/resources/templates/components/cv/lib.html.twig`,
-  `src/resources/templates/components/cv/sections.html.twig`,
-  `src/resources/templates/components/cv/entry.html.twig`
-- CV layout macros:
-  `src/resources/templates/components/cv/view.html.twig`,
-  `src/resources/templates/components/cv/page.html.twig`
-
-## Staging/Pre-release
-
-- Use dummy data.
-- Check file permissions for `var/`.
-- Test PHP-GD and mail.
+Own data and configuration (email, SMTP, deployment):
+[Documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/getting-started/)
