@@ -52,7 +52,7 @@ final class PipelineCommandConfigTest extends TestCase
         ]);
 
         self::assertSame('src:.', $report['values']['PYTHON_PATHS'] ?? null);
-        self::assertSame('cli', $report['origins']['PYTHON_PATHS'] ?? null);
+        self::assertSame('cli', $report['sources']['PYTHON_PATHS'] ?? null);
     }
 }
 
