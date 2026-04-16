@@ -32,6 +32,7 @@ final class PythonRunner
         $cmd = array_merge($command, [$scriptPath], $args);
         $env = $this->buildEnv($resolver, $config);
         $process = new Process($cmd, $this->rootPath, $env);
+        $process->setTimeout(null);
         if ($interactive && Process::isTtySupported()) {
             $process->setTty(true);
         }
