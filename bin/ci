@@ -11,7 +11,7 @@ PIPELINE="${2:-}"
 
 usage() {
   echo "Usage: ci <command> <pipeline>"
-  echo "Commands: config-check, smoke"
+  echo "Commands: config-check, deploy-check, prepare-config"
 }
 
 require_args() {
@@ -31,25 +31,110 @@ ensure_preview_pipeline() {
   exit 1
 }
 
+require_env() {
+  local key="$1"
+  local value="${!key:-}"
+  if [[ "$value" != "" ]]; then
+    return 0
+  fi
+  echo "Erwartet gesetzte Umgebungsvariable: $key" >&2
+  exit 1
+}
+
+yaml_quote() {
+  local value="$1"
+  value="${value//\'/\'\'}"
+  printf "'%s'" "$value"
+}
+
+write_preview_runtime_config() {
+  local pipeline="$1"
+  local target="$ROOT_DIR/.local/${pipeline}-runtime.yaml"
+  require_env SMTP_PASS
+  mkdir -p "$ROOT_DIR/.local"
+  {
+    echo "runtime:"
+    echo "  SMTP_PASS: $(yaml_quote "${SMTP_PASS}")"
+  } > "$target"
+}
+
+write_preview_deploy_config() {
+  local pipeline="$1"
+  local target="$ROOT_DIR/.local/${pipeline}-deploy.yaml"
+  require_env FTP_SERVER_DIR
+  require_env FTP_PORT
+  require_env FTP_HOST
+  require_env FTP_USER
+  require_env FTP_PASS
+  mkdir -p "$ROOT_DIR/.local"
+  {
+    echo "deploy:"
+    echo "  FTP_SERVER_DIR: $(yaml_quote "${FTP_SERVER_DIR}")"
+    echo "  FTP_PORT: $(yaml_quote "${FTP_PORT}")"
+    echo "  FTP_HOST: $(yaml_quote "${FTP_HOST}")"
+    echo "  FTP_USER: $(yaml_quote "${FTP_USER}")"
+    echo "  FTP_PASS: $(yaml_quote "${FTP_PASS}")"
+  } > "$target"
+}
+
+run_prepare_config() {
+  local pipeline="$1"
+  ensure_preview_pipeline "$pipeline"
+  write_preview_runtime_config "$pipeline"
+  write_preview_deploy_config "$pipeline"
+}
+
+run_config_get() {
+  local phase="$1"
+  local key="$2"
+
+  case "$phase" in
+    build)
+      env -u SMTP_PASS -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
+        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+      ;;
+    runtime)
+      env -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
+        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+      ;;
+    deploy)
+      env -u SMTP_PASS \
+        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+      ;;
+  esac
+}
+
 run_config_check() {
   local pipeline="$1"
   ensure_preview_pipeline "$pipeline"
 
   local profile
-  profile="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  if [[ "$profile" != "gueltig" ]]; then
-    echo "Erwartet LEBENSLAUF_PUBLIC_PROFILE=gueltig, erhalten: $profile" >&2
+  profile="$(run_config_get build LEBENSLAUF_PUBLIC_PROFILE)"
+  if [[ "$profile" != "default" ]]; then
+    echo "Erwartet LEBENSLAUF_PUBLIC_PROFILE=default, erhalten: $profile" >&2
     exit 1
   fi
 
   local mail_stdout
-  mail_stdout="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" MAIL_STDOUT --phase runtime)"
+  mail_stdout="$(run_config_get runtime MAIL_STDOUT)"
   if [[ "$mail_stdout" != "1" ]]; then
     echo "Erwartet MAIL_STDOUT=1, erhalten: $mail_stdout" >&2
     exit 1
   fi
 
-  php "$ROOT_DIR/bin/cli" config lint "$pipeline"
+  local ftp_port
+  ftp_port="$(run_config_get deploy FTP_PORT)"
+  if [[ "$ftp_port" != "21" ]]; then
+    echo "Erwartet FTP_PORT=21, erhalten: $ftp_port" >&2
+    exit 1
+  fi
+
+  local ftp_server_dir
+  ftp_server_dir="$(run_config_get deploy FTP_SERVER_DIR)"
+  if [[ "$ftp_server_dir" == "" ]]; then
+    echo "Erwartet gesetztes FTP_SERVER_DIR" >&2
+    exit 1
+  fi
 }
 
 prepare_deploy_dir() {
@@ -59,11 +144,25 @@ prepare_deploy_dir() {
   cp -a public vendor "$ROOT_DIR/deploy/"
   cp -a src/http src/resources "$ROOT_DIR/deploy/src/"
   cp -a var/cache/html "$ROOT_DIR/deploy/var/cache/"
+  copy_deploy_htaccess root "$ROOT_DIR/deploy/.htaccess"
+  copy_deploy_htaccess src "$ROOT_DIR/deploy/src/.htaccess"
+  copy_deploy_htaccess var "$ROOT_DIR/deploy/var/.htaccess"
+}
+
+copy_deploy_htaccess() {
+  local scope="$1"
+  local target="$2"
+  local source="$ROOT_DIR/src/resources/http/$scope/.htaccess"
+
+  cp "$source" "$target"
 }
 
 verify_artifact() {
   test -f "$ROOT_DIR/deploy/public/index.php"
   test -f "$ROOT_DIR/deploy/var/cache/html/cv-public.html"
+  test -f "$ROOT_DIR/deploy/.htaccess"
+  test -f "$ROOT_DIR/deploy/src/.htaccess"
+  test -f "$ROOT_DIR/deploy/var/.htaccess"
 }
 
 smoke_http() {
@@ -76,7 +175,7 @@ smoke_http() {
   curl --fail --silent --show-error http://127.0.0.1:8081/contact > /tmp/preview-contact.html
 }
 
-run_smoke() {
+run_deploy_check() {
   local pipeline="$1"
   ensure_preview_pipeline "$pipeline"
   prepare_deploy_dir
@@ -90,8 +189,11 @@ main() {
     config-check)
       run_config_check "$PIPELINE"
       ;;
-    smoke)
-      run_smoke "$PIPELINE"
+    deploy-check)
+      run_deploy_check "$PIPELINE"
+      ;;
+    prepare-config)
+      run_prepare_config "$PIPELINE"
       ;;
     *)
       usage

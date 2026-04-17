@@ -10,14 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: preview
-    env:
-      APP_ENV: preview
-      SMTP_PASS: ${{ secrets.SMTP_PASS }}
-      FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
-      FTP_HOST: ${{ secrets.FTP_HOST }}
-      FTP_USER: ${{ secrets.FTP_USER }}
-      FTP_PASS: ${{ secrets.FTP_PASS }}
-      FTP_PORT: ${{ secrets.FTP_PORT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,31 +26,50 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Verify required deploy inputs
-        run: |
-          : "${FTP_SERVER_DIR:?FTP_SERVER_DIR missing}"
-
-      - name: Config check preview
-        run: bin/ci config-check preview
-
       - name: Install dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
-      - name: Setup preview
-        run: php bin/cli setup preview
+      - name: Prepare config inputs
+        run: bin/ci prepare-config ${{ vars.PIPELINE }}
+        env:
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_PORT: ${{ vars.FTP_PORT }}
 
-      - name: Build preview
-        run: php bin/cli build preview
+      - name: Config check
+        run: bin/ci config-check ${{ vars.PIPELINE }}
 
-      - name: Smoke test preview deploy artifact
-        run: bin/ci smoke preview
+      - name: Setup
+        run: php bin/cli setup ${{ vars.PIPELINE }}
+
+      - name: Build
+        run: php bin/cli build ${{ vars.PIPELINE }}
+
+      - name: Deploy check
+        run: bin/ci deploy-check ${{ vars.PIPELINE }}
+
+      - name: Resolve deploy outputs
+        id: resolve_deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          pipeline="${{ vars.PIPELINE }}"
+
+          printf 'ftp_host=%s\n' "$(php bin/cli config get "$pipeline" FTP_HOST --phase deploy)" >> "$GITHUB_OUTPUT"
+          printf 'ftp_user=%s\n' "$(php bin/cli config get "$pipeline" FTP_USER --phase deploy)" >> "$GITHUB_OUTPUT"
+          printf 'ftp_pass=%s\n' "$(php bin/cli config get "$pipeline" FTP_PASS --phase deploy)" >> "$GITHUB_OUTPUT"
+          printf 'ftp_port=%s\n' "$(php bin/cli config get "$pipeline" FTP_PORT --phase deploy)" >> "$GITHUB_OUTPUT"
+          printf 'ftp_server_dir=%s\n' "$(php bin/cli config get "$pipeline" FTP_SERVER_DIR --phase deploy)" >> "$GITHUB_OUTPUT"
 
       - name: FTP deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          port: ${{ secrets.FTP_PORT || env.FTP_PORT }}
+          server: ${{ steps.resolve_deploy.outputs.ftp_host }}
+          username: ${{ steps.resolve_deploy.outputs.ftp_user }}
+          password: ${{ steps.resolve_deploy.outputs.ftp_pass }}
+          port: ${{ steps.resolve_deploy.outputs.ftp_port }}
           local-dir: deploy/
-          server-dir: ${{ vars.FTP_SERVER_DIR }}
+          server-dir: ${{ steps.resolve_deploy.outputs.ftp_server_dir }}
