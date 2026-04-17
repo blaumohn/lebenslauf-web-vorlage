@@ -32,7 +32,7 @@ jobs:
       - name: Prepare config inputs
         run: bin/ci prepare-config ${{ vars.PIPELINE }}
         env:
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_PASS: 123
           FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}
