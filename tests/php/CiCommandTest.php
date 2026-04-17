@@ -35,12 +35,20 @@ final class CiCommandTest extends TestCase
         self::assertStringContainsString("ftp_pass=preview-pass\n", $output);
     }
 
+    public function testDeployCheckAcceptsExplicitDirOption(): void
+    {
+        $output = $this->runCi(['deploy-check', 'preview', '--dir', '/tmp/preview-deploy-test'], false);
+
+        self::assertStringNotContainsString('Unbekanntes Argument', $output);
+        self::assertStringNotContainsString('Wert fuer --dir fehlt', $output);
+    }
+
     private function prepareConfig(): void
     {
         $this->runCi(['prepare-config', 'preview']);
     }
 
-    private function runCi(array $args): string
+    private function runCi(array $args, bool $mustSucceed = true): string
     {
         $process = new Process(array_merge(['bash', 'bin/ci'], $args), $this->rootPath, [
             'SMTP_PASS' => 'preview-secret',
@@ -50,7 +58,11 @@ final class CiCommandTest extends TestCase
             'FTP_PORT' => '21',
             'FTP_SERVER_DIR' => '/home/preview/public',
         ]);
-        $process->mustRun();
-        return $process->getOutput();
+        if ($mustSucceed) {
+            $process->mustRun();
+            return $process->getOutput();
+        }
+        $process->run();
+        return $process->getOutput() . $process->getErrorOutput();
     }
 }

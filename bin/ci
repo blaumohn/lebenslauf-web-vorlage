@@ -8,11 +8,11 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMAND="${1:-}"
 PIPELINE="${2:-}"
-FORMAT_FLAG="${3:-}"
-FORMAT="${4:-env}"
+FORMAT="env"
+DEPLOY_DIR="$ROOT_DIR/var/deploy"
 
 usage() {
-  echo "Usage: ci <command> <pipeline>"
+  echo "Usage: ci <command> <pipeline> [options]"
   echo "Commands: config-check, deploy-check, prepare-config, resolve-deploy"
 }
 
@@ -47,17 +47,6 @@ yaml_quote() {
   local value="$1"
   value="${value//\'/\'\'}"
   printf "'%s'" "$value"
-}
-
-require_format_flag() {
-  if [[ "$FORMAT_FLAG" == "" && "$FORMAT" == "env" ]]; then
-    return 0
-  fi
-  if [[ "$FORMAT_FLAG" == "--format" ]]; then
-    return 0
-  fi
-  echo "Unbekanntes Format-Argument: $FORMAT_FLAG" >&2
-  exit 1
 }
 
 write_preview_runtime_config() {
@@ -95,6 +84,35 @@ run_prepare_config() {
   ensure_preview_pipeline "$pipeline"
   write_preview_runtime_config "$pipeline"
   write_preview_deploy_config "$pipeline"
+}
+
+parse_extra_args() {
+  shift 2
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --format)
+        if [[ $# -lt 2 ]]; then
+          echo "Wert fuer --format fehlt" >&2
+          exit 1
+        fi
+        FORMAT="$2"
+        shift 2
+        ;;
+      --dir)
+        if [[ $# -lt 2 ]]; then
+          echo "Wert fuer --dir fehlt" >&2
+          exit 1
+        fi
+        DEPLOY_DIR="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unbekanntes Argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
 }
 
 run_config_get() {
@@ -161,7 +179,6 @@ print_resolved_value() {
 run_resolve_deploy() {
   local pipeline="$1"
   ensure_preview_pipeline "$pipeline"
-  require_format_flag
 
   case "$FORMAT" in
     env|github-output)
@@ -179,15 +196,15 @@ run_resolve_deploy() {
 }
 
 prepare_deploy_dir() {
-  rm -rf "$ROOT_DIR/deploy"
-  mkdir -p "$ROOT_DIR/deploy/var/cache"
-  mkdir -p "$ROOT_DIR/deploy/src"
-  cp -a public vendor "$ROOT_DIR/deploy/"
-  cp -a src/http src/resources "$ROOT_DIR/deploy/src/"
-  cp -a var/cache/html "$ROOT_DIR/deploy/var/cache/"
-  copy_deploy_htaccess root "$ROOT_DIR/deploy/.htaccess"
-  copy_deploy_htaccess src "$ROOT_DIR/deploy/src/.htaccess"
-  copy_deploy_htaccess var "$ROOT_DIR/deploy/var/.htaccess"
+  rm -rf "$DEPLOY_DIR"
+  mkdir -p "$DEPLOY_DIR/var/cache"
+  mkdir -p "$DEPLOY_DIR/src"
+  cp -a public vendor "$DEPLOY_DIR/"
+  cp -a src/http src/resources "$DEPLOY_DIR/src/"
+  cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
+  copy_deploy_htaccess root "$DEPLOY_DIR/.htaccess"
+  copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
+  copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
 }
 
 copy_deploy_htaccess() {
@@ -199,11 +216,11 @@ copy_deploy_htaccess() {
 }
 
 verify_artifact() {
-  test -f "$ROOT_DIR/deploy/public/index.php"
-  test -f "$ROOT_DIR/deploy/var/cache/html/cv-public.html"
-  test -f "$ROOT_DIR/deploy/.htaccess"
-  test -f "$ROOT_DIR/deploy/src/.htaccess"
-  test -f "$ROOT_DIR/deploy/var/.htaccess"
+  test -f "$DEPLOY_DIR/public/index.php"
+  test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
+  test -f "$DEPLOY_DIR/.htaccess"
+  test -f "$DEPLOY_DIR/src/.htaccess"
+  test -f "$DEPLOY_DIR/var/.htaccess"
 }
 
 smoke_http() {
@@ -226,6 +243,7 @@ run_deploy_check() {
 
 main() {
   require_args
+  parse_extra_args "$@"
   case "$COMMAND" in
     config-check)
       run_config_check "$PIPELINE"

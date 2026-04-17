@@ -49,7 +49,7 @@ jobs:
         run: php bin/cli build ${{ vars.PIPELINE }}
 
       - name: Deploy check
-        run: bin/ci deploy-check ${{ vars.PIPELINE }}
+        run: bin/ci deploy-check ${{ vars.PIPELINE }} --dir var/deploy
 
       - name: Resolve deploy outputs
         id: resolve_deploy
@@ -63,5 +63,5 @@ jobs:
           username: ${{ steps.resolve_deploy.outputs.ftp_user }}
           password: ${{ steps.resolve_deploy.outputs.ftp_pass }}
           port: ${{ steps.resolve_deploy.outputs.ftp_port }}
-          local-dir: deploy/
+          local-dir: var/deploy/
           server-dir: ${{ steps.resolve_deploy.outputs.ftp_server_dir }}
