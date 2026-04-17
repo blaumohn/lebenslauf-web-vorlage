@@ -1,0 +1,19 @@
+services:
+  ci:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ".:/src:ro"
+      - "composer_home:/home/ci/.composer"
+      - "npm_cache:/home/ci/.npm"
+    environment:
+      - COMPOSER_HOME=/home/ci/.composer
+    command: sh /src/tests/ci/run.sh
+
+volumes:
+  composer_home:
+  npm_cache:

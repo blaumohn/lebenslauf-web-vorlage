@@ -1,0 +1,10 @@
+FROM php:8.2-cli-alpine
+RUN apk add --no-cache bash curl git python3 nodejs npm libpng-dev libjpeg-turbo-dev
+RUN docker-php-ext-configure gd --with-jpeg && docker-php-ext-install -j$(nproc) gd
+RUN curl -sS https://getcomposer.org/installer \
+    | php -- --install-dir=/usr/local/bin --filename=composer
+RUN adduser -D -u 1000 ci \
+    && mkdir -p /home/ci/.composer /home/ci/.npm \
+    && chown -R ci:ci /home/ci/.composer /home/ci/.npm
+USER ci
+WORKDIR /home/ci
