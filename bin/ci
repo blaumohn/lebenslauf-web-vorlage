@@ -8,10 +8,12 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMAND="${1:-}"
 PIPELINE="${2:-}"
+FORMAT_FLAG="${3:-}"
+FORMAT="${4:-env}"
 
 usage() {
   echo "Usage: ci <command> <pipeline>"
-  echo "Commands: config-check, deploy-check, prepare-config"
+  echo "Commands: config-check, deploy-check, prepare-config, resolve-deploy"
 }
 
 require_args() {
@@ -45,6 +47,17 @@ yaml_quote() {
   local value="$1"
   value="${value//\'/\'\'}"
   printf "'%s'" "$value"
+}
+
+require_format_flag() {
+  if [[ "$FORMAT_FLAG" == "" && "$FORMAT" == "env" ]]; then
+    return 0
+  fi
+  if [[ "$FORMAT_FLAG" == "--format" ]]; then
+    return 0
+  fi
+  echo "Unbekanntes Format-Argument: $FORMAT_FLAG" >&2
+  exit 1
 }
 
 write_preview_runtime_config() {
@@ -137,6 +150,34 @@ run_config_check() {
   fi
 }
 
+print_resolved_value() {
+  local name="$1"
+  local key="$2"
+  local value
+  value="$(run_config_get deploy "$key")"
+  printf '%s=%s\n' "$name" "$value"
+}
+
+run_resolve_deploy() {
+  local pipeline="$1"
+  ensure_preview_pipeline "$pipeline"
+  require_format_flag
+
+  case "$FORMAT" in
+    env|github-output)
+      print_resolved_value ftp_host FTP_HOST
+      print_resolved_value ftp_user FTP_USER
+      print_resolved_value ftp_pass FTP_PASS
+      print_resolved_value ftp_port FTP_PORT
+      print_resolved_value ftp_server_dir FTP_SERVER_DIR
+      ;;
+    *)
+      echo "Unbekanntes Ausgabeformat: $FORMAT" >&2
+      exit 1
+      ;;
+  esac
+}
+
 prepare_deploy_dir() {
   rm -rf "$ROOT_DIR/deploy"
   mkdir -p "$ROOT_DIR/deploy/var/cache"
@@ -194,6 +235,9 @@ main() {
       ;;
     prepare-config)
       run_prepare_config "$PIPELINE"
+      ;;
+    resolve-deploy)
+      run_resolve_deploy "$PIPELINE" "${3:-}"
       ;;
     *)
       usage

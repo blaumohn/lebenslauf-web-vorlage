@@ -54,15 +54,7 @@ jobs:
       - name: Resolve deploy outputs
         id: resolve_deploy
         shell: bash
-        run: |
-          set -euo pipefail
-          pipeline="${{ vars.PIPELINE }}"
-
-          printf 'ftp_host=%s\n' "$(php bin/cli config get "$pipeline" FTP_HOST --phase deploy)" >> "$GITHUB_OUTPUT"
-          printf 'ftp_user=%s\n' "$(php bin/cli config get "$pipeline" FTP_USER --phase deploy)" >> "$GITHUB_OUTPUT"
-          printf 'ftp_pass=%s\n' "$(php bin/cli config get "$pipeline" FTP_PASS --phase deploy)" >> "$GITHUB_OUTPUT"
-          printf 'ftp_port=%s\n' "$(php bin/cli config get "$pipeline" FTP_PORT --phase deploy)" >> "$GITHUB_OUTPUT"
-          printf 'ftp_server_dir=%s\n' "$(php bin/cli config get "$pipeline" FTP_SERVER_DIR --phase deploy)" >> "$GITHUB_OUTPUT"
+        run: bin/ci resolve-deploy ${{ vars.PIPELINE }} --format github-output >> "$GITHUB_OUTPUT"
 
       - name: FTP deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
