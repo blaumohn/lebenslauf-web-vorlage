@@ -43,3 +43,18 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
 
 Own data and configuration (email, SMTP, deployment):
 [Documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/getting-started/)
+
+## Run CI locally
+
+The local CI matrix runs in Docker and covers the `dev` and `preview`
+paths through the same `bin/ci` core:
+
+```bash
+composer tests:ci
+```
+
+An optional versioned pre-push hook wires that check into every push:
+
+```bash
+sh scripts/install-hooks.sh
+```

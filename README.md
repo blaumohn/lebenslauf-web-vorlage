@@ -43,3 +43,19 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
 
 Eigene Daten und Konfiguration (E-Mail, SMTP, Deployment):
 [Dokumentation → docs.template.ysdani.com](https://docs.template.ysdani.com/de/getting-started/)
+
+## CI lokal prüfen
+
+Die lokale CI-Testmatrix läuft containerisiert und deckt `dev`- sowie
+`preview`-Prüfpfade über denselben `bin/ci`-Kern ab:
+
+```bash
+composer tests:ci
+```
+
+Optional richtet ein versionierter Pre-Push-Hook diesen Lauf lokal vor
+jedem Push ein:
+
+```bash
+sh scripts/install-hooks.sh
+```

@@ -64,7 +64,7 @@
     "setup": "php bin/cli setup dev",
     "setup:dev": "php bin/cli setup dev",
     "setup:preview": "php bin/cli setup preview",
-    "tests:smoke": [
+    "tests:ci": [
       "Composer\\Config::disableProcessTimeout",
       "docker compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from ci"
     ],

@@ -26,11 +26,10 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
-
-      - name: Prepare config inputs
-        run: bin/ci prepare-config ${{ vars.PIPELINE }}
+      - name: Run preview pipeline
+        id: resolve_deploy
+        shell: bash
+        run: bin/ci pipeline-check ${{ vars.PIPELINE }} --dir var/deploy --github-output "$GITHUB_OUTPUT"
         env:
           SMTP_PASS: 123
           FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
@@ -38,23 +37,6 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PORT: ${{ vars.FTP_PORT }}
-
-      - name: Config check
-        run: bin/ci config-check ${{ vars.PIPELINE }}
-
-      - name: Setup
-        run: php bin/cli setup ${{ vars.PIPELINE }}
-
-      - name: Build
-        run: php bin/cli build ${{ vars.PIPELINE }}
-
-      - name: Deploy check
-        run: bin/ci deploy-check ${{ vars.PIPELINE }} --dir var/deploy
-
-      - name: Resolve deploy outputs
-        id: resolve_deploy
-        shell: bash
-        run: bin/ci resolve-deploy ${{ vars.PIPELINE }} --format github-output >> "$GITHUB_OUTPUT"
 
       - name: FTP deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

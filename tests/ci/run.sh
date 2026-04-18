@@ -1,7 +1,11 @@
 #!/bin/sh
 set -e
 
-WORK_DIR=$(mktemp -d /tmp/ci-XXXXXX)
+WORK_BASE=${CI_WORK_BASE:-${HOME:-/tmp}}
+mkdir -p "$WORK_BASE"
+WORK_DIR=$(mktemp -d "$WORK_BASE/ci-XXXXXX")
+CI_PIPELINES=${CI_PIPELINES:-dev,preview}
+
 git clone --local --no-hardlinks /src "$WORK_DIR"
 
 diff=$(git -C /src -c safe.directory=/src diff --binary HEAD)
@@ -10,19 +14,15 @@ if [ -n "$diff" ]; then
 fi
 
 git -C /src -c safe.directory=/src ls-files --others --exclude-standard | while IFS= read -r f; do
+    case "$f" in
+        .local/*|.venv/*|node_modules/*|public/*|var/cache/*|vendor/*)
+            continue
+            ;;
+    esac
     mkdir -p "$WORK_DIR/$(dirname "$f")"
     cp "/src/$f" "$WORK_DIR/$f"
 done
 
 cd "$WORK_DIR"
 
-composer install --optimize-autoloader --no-interaction
-php bin/cli setup dev --copy-sample-content
-php bin/cli build dev cv
-php vendor/bin/phpunit
-
-php -S 127.0.0.1:8080 -t public public/index.php > /tmp/ci-http.log 2>&1 &
-SERVER_PID=$!
-sleep 1
-curl --fail --silent --show-error http://127.0.0.1:8080/cv | grep -q "Lebenslauf"
-kill "$SERVER_PID"
+bash bin/ci test-matrix "$CI_PIPELINES"

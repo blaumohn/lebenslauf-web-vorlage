@@ -7,28 +7,44 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMAND="${1:-}"
-PIPELINE="${2:-}"
+TARGET="${2:-}"
 FORMAT="env"
 DEPLOY_DIR="$ROOT_DIR/var/deploy"
+GITHUB_OUTPUT_FILE=""
+SKIP_INSTALL=0
+SKIP_HTTP=0
 
 usage() {
   echo "Usage: ci <command> <pipeline> [options]"
-  echo "Commands: config-check, deploy-check, prepare-config, resolve-deploy"
+  echo "Commands:"
+  echo "  config-check, deploy-check, pipeline-check, prepare-config"
+  echo "  resolve-deploy, test-matrix"
 }
 
-require_args() {
-  if [[ "$COMMAND" != "" && "$PIPELINE" != "" ]]; then
+require_target() {
+  if [[ "$COMMAND" != "" && "$TARGET" != "" ]]; then
     return 0
   fi
   usage
   exit 1
 }
 
-ensure_preview_pipeline() {
+require_preview_pipeline() {
   local pipeline="$1"
   if [[ "$pipeline" == "preview" ]]; then
     return 0
   fi
+  echo "Unbekannte Preview-Pipeline fuer $COMMAND: $pipeline" >&2
+  exit 1
+}
+
+require_runtime_pipeline() {
+  local pipeline="$1"
+  case "$pipeline" in
+    dev|preview)
+      return 0
+      ;;
+  esac
   echo "Unbekannte Pipeline fuer $COMMAND: $pipeline" >&2
   exit 1
 }
@@ -49,9 +65,75 @@ yaml_quote() {
   printf "'%s'" "$value"
 }
 
+parse_extra_args() {
+  shift 2
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dir)
+        DEPLOY_DIR="${2:-}"
+        [[ "$DEPLOY_DIR" != "" ]] || missing_option_value --dir
+        shift 2
+        ;;
+      --format)
+        FORMAT="${2:-}"
+        [[ "$FORMAT" != "" ]] || missing_option_value --format
+        shift 2
+        ;;
+      --github-output)
+        GITHUB_OUTPUT_FILE="${2:-}"
+        [[ "$GITHUB_OUTPUT_FILE" != "" ]] || missing_option_value --github-output
+        shift 2
+        ;;
+      --skip-install)
+        SKIP_INSTALL=1
+        shift
+        ;;
+      --skip-http)
+        SKIP_HTTP=1
+        shift
+        ;;
+      *)
+        echo "Unbekanntes Argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+missing_option_value() {
+  local option="$1"
+  echo "Wert fuer $option fehlt" >&2
+  exit 1
+}
+
+run_cli() {
+  php "$ROOT_DIR/bin/cli" "$@"
+}
+
+run_pipeline_cli() {
+  local pipeline="$1"
+  shift
+
+  if [[ "$pipeline" == "preview" ]]; then
+    env -u SMTP_PASS -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
+      php "$ROOT_DIR/bin/cli" "$@"
+    return 0
+  fi
+  php "$ROOT_DIR/bin/cli" "$@"
+}
+
+run_composer_install() {
+  if [[ "$SKIP_INSTALL" == "1" ]]; then
+    return 0
+  fi
+  composer install --optimize-autoloader --no-interaction
+}
+
 write_preview_runtime_config() {
   local pipeline="$1"
   local target="$ROOT_DIR/.local/${pipeline}-runtime.yaml"
+
   require_env SMTP_PASS
   mkdir -p "$ROOT_DIR/.local"
   {
@@ -63,6 +145,7 @@ write_preview_runtime_config() {
 write_preview_deploy_config() {
   local pipeline="$1"
   local target="$ROOT_DIR/.local/${pipeline}-deploy.yaml"
+
   require_env FTP_SERVER_DIR
   require_env FTP_PORT
   require_env FTP_HOST
@@ -81,130 +164,106 @@ write_preview_deploy_config() {
 
 run_prepare_config() {
   local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
+
+  require_preview_pipeline "$pipeline"
   write_preview_runtime_config "$pipeline"
   write_preview_deploy_config "$pipeline"
 }
 
-parse_extra_args() {
-  shift 2
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --format)
-        if [[ $# -lt 2 ]]; then
-          echo "Wert fuer --format fehlt" >&2
-          exit 1
-        fi
-        FORMAT="$2"
-        shift 2
-        ;;
-      --dir)
-        if [[ $# -lt 2 ]]; then
-          echo "Wert fuer --dir fehlt" >&2
-          exit 1
-        fi
-        DEPLOY_DIR="$2"
-        shift 2
-        ;;
-      *)
-        echo "Unbekanntes Argument: $1" >&2
-        exit 1
-        ;;
-    esac
-  done
+clear_preview_env() {
+  unset SMTP_PASS FTP_HOST FTP_USER FTP_PASS FTP_PORT FTP_SERVER_DIR
 }
 
-run_config_get() {
-  local phase="$1"
-  local key="$2"
+seed_preview_fixture_env() {
+  export SMTP_PASS="${SMTP_PASS:-preview-secret}"
+  export FTP_HOST="${FTP_HOST:-preview.example.test}"
+  export FTP_USER="${FTP_USER:-preview-user}"
+  export FTP_PASS="${FTP_PASS:-preview-pass}"
+  export FTP_PORT="${FTP_PORT:-21}"
+  export FTP_SERVER_DIR="${FTP_SERVER_DIR:-/home/preview/public}"
+}
+
+config_get() {
+  local pipeline="$1"
+  local phase="$2"
+  local key="$3"
 
   case "$phase" in
     build)
       env -u SMTP_PASS -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
-        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+        php "$ROOT_DIR/bin/cli" config get "$pipeline" "$key" --phase "$phase"
       ;;
     runtime)
       env -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
-        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+        php "$ROOT_DIR/bin/cli" config get "$pipeline" "$key" --phase "$phase"
       ;;
     deploy)
       env -u SMTP_PASS \
-        php "$ROOT_DIR/bin/cli" config get "$PIPELINE" "$key" --phase "$phase"
+        php "$ROOT_DIR/bin/cli" config get "$pipeline" "$key" --phase "$phase"
       ;;
   esac
 }
 
+assert_expected_value() {
+  local actual="$1"
+  local expected="$2"
+  local label="$3"
+
+  if [[ "$actual" == "$expected" ]]; then
+    return 0
+  fi
+  echo "Erwartet $label=$expected, erhalten: $actual" >&2
+  exit 1
+}
+
 run_config_check() {
   local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
-
   local profile
-  profile="$(run_config_get build LEBENSLAUF_PUBLIC_PROFILE)"
-  if [[ "$profile" != "default" ]]; then
-    echo "Erwartet LEBENSLAUF_PUBLIC_PROFILE=default, erhalten: $profile" >&2
-    exit 1
-  fi
-
   local mail_stdout
-  mail_stdout="$(run_config_get runtime MAIL_STDOUT)"
-  if [[ "$mail_stdout" != "1" ]]; then
-    echo "Erwartet MAIL_STDOUT=1, erhalten: $mail_stdout" >&2
-    exit 1
-  fi
-
   local ftp_port
-  ftp_port="$(run_config_get deploy FTP_PORT)"
-  if [[ "$ftp_port" != "21" ]]; then
-    echo "Erwartet FTP_PORT=21, erhalten: $ftp_port" >&2
-    exit 1
-  fi
-
   local ftp_server_dir
-  ftp_server_dir="$(run_config_get deploy FTP_SERVER_DIR)"
-  if [[ "$ftp_server_dir" == "" ]]; then
+
+  require_preview_pipeline "$pipeline"
+  profile="$(config_get "$pipeline" build LEBENSLAUF_PUBLIC_PROFILE)"
+  assert_expected_value "$profile" "default" "LEBENSLAUF_PUBLIC_PROFILE"
+  mail_stdout="$(config_get "$pipeline" runtime MAIL_STDOUT)"
+  assert_expected_value "$mail_stdout" "1" "MAIL_STDOUT"
+  ftp_port="$(config_get "$pipeline" deploy FTP_PORT)"
+  assert_expected_value "$ftp_port" "21" "FTP_PORT"
+  ftp_server_dir="$(config_get "$pipeline" deploy FTP_SERVER_DIR)"
+  [[ "$ftp_server_dir" != "" ]] || {
     echo "Erwartet gesetztes FTP_SERVER_DIR" >&2
     exit 1
-  fi
+  }
 }
 
 print_resolved_value() {
-  local name="$1"
-  local key="$2"
+  local pipeline="$1"
+  local name="$2"
+  local key="$3"
   local value
-  value="$(run_config_get deploy "$key")"
+
+  value="$(config_get "$pipeline" deploy "$key")"
   printf '%s=%s\n' "$name" "$value"
 }
 
 run_resolve_deploy() {
   local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
 
+  require_preview_pipeline "$pipeline"
   case "$FORMAT" in
     env|github-output)
-      print_resolved_value ftp_host FTP_HOST
-      print_resolved_value ftp_user FTP_USER
-      print_resolved_value ftp_pass FTP_PASS
-      print_resolved_value ftp_port FTP_PORT
-      print_resolved_value ftp_server_dir FTP_SERVER_DIR
+      print_resolved_value "$pipeline" ftp_host FTP_HOST
+      print_resolved_value "$pipeline" ftp_user FTP_USER
+      print_resolved_value "$pipeline" ftp_pass FTP_PASS
+      print_resolved_value "$pipeline" ftp_port FTP_PORT
+      print_resolved_value "$pipeline" ftp_server_dir FTP_SERVER_DIR
       ;;
     *)
       echo "Unbekanntes Ausgabeformat: $FORMAT" >&2
       exit 1
       ;;
   esac
-}
-
-prepare_deploy_dir() {
-  rm -rf "$DEPLOY_DIR"
-  mkdir -p "$DEPLOY_DIR/var/cache"
-  mkdir -p "$DEPLOY_DIR/src"
-  cp -a public vendor "$DEPLOY_DIR/"
-  cp -a src/http src/resources "$DEPLOY_DIR/src/"
-  cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
-  copy_deploy_htaccess root "$DEPLOY_DIR/.htaccess"
-  copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
-  copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
 }
 
 copy_deploy_htaccess() {
@@ -215,6 +274,18 @@ copy_deploy_htaccess() {
   cp "$source" "$target"
 }
 
+prepare_deploy_dir() {
+  rm -rf "$DEPLOY_DIR"
+  mkdir -p "$DEPLOY_DIR/var/cache"
+  mkdir -p "$DEPLOY_DIR/src"
+  cp -a public vendor "$DEPLOY_DIR/"
+  cp -a src/Http src/resources "$DEPLOY_DIR/src/"
+  cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
+  copy_deploy_htaccess root "$DEPLOY_DIR/.htaccess"
+  copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
+  copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
+}
+
 verify_artifact() {
   test -f "$DEPLOY_DIR/public/index.php"
   test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
@@ -223,39 +294,201 @@ verify_artifact() {
   test -f "$DEPLOY_DIR/var/.htaccess"
 }
 
-smoke_http() {
-  php -S 127.0.0.1:8081 -t "$ROOT_DIR/public" > /tmp/preview-http.log 2>&1 &
-  local server_pid=$!
-  trap 'kill $server_pid' EXIT
-  sleep 1
-  curl --fail --silent --show-error http://127.0.0.1:8081/ > /tmp/preview-home.html
-  curl --fail --silent --show-error http://127.0.0.1:8081/cv > /tmp/preview-cv.html
-  curl --fail --silent --show-error http://127.0.0.1:8081/contact > /tmp/preview-contact.html
+start_php_server() {
+  local port="$1"
+  local log_file="$2"
+
+  php -S "127.0.0.1:${port}" -t "$ROOT_DIR/public" > "$log_file" 2>&1 &
+  echo "$!"
+}
+
+wait_for_http_server() {
+  local port="$1"
+  local attempt
+
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if curl --silent --show-error "http://127.0.0.1:${port}/" > /dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "HTTP-Server auf Port ${port} antwortet nicht rechtzeitig" >&2
+  exit 1
+}
+
+smoke_http_page() {
+  local port="$1"
+  local path="$2"
+  local target="$3"
+
+  curl --fail --silent --show-error "http://127.0.0.1:${port}${path}" > "$target"
+}
+
+with_http_server() {
+  local port="$1"
+  local pid
+
+  shift
+  pid="$(start_php_server "$port" "/tmp/ci-http-${port}.log")"
+  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
+  wait_for_http_server "$port"
+  "$@"
+  kill "$pid"
+  trap - EXIT
+}
+
+preview_http_checks() {
+  local port="$1"
+
+  smoke_http_page "$port" "/" /tmp/preview-home.html
+  smoke_http_page "$port" "/cv" /tmp/preview-cv.html
+  smoke_http_page "$port" "/contact" /tmp/preview-contact.html
 }
 
 run_deploy_check() {
   local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
+
+  require_preview_pipeline "$pipeline"
   prepare_deploy_dir
   verify_artifact
-  smoke_http
+  if [[ "$SKIP_HTTP" == "1" ]]; then
+    return 0
+  fi
+  with_http_server 8081 preview_http_checks 8081
+}
+
+run_pipeline_setup() {
+  local pipeline="$1"
+
+  require_runtime_pipeline "$pipeline"
+  if [[ "$pipeline" == "dev" ]]; then
+    run_pipeline_cli "$pipeline" setup "$pipeline" --copy-sample-content
+    return 0
+  fi
+  run_pipeline_cli "$pipeline" setup "$pipeline"
+}
+
+run_pipeline_build() {
+  local pipeline="$1"
+
+  require_runtime_pipeline "$pipeline"
+  if [[ "$pipeline" == "dev" ]]; then
+    run_pipeline_cli "$pipeline" build "$pipeline" cv
+    return 0
+  fi
+  run_pipeline_cli "$pipeline" build "$pipeline"
+}
+
+run_phpunit_suite() {
+  php "$ROOT_DIR/vendor/bin/phpunit"
+}
+
+dev_http_checks() {
+  local port="$1"
+
+  curl --fail --silent --show-error "http://127.0.0.1:${port}/cv" | grep -q "Lebenslauf"
+}
+
+run_dev_pipeline_test() {
+  run_pipeline_setup dev
+  run_pipeline_build dev
+  run_phpunit_suite
+  with_http_server 8080 dev_http_checks 8080
+}
+
+write_resolved_output_file() {
+  local pipeline="$1"
+
+  if [[ "$GITHUB_OUTPUT_FILE" == "" ]]; then
+    return 0
+  fi
+  FORMAT="github-output" run_resolve_deploy "$pipeline" >> "$GITHUB_OUTPUT_FILE"
+}
+
+assert_output_key() {
+  local file="$1"
+  local key="$2"
+
+  grep -q "^${key}=" "$file"
+}
+
+run_preview_pipeline_test() {
+  local output_file
+
+  output_file="$(mktemp)"
+  seed_preview_fixture_env
+  run_pipeline_check preview "$output_file"
+  assert_output_key "$output_file" ftp_host
+  assert_output_key "$output_file" ftp_user
+  assert_output_key "$output_file" ftp_pass
+  assert_output_key "$output_file" ftp_port
+  assert_output_key "$output_file" ftp_server_dir
+}
+
+run_pipeline_check() {
+  local pipeline="$1"
+  local output_file="${2:-}"
+
+  require_preview_pipeline "$pipeline"
+  run_composer_install
+  run_prepare_config "$pipeline"
+  clear_preview_env
+  run_config_check "$pipeline"
+  run_pipeline_setup "$pipeline"
+  run_pipeline_build "$pipeline"
+  run_deploy_check "$pipeline"
+  if [[ "$output_file" != "" ]]; then
+    GITHUB_OUTPUT_FILE="$output_file" write_resolved_output_file "$pipeline"
+    return 0
+  fi
+  write_resolved_output_file "$pipeline"
+}
+
+run_test_matrix() {
+  local pipelines_csv="$1"
+  local previous_skip_install="$SKIP_INSTALL"
+
+  run_composer_install
+  SKIP_INSTALL=1
+  IFS=',' read -r -a pipelines <<< "$pipelines_csv"
+  for pipeline in "${pipelines[@]}"; do
+    case "$pipeline" in
+      dev)
+        run_dev_pipeline_test
+        ;;
+      preview)
+        run_preview_pipeline_test
+        ;;
+      *)
+        echo "Unbekannte Test-Pipeline: $pipeline" >&2
+        exit 1
+        ;;
+    esac
+  done
+  SKIP_INSTALL="$previous_skip_install"
 }
 
 main() {
-  require_args
+  require_target
   parse_extra_args "$@"
   case "$COMMAND" in
     config-check)
-      run_config_check "$PIPELINE"
+      run_config_check "$TARGET"
       ;;
     deploy-check)
-      run_deploy_check "$PIPELINE"
+      run_deploy_check "$TARGET"
+      ;;
+    pipeline-check)
+      run_pipeline_check "$TARGET" "$GITHUB_OUTPUT_FILE"
       ;;
     prepare-config)
-      run_prepare_config "$PIPELINE"
+      run_prepare_config "$TARGET"
       ;;
     resolve-deploy)
-      run_resolve_deploy "$PIPELINE" "${3:-}"
+      run_resolve_deploy "$TARGET"
+      ;;
+    test-matrix)
+      run_test_matrix "$TARGET"
       ;;
     *)
       usage
