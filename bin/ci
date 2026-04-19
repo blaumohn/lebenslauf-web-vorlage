@@ -12,7 +12,6 @@ FORMAT="env"
 DEPLOY_DIR="$ROOT_DIR/var/deploy"
 GITHUB_OUTPUT_FILE=""
 SKIP_INSTALL=0
-SKIP_HTTP=0
 
 usage() {
   echo "Usage: ci <command> <pipeline> [options]"
@@ -87,10 +86,6 @@ parse_extra_args() {
         ;;
       --skip-install)
         SKIP_INSTALL=1
-        shift
-        ;;
-      --skip-http)
-        SKIP_HTTP=1
         shift
         ;;
       *)
@@ -298,7 +293,7 @@ start_php_server() {
   local port="$1"
   local log_file="$2"
 
-  php -S "127.0.0.1:${port}" -t "$ROOT_DIR/public" > "$log_file" 2>&1 &
+  php -S "0.0.0.0:${port}" -t "$ROOT_DIR/public" > "$log_file" 2>&1 &
   echo "$!"
 }
 
@@ -351,9 +346,6 @@ run_deploy_check() {
   require_preview_pipeline "$pipeline"
   prepare_deploy_dir
   verify_artifact
-  if [[ "$SKIP_HTTP" == "1" ]]; then
-    return 0
-  fi
   with_http_server 8081 preview_http_checks 8081
 }
 
