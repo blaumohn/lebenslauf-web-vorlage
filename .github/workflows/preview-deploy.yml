@@ -29,7 +29,7 @@ jobs:
       - name: Run preview pipeline
         id: resolve_deploy
         shell: bash
-        run: bin/ci pipeline-check ${{ vars.PIPELINE }} --dir var/deploy --github-output "$GITHUB_OUTPUT"
+        run: bin/cd ${{ vars.PIPELINE }} --dir var/deploy
         env:
           SMTP_PASS: 123
           FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}

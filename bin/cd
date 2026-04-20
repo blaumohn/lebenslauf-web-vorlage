@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  set -x
+fi
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="$ROOT_DIR/bin:$PATH"
+COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
+DEPLOY_DIR="$ROOT_DIR/var/deploy"
+GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
+
+. "$ROOT_DIR/scripts/pipeline_lib.sh"
+
+main() {
+  local pipeline="${1:?Pipeline fehlt}"
+
+  parse_extra_args "${@:2}"
+  composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
+  run_pipeline "$pipeline"
+}
+
+parse_extra_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dir)
+        DEPLOY_DIR="${2:-}"
+        [[ "$DEPLOY_DIR" != "" ]] || missing_option_value --dir
+        shift 2
+        ;;
+      *)
+        echo "Unbekanntes Argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+missing_option_value() {
+  local option="$1"
+  echo "Wert fuer $option fehlt" >&2
+  exit 1
+}
+
+main "$@"

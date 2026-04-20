@@ -1,5 +1,5 @@
 services:
-  ci:
+  ci-dev:
     build:
       context: .
       dockerfile: Dockerfile.ci
@@ -8,14 +8,33 @@ services:
       - /tmp:exec,mode=1777
     volumes:
       - ".:/src:ro"
-      - "composer_home:/home/ci/.composer"
-      - "npm_cache:/home/ci/.npm"
+      - "composer_home_dev:/home/ci/.composer"
+      - "npm_cache_dev:/home/ci/.npm"
     environment:
       - COMPOSER_HOME=/home/ci/.composer
       - CI_WORK_BASE=/tmp
-      - CI_PIPELINES=${CI_PIPELINES:-dev,preview}
-    command: sh /src/tests/ci/run.sh
+      - CI_PIPELINE=dev
+    command: bash /src/bin/ci
+
+  ci-preview:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    read_only: true
+    tmpfs:
+      - /tmp:exec,mode=1777
+    volumes:
+      - ".:/src:ro"
+      - "composer_home_preview:/home/ci/.composer"
+      - "npm_cache_preview:/home/ci/.npm"
+    environment:
+      - COMPOSER_HOME=/home/ci/.composer
+      - CI_WORK_BASE=/tmp
+      - CI_PIPELINE=preview
+    command: bash /src/bin/ci docker-run
 
 volumes:
-  composer_home:
-  npm_cache:
+  composer_home_dev:
+  npm_cache_dev:
+  composer_home_preview:
+  npm_cache_preview:
