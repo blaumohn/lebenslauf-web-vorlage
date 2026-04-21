@@ -48,7 +48,11 @@ final class PipelineCommandConfigTest extends TestCase
         $service = new PipelineConfigService($rootPath, 'src/resources/config');
 
         $report = $service->describe('dev', 'python', [
-            'python.tooling.PYTHON_PATHS' => 'src:.',
+            'python' => [
+                'tooling' => [
+                    'PYTHON_PATHS' => 'src:.',
+                ],
+            ],
         ]);
 
         self::assertSame('src:.', $report['values']['PYTHON_PATHS'] ?? null);

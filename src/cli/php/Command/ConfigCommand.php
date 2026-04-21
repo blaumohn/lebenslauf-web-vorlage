@@ -44,23 +44,6 @@ final class ConfigCommand extends BaseCommand
         return Command::FAILURE;
     }
 
-    private function parseOverrides(InputInterface $input, OutputInterface $output): ?array
-    {
-        $raw = $input->getOption('overrides');
-        if ($raw === null || $raw === '') {
-            return [];
-        }
-        if (!is_string($raw)) {
-            return [];
-        }
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            $output->writeln('<error>--overrides muss ein gültiges JSON-Objekt sein.</error>');
-            return null;
-        }
-        return $decoded;
-    }
-
     private function handleGet(InputInterface $input, OutputInterface $output): int
     {
         $key = trim((string) $input->getArgument('arg1'));
@@ -69,7 +52,7 @@ final class ConfigCommand extends BaseCommand
             return Command::FAILURE;
         }
 
-        $overrides = $this->parseOverrides($input, $output);
+        $overrides = $this->requireOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }
@@ -94,7 +77,7 @@ final class ConfigCommand extends BaseCommand
 
     private function handleShow(InputInterface $input, OutputInterface $output): int
     {
-        $overrides = $this->parseOverrides($input, $output);
+        $overrides = $this->requireOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }
@@ -132,7 +115,7 @@ final class ConfigCommand extends BaseCommand
 
     private function handleLint(InputInterface $input, OutputInterface $output): int
     {
-        $overrides = $this->parseOverrides($input, $output);
+        $overrides = $this->requireOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }
@@ -193,7 +176,7 @@ final class ConfigCommand extends BaseCommand
 
     private function handleCompile(InputInterface $input, OutputInterface $output): int
     {
-        $overrides = $this->parseOverrides($input, $output);
+        $overrides = $this->requireOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }

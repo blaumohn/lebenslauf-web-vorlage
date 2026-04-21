@@ -57,6 +57,23 @@ abstract class BaseCommand extends Command
         return null;
     }
 
+    protected function requireOverrides(InputInterface $input, OutputInterface $output): ?array
+    {
+        $raw = $input->getOption('overrides');
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        if (!is_string($raw)) {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            $output->writeln('<error>--overrides muss ein gültiges JSON-Objekt sein.</error>');
+            return null;
+        }
+        return $decoded;
+    }
+
     private function resolveStringArgument(InputInterface $input, string $name): ?string
     {
         $value = $input->getArgument($name);
