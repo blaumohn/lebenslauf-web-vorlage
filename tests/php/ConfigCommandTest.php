@@ -8,37 +8,32 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class ConfigCommandTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        $this->clearPreviewEnv();
-    }
-
     public function testGetReturnsDeployValueFromConfiguredSource(): void
     {
-        $this->setDeployEnv();
         $tester = $this->tester();
 
         $exitCode = $tester->execute([
-            'action' => 'get',
-            'pipeline' => 'preview',
-            'arg1' => 'FTP_PORT',
-            '--phase' => 'deploy',
+            'action'       => 'get',
+            'pipeline'     => 'preview',
+            'arg1'         => 'FTP_PORT',
+            '--phase'      => 'deploy',
+            '--overrides'  => '{"preview.deploy.ftp.FTP_HOST":"h","preview.deploy.ftp.FTP_USER":"u","preview.deploy.ftp.FTP_PASS":"p"}',
         ]);
 
         self::assertSame(0, $exitCode);
         self::assertSame('21', trim($tester->getDisplay()));
     }
 
-    public function testGetReturnsRuntimeSecretFromSystemSource(): void
+    public function testGetReturnsRuntimeSecretFromCliOverride(): void
     {
-        $this->setRuntimeEnv();
         $tester = $this->tester();
 
         $exitCode = $tester->execute([
-            'action' => 'get',
-            'pipeline' => 'preview',
-            'arg1' => 'SMTP_PASS',
-            '--phase' => 'runtime',
+            'action'      => 'get',
+            'pipeline'    => 'preview',
+            'arg1'        => 'SMTP_PASS',
+            '--phase'     => 'runtime',
+            '--overrides' => '{"runtime.smtp.SMTP_PASS":"preview-secret"}',
         ]);
 
         self::assertSame(0, $exitCode);
@@ -47,13 +42,13 @@ final class ConfigCommandTest extends TestCase
 
     public function testLintChecksRequestedDeployPhase(): void
     {
-        $this->setDeployEnv();
         $tester = $this->tester();
 
         $exitCode = $tester->execute([
-            'action' => 'lint',
-            'pipeline' => 'preview',
-            '--phase' => 'deploy',
+            'action'      => 'lint',
+            'pipeline'    => 'preview',
+            '--phase'     => 'deploy',
+            '--overrides' => '{"preview.deploy.ftp.FTP_HOST":"h","preview.deploy.ftp.FTP_USER":"u","preview.deploy.ftp.FTP_PASS":"p"}',
         ]);
 
         self::assertSame(0, $exitCode);
@@ -67,25 +62,5 @@ final class ConfigCommandTest extends TestCase
     {
         $command = (new Application())->find('config');
         return new CommandTester($command);
-    }
-
-    private function setDeployEnv(): void
-    {
-        putenv('FTP_HOST=preview.example.test');
-        putenv('FTP_USER=preview-user');
-        putenv('FTP_PASS=preview-pass');
-    }
-
-    private function setRuntimeEnv(): void
-    {
-        putenv('SMTP_PASS=preview-secret');
-    }
-
-    private function clearPreviewEnv(): void
-    {
-        putenv('SMTP_PASS');
-        putenv('FTP_HOST');
-        putenv('FTP_USER');
-        putenv('FTP_PASS');
     }
 }

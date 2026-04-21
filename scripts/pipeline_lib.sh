@@ -2,8 +2,10 @@ run_pipeline() {
   local pipeline="$1" is_dev docroot
   [[ $pipeline == dev ]] && is_dev=1
 
-  cli setup "$pipeline" ${is_dev:+--copy-sample-content}
-  cli build "$pipeline" ${is_dev:+cv}
+  PIPELINE_OVERRIDES="$(build_overrides_json)"
+
+  cli setup "$pipeline" ${is_dev:+--copy-sample-content} --overrides "$PIPELINE_OVERRIDES"
+  cli build "$pipeline" ${is_dev:+cv} --overrides "$PIPELINE_OVERRIDES"
   [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
 
   if [[ -n "${is_dev:-}" ]]; then
@@ -14,6 +16,24 @@ run_pipeline() {
   fi
 
   with_http_server 8080 "$docroot" http_smoke_checks 8080
+}
+
+build_overrides_json() {
+  local json="{" sep=""
+  local -A entries=(
+    [runtime.smtp.SMTP_PASS]="${SMTP_PASS:-}"
+    [preview.deploy.ftp.FTP_HOST]="${FTP_HOST:-}"
+    [preview.deploy.ftp.FTP_USER]="${FTP_USER:-}"
+    [preview.deploy.ftp.FTP_PASS]="${FTP_PASS:-}"
+    [preview.deploy.ftp.FTP_PORT]="${FTP_PORT:-}"
+    [preview.deploy.ftp.FTP_SERVER_DIR]="${FTP_SERVER_DIR:-}"
+  )
+  for key in "${!entries[@]}"; do
+    [[ -n "${entries[$key]}" ]] || continue
+    json+="${sep}\"${key}\":\"${entries[$key]}\""
+    sep=","
+  done
+  echo "${json}}"
 }
 
 prepare_deploy() {
@@ -95,20 +115,7 @@ config_get() {
   local phase="$2"
   local key="$3"
 
-  case "$phase" in
-    build)
-      env -u SMTP_PASS -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
-        cli config get "$pipeline" "$key" --phase "$phase"
-      ;;
-    runtime)
-      env -u FTP_HOST -u FTP_USER -u FTP_PASS -u FTP_PORT -u FTP_SERVER_DIR \
-        cli config get "$pipeline" "$key" --phase "$phase"
-      ;;
-    deploy)
-      env -u SMTP_PASS \
-        cli config get "$pipeline" "$key" --phase "$phase"
-      ;;
-  esac
+  cli config get "$pipeline" "$key" --phase "$phase" --overrides "${PIPELINE_OVERRIDES:-{\}}"
 }
 
 with_http_server() {

@@ -59,7 +59,7 @@ final class BuildCommand extends BasePipelineCommand
 
     private function runCvOnly(OutputInterface $output): int
     {
-        if (!$this->compileRuntimeConfig($output)) {
+        if (!$this->compileRuntimeConfig($this->commandOverrides(), $output)) {
             return Command::FAILURE;
         }
         if (!$this->runCvBuild($this->commandConfig(), $output)) {
@@ -101,16 +101,16 @@ final class BuildCommand extends BasePipelineCommand
         return true;
     }
 
-    private function compileRuntimeConfig(OutputInterface $output): bool
+    private function compileRuntimeConfig(array $overrides, OutputInterface $output): bool
     {
-        $runtimeConfig = $this->resolvePipelineConfig($this->pipelineName(), 'runtime', [], $output);
+        $runtimeConfig = $this->resolvePipelineConfig($this->pipelineName(), 'runtime', $overrides, $output);
         if ($runtimeConfig === null) {
             return false;
         }
 
         try {
             $this->validateAppConfig($runtimeConfig->all());
-            $this->configService()->compile($this->pipelineName(), 'runtime');
+            $this->configService()->compile($this->pipelineName(), 'runtime', null, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;
