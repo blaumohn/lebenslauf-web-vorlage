@@ -91,7 +91,8 @@ http_smoke_checks() {
   smoke_http_page "$port" "/"        /tmp/ci-home.html
   smoke_http_page "$port" "/cv"      /tmp/ci-cv.html
   smoke_http_page "$port" "/contact" /tmp/ci-contact.html
-  curl --fail --silent --show-error "http://127.0.0.1:${port}/cv" | grep -q "Lebenslauf"
+  curl --fail --silent --show-error "http://127.0.0.1:${port}/cv" > /tmp/ci-cv-check.html
+  grep -q "Lebenslauf" /tmp/ci-cv-check.html
 }
 
 smoke_http_page() {
