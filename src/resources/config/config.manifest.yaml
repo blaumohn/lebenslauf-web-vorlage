@@ -203,7 +203,5 @@ pipelines:
         - LEBENSLAUF_PUBLIC_PROFILE
 
   preview:
-    runtime:
-      smtp: "*"
     deploy:
       ftp: "*"

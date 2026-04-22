@@ -17,11 +17,3 @@ contact:
 
 rate_limit:
   RATE_LIMIT_WINDOW_SECONDS: 600
-
-smtp:
-  SMTP_HOST: smtp.beispiel.de
-  SMTP_PORT: 587
-  SMTP_USER: user
-  SMTP_ENCRYPTION: tls
-  SMTP_FROM_EMAIL: kontakt@beispiel.de
-  SMTP_FROM_NAME: Lebenslauf

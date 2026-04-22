@@ -53,7 +53,6 @@ prepare_work_dir() {
 }
 
 seed_preview_fixture_env() {
-  export SMTP_PASS="preview-secret"
   export FTP_HOST="preview.example.test"
   export FTP_USER="preview-user"
   export FTP_PASS="preview-pass"
