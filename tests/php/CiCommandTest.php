@@ -14,24 +14,34 @@ final class CiCommandTest extends TestCase
         $this->rootPath = dirname(__DIR__, 2);
     }
 
-    public function testDeployCheckAcceptsExplicitDirOption(): void
+    public function testCiRequiresAppPipelineEnvironment(): void
     {
-        $output = $this->runCi(['deploy-check', 'preview', '--dir', '/tmp/preview-deploy-test'], false);
+        $output = $this->runCi([]);
 
-        self::assertStringNotContainsString('Unbekanntes Argument', $output);
-        self::assertStringNotContainsString('Wert fuer --dir fehlt', $output);
+        self::assertStringContainsString('APP_PIPELINE nicht gesetzt', $output);
+        self::assertStringNotContainsString('CI_PIPELINE nicht gesetzt', $output);
     }
 
-    private function runCi(array $args, bool $mustSucceed = true): string
+    public function testCiReadsAppPipelineFromEnvironment(): void
     {
-        $process = new Process(array_merge(['bash', 'bin/ci'], $args), $this->rootPath, [
+        $output = $this->runCi([
+            'APP_PIPELINE' => 'preview',
+        ]);
+
+        self::assertStringNotContainsString('APP_PIPELINE nicht gesetzt', $output);
+        self::assertStringNotContainsString('CI_PIPELINE nicht gesetzt', $output);
+    }
+
+    private function runCi(array $env, bool $mustSucceed = false): string
+    {
+        $process = new Process(['bash', 'bin/ci'], $this->rootPath, array_merge([
             'SMTP_PASS' => 'preview-secret',
             'FTP_HOST' => 'preview.example.test',
             'FTP_USER' => 'preview-user',
             'FTP_PASS' => 'preview-pass',
             'FTP_PORT' => '21',
             'FTP_SERVER_DIR' => '/home/preview/public',
-        ]);
+        ], $env));
         if ($mustSucceed) {
             $process->mustRun();
             return $process->getOutput();

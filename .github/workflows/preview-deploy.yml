@@ -29,8 +29,10 @@ jobs:
       - name: Run preview pipeline
         id: resolve_deploy
         shell: bash
-        run: bin/cd ${{ vars.PIPELINE }} --dir var/deploy
+        run: bin/cd
         env:
+          APP_PIPELINE: ${{ vars.APP_PIPELINE }}
+          DEPLOY_DIR: var/deploy
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}

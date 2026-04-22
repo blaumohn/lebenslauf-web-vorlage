@@ -14,7 +14,7 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
 main() {
-  local pipeline="${CI_PIPELINE:?CI_PIPELINE nicht gesetzt}"
+  local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
 
   prepare_work_dir
 

@@ -1,37 +1,37 @@
+x-ci-base: &ci-base
+  build:
+    context: .
+    dockerfile: Dockerfile.ci
+  read_only: true
+  tmpfs:
+    - /tmp:exec,mode=1777
+
+x-ci-env: &ci-env
+  COMPOSER_HOME: /home/ci/.composer
+  CI_WORK_BASE: /tmp
+
 services:
   ci-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.ci
-    read_only: true
-    tmpfs:
-      - /tmp:exec,mode=1777
+    <<: *ci-base
     volumes:
       - ".:/src:ro"
       - "composer_home_dev:/home/ci/.composer"
       - "npm_cache_dev:/home/ci/.npm"
     environment:
-      - COMPOSER_HOME=/home/ci/.composer
-      - CI_WORK_BASE=/tmp
-      - CI_PIPELINE=dev
+      <<: *ci-env
+      APP_PIPELINE: dev
     command: bash /src/bin/ci
 
   ci-preview:
-    build:
-      context: .
-      dockerfile: Dockerfile.ci
-    read_only: true
-    tmpfs:
-      - /tmp:exec,mode=1777
+    <<: *ci-base
     volumes:
       - ".:/src:ro"
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
     environment:
-      - COMPOSER_HOME=/home/ci/.composer
-      - CI_WORK_BASE=/tmp
-      - CI_PIPELINE=preview
-    command: bash /src/bin/ci docker-run
+      <<: *ci-env
+      APP_PIPELINE: preview
+    command: bash /src/bin/ci
 
 volumes:
   composer_home_dev:

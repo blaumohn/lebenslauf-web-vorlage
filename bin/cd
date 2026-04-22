@@ -14,33 +14,17 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
 main() {
-  local pipeline="${1:?Pipeline fehlt}"
+  if [[ $# -gt 0 ]]; then
+    echo "bin/cd verwendet keine Argumente" >&2
+    exit 1
+  fi
 
-  parse_extra_args "${@:2}"
+  local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
+  local deploy_dir="${DEPLOY_DIR:?DEPLOY_DIR nicht gesetzt}"
+
+  DEPLOY_DIR="$deploy_dir"
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
   run_pipeline "$pipeline"
-}
-
-parse_extra_args() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --dir)
-        DEPLOY_DIR="${2:-}"
-        [[ "$DEPLOY_DIR" != "" ]] || missing_option_value --dir
-        shift 2
-        ;;
-      *)
-        echo "Unbekanntes Argument: $1" >&2
-        exit 1
-        ;;
-    esac
-  done
-}
-
-missing_option_value() {
-  local option="$1"
-  echo "Wert fuer $option fehlt" >&2
-  exit 1
 }
 
 main "$@"
