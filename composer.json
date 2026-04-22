@@ -68,6 +68,10 @@
       "Composer\\Config::disableProcessTimeout",
       "docker compose -f docker-compose.ci.yml up --remove-orphans --build"
     ],
+    "tests:ci:debug": [
+      "Composer\\Config::disableProcessTimeout",
+      "DEBUG=1 docker compose -f docker-compose.ci.yml up --remove-orphans --build"
+    ],
     "deploy:preview": [
       "php bin/cli build preview"
     ]

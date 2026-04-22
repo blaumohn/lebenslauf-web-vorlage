@@ -53,12 +53,12 @@ prepare_work_dir() {
 }
 
 seed_preview_fixture_env() {
-  SMTP_PASS="preview-secret"
-  FTP_HOST="preview.example.test"
-  FTP_USER="preview-user"
-  FTP_PASS="preview-pass"
-  FTP_PORT="21"
-  FTP_SERVER_DIR="/home/preview/public"
+  export SMTP_PASS="preview-secret"
+  export FTP_HOST="preview.example.test"
+  export FTP_USER="preview-user"
+  export FTP_PASS="preview-pass"
+  export FTP_PORT="21"
+  export FTP_SERVER_DIR="/home/preview/public"
 }
 
 main "$@"

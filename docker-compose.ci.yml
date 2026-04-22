@@ -31,6 +31,7 @@ services:
     environment:
       <<: *ci-env
       APP_PIPELINE: preview
+      DEBUG: "${DEBUG:-0}"
     command: bash /src/bin/ci
 
 volumes:
