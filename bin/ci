@@ -14,6 +14,10 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
 main() {
+  if [[ $# -gt 0 ]]; then
+    echo "bin/ci verwendet keine Argumente" >&2
+    exit 1
+  fi
   local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
 
   prepare_work_dir
