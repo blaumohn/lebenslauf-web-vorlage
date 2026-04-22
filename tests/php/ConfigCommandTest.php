@@ -17,7 +17,7 @@ final class ConfigCommandTest extends TestCase
             'pipeline'     => 'preview',
             'arg1'         => 'FTP_PORT',
             '--phase'      => 'deploy',
-            '--overrides'  => '{"preview.deploy.ftp.FTP_HOST":"h","preview.deploy.ftp.FTP_USER":"u","preview.deploy.ftp.FTP_PASS":"p"}',
+            '--overrides'  => '{"preview":{"deploy":{"ftp":{"FTP_HOST":"h","FTP_USER":"u","FTP_PASS":"p"}}}}',
         ]);
 
         self::assertSame(0, $exitCode);
@@ -33,7 +33,7 @@ final class ConfigCommandTest extends TestCase
             'pipeline'    => 'preview',
             'arg1'        => 'SMTP_PASS',
             '--phase'     => 'runtime',
-            '--overrides' => '{"runtime.smtp.SMTP_PASS":"preview-secret"}',
+            '--overrides' => '{"runtime":{"smtp":{"SMTP_PASS":"preview-secret"}}}',
         ]);
 
         self::assertSame(0, $exitCode);
@@ -48,7 +48,7 @@ final class ConfigCommandTest extends TestCase
             'action'      => 'lint',
             'pipeline'    => 'preview',
             '--phase'     => 'deploy',
-            '--overrides' => '{"preview.deploy.ftp.FTP_HOST":"h","preview.deploy.ftp.FTP_USER":"u","preview.deploy.ftp.FTP_PASS":"p"}',
+            '--overrides' => '{"preview":{"deploy":{"ftp":{"FTP_HOST":"h","FTP_USER":"u","FTP_PASS":"p"}}}}',
         ]);
 
         self::assertSame(0, $exitCode);

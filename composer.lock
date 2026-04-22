@@ -389,12 +389,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/blaumohn/pipeline-config-spec-php.git",
-                "reference": "1375de5497b7bd4614c96cd84d64e431203fe684"
+                "reference": "6d7c00580f2e077a5db862338357e0dc491d80c4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/blaumohn/pipeline-config-spec-php/zipball/1375de5497b7bd4614c96cd84d64e431203fe684",
-                "reference": "1375de5497b7bd4614c96cd84d64e431203fe684",
+                "url": "https://api.github.com/repos/blaumohn/pipeline-config-spec-php/zipball/6d7c00580f2e077a5db862338357e0dc491d80c4",
+                "reference": "6d7c00580f2e077a5db862338357e0dc491d80c4",
                 "shasum": ""
             },
             "require": {
@@ -423,7 +423,7 @@
                 "source": "https://github.com/blaumohn/pipeline-config-spec-php/tree/main",
                 "issues": "https://github.com/blaumohn/pipeline-config-spec-php/issues"
             },
-            "time": "2026-04-17T12:26:59+00:00"
+            "time": "2026-04-21T13:19:05+00:00"
         },
         {
             "name": "psr/container",

@@ -1,11 +1,10 @@
 run_pipeline() {
-  local pipeline="$1" is_dev docroot
+  local pipeline="$1" is_dev docroot build_overrides
   [[ $pipeline == dev ]] && is_dev=1
 
-  PIPELINE_OVERRIDES="$(build_overrides_json)"
-
-  cli setup "$pipeline" ${is_dev:+--copy-sample-content} --overrides "$PIPELINE_OVERRIDES"
-  cli build "$pipeline" ${is_dev:+cv} --overrides "$PIPELINE_OVERRIDES"
+  cli setup "$pipeline" ${is_dev:+--copy-sample-content} --overrides '{}'
+  build_overrides="$(build_group_overrides_json "$pipeline" runtime smtp SMTP_PASS)"
+  cli build "$pipeline" ${is_dev:+cv} --overrides "$build_overrides"
   [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
 
   if [[ -n "${is_dev:-}" ]]; then
@@ -18,22 +17,41 @@ run_pipeline() {
   with_http_server 8080 "$docroot" http_smoke_checks 8080
 }
 
-build_overrides_json() {
-  local json="{" sep=""
-  local -A entries=(
-    [runtime.smtp.SMTP_PASS]="${SMTP_PASS:-}"
-    [preview.deploy.ftp.FTP_HOST]="${FTP_HOST:-}"
-    [preview.deploy.ftp.FTP_USER]="${FTP_USER:-}"
-    [preview.deploy.ftp.FTP_PASS]="${FTP_PASS:-}"
-    [preview.deploy.ftp.FTP_PORT]="${FTP_PORT:-}"
-    [preview.deploy.ftp.FTP_SERVER_DIR]="${FTP_SERVER_DIR:-}"
-  )
-  for key in "${!entries[@]}"; do
-    [[ -n "${entries[$key]}" ]] || continue
-    json+="${sep}\"${key}\":\"${entries[$key]}\""
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '%s' "$value"
+}
+
+build_group_overrides_json() {
+  local pipeline="$1"
+  local phase="$2"
+  local group="$3"
+  local json="" sep="" name value
+
+  shift 3
+  for name in "$@"; do
+    value="${!name-}"
+    [[ -n "${value:-}" ]] || continue
+    value="$(json_escape "$value")"
+    json+="${sep}\"${name}\":\"${value}\""
     sep=","
   done
-  echo "${json}}"
+
+  if [[ -z "$json" ]]; then
+    echo '{}'
+    return 0
+  fi
+
+  printf '{"%s":{"%s":{"%s":{%s}}}}\n' \
+    "$pipeline" \
+    "$phase" \
+    "$group" \
+    "$json"
 }
 
 prepare_deploy() {
@@ -42,11 +60,9 @@ prepare_deploy() {
   prepare_deploy_dir
   verify_artifact
   write_resolved_output "$pipeline"
-  assert_output_key "$GITHUB_OUTPUT" ftp_host
-  assert_output_key "$GITHUB_OUTPUT" ftp_user
-  assert_output_key "$GITHUB_OUTPUT" ftp_pass
-  assert_output_key "$GITHUB_OUTPUT" ftp_port
-  assert_output_key "$GITHUB_OUTPUT" ftp_server_dir
+  for key in ftp_host ftp_user ftp_pass ftp_port ftp_server_dir; do
+    assert_output_key "$GITHUB_OUTPUT" "$key"
+  done
 }
 
 prepare_deploy_dir() {
@@ -91,13 +107,18 @@ assert_output_key() {
 }
 
 run_resolve_deploy() {
-  local pipeline="$1"
+  local pipeline="$1" pair name key
 
-  print_resolved_value "$pipeline" ftp_host FTP_HOST
-  print_resolved_value "$pipeline" ftp_user FTP_USER
-  print_resolved_value "$pipeline" ftp_pass FTP_PASS
-  print_resolved_value "$pipeline" ftp_port FTP_PORT
-  print_resolved_value "$pipeline" ftp_server_dir FTP_SERVER_DIR
+  for pair in \
+    "ftp_host:FTP_HOST" \
+    "ftp_user:FTP_USER" \
+    "ftp_pass:FTP_PASS" \
+    "ftp_port:FTP_PORT" \
+    "ftp_server_dir:FTP_SERVER_DIR"; do
+    name="${pair%%:*}"
+    key="${pair#*:}"
+    print_resolved_value "$pipeline" "$name" "$key"
+  done
 }
 
 print_resolved_value() {
@@ -114,8 +135,17 @@ config_get() {
   local pipeline="$1"
   local phase="$2"
   local key="$3"
+  local overrides
 
-  cli config get "$pipeline" "$key" --phase "$phase" --overrides "${PIPELINE_OVERRIDES:-{\}}"
+  overrides="$(
+    build_group_overrides_json \
+      "$pipeline" \
+      "$phase" \
+      ftp \
+      FTP_HOST FTP_USER FTP_PASS FTP_PORT FTP_SERVER_DIR
+  )"
+
+  cli config get "$pipeline" "$key" --phase "$phase" --overrides "$overrides"
 }
 
 with_http_server() {
