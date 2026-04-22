@@ -57,7 +57,7 @@ abstract class BaseCommand extends Command
         return null;
     }
 
-    protected function requireOverrides(InputInterface $input, OutputInterface $output): ?array
+    protected function parseOverrides(InputInterface $input, OutputInterface $output): ?array
     {
         $raw = $input->getOption('overrides');
         if ($raw === null || $raw === '') {

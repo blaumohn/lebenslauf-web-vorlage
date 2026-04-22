@@ -42,7 +42,7 @@ abstract class BasePipelineCommand extends BaseCommand
             return Command::FAILURE;
         }
 
-        $overrides = $this->requireOverrides($input, $output);
+        $overrides = $this->parseOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }

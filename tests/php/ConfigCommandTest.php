@@ -40,6 +40,23 @@ final class ConfigCommandTest extends TestCase
         self::assertSame('preview-secret', trim($tester->getDisplay()));
     }
 
+    public function testGetFailsWithoutPhaseOption(): void
+    {
+        $tester = $this->tester();
+
+        $exitCode = $tester->execute([
+            'action'   => 'get',
+            'pipeline' => 'preview',
+            'arg1'     => 'SMTP_PASS',
+        ]);
+
+        self::assertSame(1, $exitCode);
+        self::assertStringContainsString(
+            '--phase fehlt. Beispiel: --phase runtime',
+            $tester->getDisplay()
+        );
+    }
+
     public function testLintChecksRequestedDeployPhase(): void
     {
         $tester = $this->tester();
