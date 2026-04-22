@@ -2,7 +2,6 @@
 
 namespace App\Cli\Command;
 
-use App\Cli\Config\AppConfigValidator;
 use App\Cli\ConfigValues;
 use App\Cli\Cv\CvBuildService;
 use App\Cli\Cv\CvUploadService;
@@ -109,24 +108,12 @@ final class BuildCommand extends BasePipelineCommand
         }
 
         try {
-            $this->validateAppConfig($runtimeConfig->all());
             $this->configService()->compile($this->pipelineName(), 'runtime', null, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;
         }
         return true;
-    }
-
-    private function validateAppConfig(array $values): void
-    {
-        $errors = (new AppConfigValidator())->validate($values);
-        if ($errors === []) {
-            return;
-        }
-        throw new \RuntimeException(
-            "Config-Validierung fehlgeschlagen:\n- " . implode("\n- ", $errors)
-        );
     }
 
     private function runCssBuild(OutputInterface $output): int
