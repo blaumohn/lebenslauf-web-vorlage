@@ -41,8 +41,8 @@ jobs:
           SSH_KNOWN_HOST_LINE: ${{ secrets.SSH_KNOWN_HOST_LINE }}
         run: bin/cd
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass openssh-client
+      - name: Install paramiko
+        run: pip install --quiet paramiko
 
       - name: Deploy via SFTP
         env:
@@ -52,4 +52,4 @@ jobs:
           SFTP_PORT: ${{ steps.resolve_deploy.outputs.ftp_port }}
           SFTP_REMOTE_DIR: ${{ steps.resolve_deploy.outputs.ftp_server_dir }}
           SSH_KNOWN_HOST_LINE: ${{ steps.resolve_deploy.outputs.ssh_known_host_line}}
-        run: sh scripts/sftp-deploy.sh
+        run: python3 scripts/sftp-deploy.py
