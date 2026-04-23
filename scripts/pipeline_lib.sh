@@ -1,5 +1,5 @@
 run_pipeline() {
-  local pipeline="$1" is_dev docroot build_overrides
+  local pipeline="$1" is_dev docroot smoke_host smoke_port
   [[ $pipeline == dev ]] && is_dev=1
 
   cli setup "$pipeline" ${is_dev:+--copy-sample-content}
@@ -9,12 +9,16 @@ run_pipeline() {
 
   if [[ -n "${is_dev:-}" ]]; then
     docroot="$ROOT_DIR/public"
+    smoke_host="127.0.0.1"
+    smoke_port="8080"
   else
     deploy "$pipeline" "$overrides"
     docroot="$DEPLOY_DIR/public"
+    smoke_host="preview-web"
+    smoke_port="80"
   fi
 
-  with_http_server 8080 "$docroot" http_smoke_checks 8080
+  with_http_server 8080 "$docroot" http_smoke_checks "$smoke_host" "$smoke_port"
 }
 
 deploy() {
@@ -76,21 +80,19 @@ with_http_server() {
 }
 
 http_smoke_checks() {
-  local port="$1"
+  local host="$1" port="$2"
 
-  smoke_http_page "$port" "/"        /tmp/ci-home.html
-  smoke_http_page "$port" "/cv"      /tmp/ci-cv.html
-  smoke_http_page "$port" "/contact" /tmp/ci-contact.html
-  curl --fail --silent --show-error "http://127.0.0.1:${port}/cv" > /tmp/ci-cv-check.html
+  smoke_http_page "$host" "$port" "/"        /tmp/ci-home.html
+  smoke_http_page "$host" "$port" "/cv"      /tmp/ci-cv.html
+  smoke_http_page "$host" "$port" "/contact" /tmp/ci-contact.html
+  curl --fail --silent --show-error "http://${host}:${port}/cv" > /tmp/ci-cv-check.html
   grep -q "Lebenslauf" /tmp/ci-cv-check.html
 }
 
 smoke_http_page() {
-  local port="$1"
-  local path="$2"
-  local target="$3"
+  local host="$1" port="$2" path="$3" target="$4"
 
-  curl --fail --silent --show-error "http://127.0.0.1:${port}${path}" > "$target"
+  curl --fail --silent --show-error "http://${host}:${port}${path}" > "$target"
 }
 
 start_php_server() {

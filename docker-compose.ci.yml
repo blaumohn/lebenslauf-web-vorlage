@@ -35,13 +35,22 @@ services:
     command: bash /src/bin/ci
     depends_on:
       - sftp-server
+      - preview-web
 
   sftp-server:
     image: atmoz/sftp:alpine
     command: "preview-ci:ci-pass:1000::public"
+    volumes:
+      - "preview_deploy:/home/preview-ci/public"
+
+  preview-web:
+    image: php:8.2-apache
+    volumes:
+      - "preview_deploy:/var/www/html:ro"
 
 volumes:
   composer_home_dev:
   npm_cache_dev:
   composer_home_preview:
   npm_cache_preview:
+  preview_deploy:
