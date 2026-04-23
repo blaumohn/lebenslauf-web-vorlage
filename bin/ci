@@ -58,6 +58,7 @@ seed_preview_fixture_env() {
   export FTP_PASS="preview-pass"
   export FTP_PORT="21"
   export FTP_SERVER_DIR="/home/preview/public"
+  export SSH_KNOWN_HOST_LINE="host-oder-ip schluesseltyp base64-schluessel"
 }
 
 main "$@"

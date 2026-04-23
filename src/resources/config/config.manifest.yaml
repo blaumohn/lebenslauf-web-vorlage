@@ -150,6 +150,8 @@ variable-groups:
       sources: [local, cli]
     FTP_PASS:
       sources: [local, cli]
+    SSH_KNOWN_HOST_LINE:
+      sources: [local, cli]
 
   tooling:
     PYTHON_CMD:

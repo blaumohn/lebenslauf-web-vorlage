@@ -30,6 +30,7 @@ function build_overrides_json(): array
           'FTP_PASS',
           'FTP_PORT',
           'FTP_SERVER_DIR',
+          'SSH_KNOWN_HOST_LINE',
         ])
       ],
     ],

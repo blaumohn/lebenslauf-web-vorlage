@@ -29,7 +29,6 @@ jobs:
       - name: Run preview pipeline
         id: resolve_deploy
         shell: bash
-        run: bin/cd
         env:
           APP_PIPELINE: ${{ vars.APP_PIPELINE }}
           DEPLOY_DIR: var/deploy
@@ -39,13 +38,18 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PORT: ${{ vars.FTP_PORT }}
           FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
+          SSH_KNOWN_HOST_LINE: ${{ secrets.SSH_KNOWN_HOST_LINE }}
+        run: bin/cd
 
-      - name: FTP deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ steps.resolve_deploy.outputs.ftp_host }}
-          username: ${{ steps.resolve_deploy.outputs.ftp_user }}
-          password: ${{ steps.resolve_deploy.outputs.ftp_pass }}
-          port: ${{ steps.resolve_deploy.outputs.ftp_port }}
-          local-dir: var/deploy/
-          server-dir: ${{ steps.resolve_deploy.outputs.ftp_server_dir }}
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass openssh-client
+
+      - name: Deploy via SFTP
+        env:
+          SSHPASS: ${{ steps.resolve_deploy.outputs.ftp_pass }}
+          SFTP_HOST: ${{ steps.resolve_deploy.outputs.ftp_host }}
+          SFTP_USER: ${{ steps.resolve_deploy.outputs.ftp_user }}
+          SFTP_PORT: ${{ steps.resolve_deploy.outputs.ftp_port }}
+          SFTP_REMOTE_DIR: ${{ steps.resolve_deploy.outputs.ftp_server_dir }}
+          SSH_KNOWN_HOST_LINE: ${{ steps.resolve_deploy.outputs.ssh_known_host_line}}
+        run: sh scripts/sftp-deploy.sh
