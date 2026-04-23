@@ -21,7 +21,7 @@ final class ConfigCommand extends BaseCommand
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
             ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase')
             ->addOption('overrides', null, InputOption::VALUE_OPTIONAL, 'Config-Überschreibungen als JSON')
-            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Ausgabeformat (github-output)');
+            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Ausgabeformat (env)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -142,15 +142,15 @@ final class ConfigCommand extends BaseCommand
         array $values, InputInterface $input, OutputInterface $output
     ): int {
         $format = $this->resolveOptionString($input, 'format');
-        if ($format === 'github-output') {                     
-            foreach ($values as $key => $value) {                            
-                $output->writeln(strtolower($key) . '=' . $value);
-            }                                                                
+        if ($format === 'env') {
+            foreach ($values as $key => $value) {
+                $output->writeln($key . '=' . $value);
+            }
             return Command::SUCCESS;
-        }                                                                    
-        $output->writeln('<error>Ohne KEY muss --format angegeben werden.</error>');
-        return Command::FAILURE;                                             
-    }      
+        }
+        $output->writeln('<error>Ohne KEY muss --format=env angegeben werden.</error>');
+        return Command::FAILURE;
+    }
 
     private function lintAllPhases(
         PipelineConfigService $pipelineSpec,

@@ -33,6 +33,12 @@ services:
       APP_PIPELINE: preview
       DEBUG: "${DEBUG:-0}"
     command: bash /src/bin/ci
+    depends_on:
+      - sftp-server
+
+  sftp-server:
+    image: atmoz/sftp:alpine
+    command: "preview-ci:ci-pass:1000::public"
 
 volumes:
   composer_home_dev:

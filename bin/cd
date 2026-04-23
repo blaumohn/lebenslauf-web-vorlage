@@ -9,7 +9,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$ROOT_DIR/bin:$PATH"
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 DEPLOY_DIR="$ROOT_DIR/var/deploy"
-GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
 
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
@@ -23,6 +22,7 @@ main() {
   local deploy_dir="${DEPLOY_DIR:?DEPLOY_DIR nicht gesetzt}"
 
   DEPLOY_DIR="$deploy_dir"
+  pip install --quiet paramiko
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
   run_pipeline "$pipeline"
 }

@@ -9,7 +9,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$ROOT_DIR/bin:$PATH"
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 DEPLOY_DIR="$ROOT_DIR/var/deploy"
-GITHUB_OUTPUT="${GITHUB_OUTPUT:-}"
 
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
@@ -23,8 +22,7 @@ main() {
   prepare_work_dir
 
   if [[ "$pipeline" == "preview" ]]; then
-    seed_preview_fixture_env
-    GITHUB_OUTPUT="$(mktemp)"
+    setup_preview_ci_env
   fi
 
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
@@ -52,13 +50,25 @@ prepare_work_dir() {
   cd "$work_dir"
 }
 
-seed_preview_fixture_env() {
-  export FTP_HOST="preview.example.test"
-  export FTP_USER="preview-user"
-  export FTP_PASS="preview-pass"
-  export FTP_PORT="21"
-  export FTP_SERVER_DIR="/home/preview/public"
-  export SSH_KNOWN_HOST_LINE="host-oder-ip schluesseltyp base64-schluessel"
+await_sftp_host_key() {
+  local host="$1" port="$2" key attempt
+
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    key="$(ssh-keyscan -p "$port" "$host" 2>/dev/null | grep -v '^#' | head -1)"
+    [[ -n "$key" ]] && echo "$key" && return
+    sleep 1
+  done
+  echo "SFTP-Hostschlüssel von ${host}:${port} nicht erreichbar" >&2
+  exit 1
+}
+
+setup_preview_ci_env() {
+  export FTP_HOST="sftp-server"
+  export FTP_USER="preview-ci"
+  export FTP_PASS="ci-pass"
+  export FTP_PORT="22"
+  export FTP_SERVER_DIR="/home/preview-ci/public"
+  export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
 }
 
 main "$@"

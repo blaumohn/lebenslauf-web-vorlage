@@ -6,11 +6,11 @@ import paramiko
 
 def read_env():
     return {
-        "host": os.environ["SFTP_HOST"],
-        "user": os.environ["SFTP_USER"],
-        "password": os.environ["SSHPASS"],
-        "port": int(os.environ.get("SFTP_PORT", "22")),
-        "remote_dir": os.environ["SFTP_REMOTE_DIR"],
+        "host": os.environ["FTP_HOST"],
+        "user": os.environ["FTP_USER"],
+        "password": os.environ["FTP_PASS"],
+        "port": int(os.environ.get("FTP_PORT", "22")),
+        "remote_dir": os.environ["FTP_SERVER_DIR"],
         "known_host_line": os.environ["SSH_KNOWN_HOST_LINE"],
     }
 

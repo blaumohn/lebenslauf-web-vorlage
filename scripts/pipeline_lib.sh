@@ -10,22 +10,27 @@ run_pipeline() {
   if [[ -n "${is_dev:-}" ]]; then
     docroot="$ROOT_DIR/public"
   else
-    prepare_deploy "$pipeline" "$overrides"
+    deploy "$pipeline" "$overrides"
     docroot="$DEPLOY_DIR/public"
   fi
 
   with_http_server 8080 "$docroot" http_smoke_checks 8080
 }
 
-prepare_deploy() {
+deploy() {
   local pipeline="$1" overrides="$2"
 
   prepare_deploy_dir
   verify_artifact
-  write_resolved_output "$pipeline" "$overrides"
-  for key in ftp_host ftp_user ftp_pass ftp_port ftp_server_dir; do
-    assert_output_key "$GITHUB_OUTPUT" "$key"
-  done
+  sftp_upload "$pipeline" "$overrides"
+}
+
+sftp_upload() {
+  local pipeline="$1" overrides="$2"
+  local -a cfg
+
+  mapfile -t cfg < <(cli config get "$pipeline" --phase deploy --overrides "$overrides" --format=env)
+  env "${cfg[@]}" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
 }
 
 prepare_deploy_dir() {
@@ -56,20 +61,6 @@ copy_deploy_htaccess() {
   cp "$ROOT_DIR/src/resources/http/$scope/.htaccess" "$target"
 }
 
-write_resolved_output() {
-  local pipeline="$1" overrides="$2"
-
-  [[ "$GITHUB_OUTPUT" != "" ]] || return 0
-  cli config get "$pipeline" --phase deploy --format=github-output \
-    --overrides "$overrides" >> "$GITHUB_OUTPUT"
-}
-
-assert_output_key() {
-  local file="$1"
-  local key="$2"
-
-  grep -q "^${key}=" "$file"
-}
 
 with_http_server() {
   local port="$1"
