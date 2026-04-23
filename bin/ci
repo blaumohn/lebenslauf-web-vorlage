@@ -51,11 +51,11 @@ prepare_work_dir() {
 }
 
 await_sftp_host_key() {
-  local host="$1" port="$2" key attempt
+  local host="$1" port="$2" keys attempt
 
-  for attempt in 1 2 3 4 5 6 7 8 9 10; do
-    key="$(ssh-keyscan -p "$port" "$host" 2>/dev/null | grep -v '^#' | head -1)"
-    [[ -n "$key" ]] && echo "$key" && return
+  for attempt in $(seq 1 10); do
+    keys="$(ssh-keyscan -p "$port" "$host" 2>/dev/null | grep -v '^#')"
+    [[ -n "$keys" ]] && echo "$keys" && return
     sleep 1
   done
   echo "SFTP-Hostschlüssel von ${host}:${port} nicht erreichbar" >&2
@@ -67,7 +67,7 @@ setup_preview_ci_env() {
   export FTP_USER="preview-ci"
   export FTP_PASS="ci-pass"
   export FTP_PORT="22"
-  export FTP_SERVER_DIR="/home/preview-ci/public"
+  export FTP_SERVER_DIR="/public"
   export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
 }
 

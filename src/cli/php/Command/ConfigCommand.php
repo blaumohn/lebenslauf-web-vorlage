@@ -20,8 +20,7 @@ final class ConfigCommand extends BaseCommand
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
             ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase')
-            ->addOption('overrides', null, InputOption::VALUE_OPTIONAL, 'Config-Überschreibungen als JSON')
-            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Ausgabeformat (env)');
+            ->addOption('overrides', null, InputOption::VALUE_OPTIONAL, 'Config-Überschreibungen als JSON');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -69,9 +68,9 @@ final class ConfigCommand extends BaseCommand
             return Command::FAILURE;
         }
 
-        if ($key === '') {     
-          return $this->outputAllValues($values, $input, $output);
-        }                                                                    
+        if ($key === '') {
+            return $this->outputAllValues($values, $output);
+        }
 
         $output->write((string) ($values[$key] ?? ''));
         return Command::SUCCESS;
@@ -138,18 +137,10 @@ final class ConfigCommand extends BaseCommand
 
         return $this->lintAllPhases($pipelineSpec, $pipeline, $output, $overrides);
     }
-    private function outputAllValues(
-        array $values, InputInterface $input, OutputInterface $output
-    ): int {
-        $format = $this->resolveOptionString($input, 'format');
-        if ($format === 'env') {
-            foreach ($values as $key => $value) {
-                $output->writeln($key . '=' . $value);
-            }
-            return Command::SUCCESS;
-        }
-        $output->writeln('<error>Ohne KEY muss --format=env angegeben werden.</error>');
-        return Command::FAILURE;
+    private function outputAllValues(array $values, OutputInterface $output): int
+    {
+        $output->write(json_encode($values, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return Command::SUCCESS;
     }
 
     private function lintAllPhases(

@@ -46,12 +46,17 @@ Eigene Daten und Konfiguration (E-Mail, SMTP, Deployment):
 
 ## CI lokal prüfen
 
-Die lokale CI-Testmatrix läuft containerisiert und deckt `dev`- sowie
-`preview`-Prüfpfade über denselben `bin/ci`-Kern ab:
+Die lokale CI läuft containerisiert mit getrennten Einstiegen für
+`dev` und `preview`:
 
 ```bash
-composer tests:ci
+composer run ci:dev
+composer run ci:preview
 ```
+
+Für den Preview-Lauf wird der Compose-Stack nach Ende von `ci-preview`
+automatisch beendet und anschließend heruntergefahren, damit der
+langlebige Hilfsdienst `sftp-server` den Lauf nicht offen hält.
 
 Optional richtet ein versionierter Pre-Push-Hook diesen Lauf lokal vor
 jedem Push ein:

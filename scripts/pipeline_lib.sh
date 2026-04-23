@@ -26,11 +26,10 @@ deploy() {
 }
 
 sftp_upload() {
-  local pipeline="$1" overrides="$2"
-  local -a cfg
+  local pipeline="$1" overrides="$2" cfg_json
 
-  mapfile -t cfg < <(cli config get "$pipeline" --phase deploy --overrides "$overrides" --format=env)
-  env "${cfg[@]}" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
+  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
+  python3 "$ROOT_DIR/scripts/sftp-deploy.py" "$cfg_json"
 }
 
 prepare_deploy_dir() {
@@ -107,7 +106,7 @@ wait_for_http_server() {
   local port="$1"
   local attempt
 
-  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  for attempt in $(seq 1 10); do
     if curl --silent --show-error "http://127.0.0.1:${port}/" > /dev/null 2>&1; then
       return 0
     fi

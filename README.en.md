@@ -46,12 +46,17 @@ Own data and configuration (email, SMTP, deployment):
 
 ## Run CI locally
 
-The local CI matrix runs in Docker and covers the `dev` and `preview`
-paths through the same `bin/ci` core:
+The local CI runs in Docker with separate entry points for `dev` and
+`preview`:
 
 ```bash
-composer tests:ci
+composer run ci:dev
+composer run ci:preview
 ```
+
+For the preview run, the Compose stack stops automatically when
+`ci-preview` finishes and is then brought down so the long-lived helper
+service `sftp-server` does not keep the command open.
 
 An optional versioned pre-push hook wires that check into every push:
 

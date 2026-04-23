@@ -64,13 +64,17 @@
     "setup": "php bin/cli setup dev",
     "setup:dev": "php bin/cli setup dev",
     "setup:preview": "php bin/cli setup preview",
-    "tests:ci": [
+    "ci:dev": [
       "Composer\\Config::disableProcessTimeout",
-      "docker compose -f docker-compose.ci.yml up --remove-orphans --build"
+      "docker compose -f docker-compose.ci.yml up --remove-orphans --build ci-dev"
     ],
-    "tests:ci:debug": [
+    "ci:preview": [
       "Composer\\Config::disableProcessTimeout",
-      "DEBUG=1 docker compose -f docker-compose.ci.yml up --remove-orphans --build"
+      "bash scripts/run-ci-preview.sh"
+    ],
+    "ci:preview:debug": [
+      "Composer\\Config::disableProcessTimeout",
+      "DEBUG=1 bash scripts/run-ci-preview.sh"
     ],
     "deploy:preview": [
       "php bin/cli build preview"
