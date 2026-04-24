@@ -82,17 +82,28 @@ with_http_server() {
 http_smoke_checks() {
   local host="$1" port="$2"
 
-  smoke_http_page "$host" "$port" "/"        /tmp/ci-home.html
-  smoke_http_page "$host" "$port" "/cv"      /tmp/ci-cv.html
-  smoke_http_page "$host" "$port" "/contact" /tmp/ci-contact.html
-  curl --fail --silent --show-error "http://${host}:${port}/cv" > /tmp/ci-cv-check.html
-  grep -q "Lebenslauf" /tmp/ci-cv-check.html
+  echo "[smoke] Prüfe http://${host}:${port}/"
+  smoke_http_page_contains "$host" "$port" "/" "Zum Lebenslauf"
+  echo "[smoke] OK /"
+
+  echo "[smoke] Prüfe http://${host}:${port}/cv"
+  smoke_http_page_contains "$host" "$port" "/cv" "Alex B."
+  echo "[smoke] OK /cv"
+
+  echo "[smoke] Prüfe http://${host}:${port}/contact"
+  smoke_http_page_contains "$host" "$port" "/contact" "<form"
+  echo "[smoke] OK /contact"
 }
 
-smoke_http_page() {
-  local host="$1" port="$2" path="$3" target="$4"
+smoke_http_page_contains() {
+  local host="$1" port="$2" path="$3" needle="$4" body
 
-  curl --fail --silent --show-error "http://${host}:${port}${path}" > "$target"
+  body="$(curl --fail --silent --show-error "http://${host}:${port}${path}")"
+
+  if ! printf '%s' "$body" | grep -q "$needle"; then
+    echo "[smoke] Inhalt fehlt: ${needle} in ${path}" >&2
+    exit 1
+  fi
 }
 
 start_php_server() {

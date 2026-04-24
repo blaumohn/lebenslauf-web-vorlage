@@ -45,6 +45,13 @@ services:
 
   preview-web:
     image: php:8.2-apache
+    command:
+      - sh
+      - -c
+      - |
+        a2enmod rewrite
+        sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+        apache2-foreground
     volumes:
       - "preview_deploy:/var/www/html:ro"
 
