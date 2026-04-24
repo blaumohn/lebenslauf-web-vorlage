@@ -45,15 +45,12 @@ services:
 
   preview-web:
     image: php:8.2-apache
-    command:
-      - sh
-      - -c
-      - |
-        a2enmod rewrite
-        sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
-        apache2-foreground
+    environment:
+      APACHE_RUN_USER: "#1000"
+      APACHE_RUN_GROUP: "#1000"
+    command: bash /scripts/config-apache.sh
     volumes:
-      - "preview_deploy:/var/www/html:ro"
+      - "preview_deploy:/var/www/html"
 
 volumes:
   composer_home_dev:

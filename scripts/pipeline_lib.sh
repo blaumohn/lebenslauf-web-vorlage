@@ -102,6 +102,7 @@ smoke_http_page_contains() {
 
   if ! printf '%s' "$body" | grep -q "$needle"; then
     echo "[smoke] Inhalt fehlt: ${needle} in ${path}" >&2
+    echo "$body"
     exit 1
   fi
 }
