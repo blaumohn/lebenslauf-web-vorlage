@@ -1,5 +1,5 @@
 run_pipeline() {
-  local pipeline="$1" is_dev docroot smoke_host smoke_port
+  local pipeline="$1" is_dev docroot
   [[ $pipeline == dev ]] && is_dev=1
 
   cli setup "$pipeline" ${is_dev:+--copy-sample-content}
@@ -9,31 +9,54 @@ run_pipeline() {
 
   if [[ -n "${is_dev:-}" ]]; then
     docroot="$ROOT_DIR/public"
-    smoke_host="127.0.0.1"
-    smoke_port="8080"
   else
     deploy "$pipeline" "$overrides"
     docroot="$DEPLOY_DIR/public"
-    smoke_host="preview-web"
-    smoke_port="80"
   fi
 
-  with_http_server 8080 "$docroot" http_smoke_checks "$smoke_host" "$smoke_port"
+  with_http_server 8080 "$docroot" http_smoke_checks "127.0.0.1" "8080"
 }
 
 deploy() {
   local pipeline="$1" overrides="$2"
+  local cfg_json diff_files
 
   prepare_deploy_dir
   verify_artifact
-  sftp_upload "$pipeline" "$overrides"
+
+  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
+
+  : "${DEPLOY_BEFORE?DEPLOY_BEFORE ist nicht gesetzt}"
+  if [[ -z "$DEPLOY_BEFORE" ]]; then
+    sftp_upload "$cfg_json"
+  else
+    diff_files="$(git diff --name-only "$DEPLOY_BEFORE" HEAD)"
+    [[ -n "$diff_files" ]] && sftp_upload_diff "$cfg_json" "$diff_files"
+  fi
 }
 
 sftp_upload() {
-  local pipeline="$1" overrides="$2" cfg_json
+  local cfg_json="$1"
+  SFTP_CFG_JSON="$cfg_json" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
+}
 
-  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
-  python3 "$ROOT_DIR/scripts/sftp-deploy.py" "$cfg_json"
+sftp_upload_diff() {
+  local cfg_json="$1" diff_files="$2" diff_json
+
+  diff_json="$(make_diff_json "$diff_files")"
+  SFTP_CFG_JSON="$cfg_json" SFTP_DIFF_JSON="$diff_json" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
+}
+
+make_diff_json() {
+  local diff_files="$1" vendor_full=false
+  echo "$diff_files" | grep -qx "composer\.lock" && vendor_full=true
+
+  python3 -c "
+import sys, json
+files = [f for f in sys.argv[1].splitlines() if f]
+vendor = sys.argv[2] == 'true'
+print(json.dumps({'diff_files': files, 'vendor_full': vendor}))
+" "$diff_files" "$vendor_full"
 }
 
 prepare_deploy_dir() {

@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 import json
-import sys
+import os
 import time
 from pathlib import Path
 import paramiko
 
 
 def read_config():
-    return json.loads(sys.argv[1])
+    return json.loads(os.environ["SFTP_CFG_JSON"])
+
+
+def read_diff_config():
+    raw = os.environ.get("SFTP_DIFF_JSON", "")
+    if not raw:
+        return None
+    return json.loads(raw)
 
 
 def setup_known_hosts(known_host_line):
@@ -31,11 +38,7 @@ def open_sftp(cfg, known_hosts):
 
 
 def new_stats():
-    return {
-        "directories": 0,
-        "files": 0,
-        "bytes": 0,
-    }
+    return {"directories": 0, "files": 0, "bytes": 0}
 
 
 def log_status(message):
@@ -60,6 +63,17 @@ def mkdir_p(sftp, remote_path):
         return False
 
 
+def ensure_remote_dir(sftp, remote_path):
+    parts = [p for p in remote_path.split("/") if p]
+    path = ""
+    for part in parts:
+        path = path + "/" + part
+        try:
+            sftp.mkdir(path)
+        except OSError:
+            pass
+
+
 def upload_dir(sftp, local_path, remote_path, stats):
     created = mkdir_p(sftp, remote_path)
     if created:
@@ -72,6 +86,13 @@ def upload_dir(sftp, local_path, remote_path, stats):
         sftp.put(str(item), remote_item)
         stats["files"] += 1
         stats["bytes"] += file_size(item)
+
+
+def upload_file(sftp, local_path, remote_path, stats):
+    ensure_remote_dir(sftp, str(Path(remote_path).parent))
+    sftp.put(str(local_path), remote_path)
+    stats["files"] += 1
+    stats["bytes"] += file_size(local_path)
 
 
 def upload(cfg, sftp):
@@ -90,6 +111,40 @@ def upload(cfg, sftp):
     )
 
 
+def upload_diff(cfg, sftp, diff_cfg):
+    stats = new_stats()
+    server_dir = cfg["FTP_SERVER_DIR"].rstrip("/")
+    started_at = time.monotonic()
+    changed_files = diff_cfg.get("diff_files", [])
+    vendor_full = diff_cfg.get("vendor_full", False)
+
+    log_status(f"Diff-Upload startet: {len(changed_files)} geänderte Dateien")
+
+    if vendor_full:
+        log_status("composer.lock geändert: vendor/ wird vollständig hochgeladen")
+        upload_dir(sftp, Path("var/deploy/vendor"), server_dir + "/vendor", stats)
+
+    for git_path in changed_files:
+        if git_path.startswith("vendor/"):
+            continue
+        deploy_path = Path("var/deploy") / git_path
+        if not deploy_path.exists():
+            continue
+        remote_path = server_dir + "/" + git_path
+        if deploy_path.is_dir():
+            upload_dir(sftp, deploy_path, remote_path, stats)
+        else:
+            upload_file(sftp, deploy_path, remote_path, stats)
+
+    duration = time.monotonic() - started_at
+    log_status(
+        "Diff-Upload abgeschlossen: "
+        f"{stats['files']} Dateien, "
+        f"{stats['bytes']} Bytes, "
+        f"{duration:.2f}s"
+    )
+
+
 def close_connection(ssh, sftp):
     log_status("Verbindung wird geschlossen")
     sftp.close()
@@ -101,12 +156,16 @@ def close_connection(ssh, sftp):
 
 def main():
     cfg = read_config()
+    diff_cfg = read_diff_config()
     known_hosts = setup_known_hosts(cfg["SSH_KNOWN_HOST_LINE"])
     log_status(f"Verbinde zu {format_target(cfg)}")
     ssh, sftp = open_sftp(cfg, known_hosts)
     try:
         log_status("Verbindung hergestellt")
-        upload(cfg, sftp)
+        if diff_cfg is not None:
+            upload_diff(cfg, sftp, diff_cfg)
+        else:
+            upload(cfg, sftp)
     except Exception as exc:
         log_status(f"Fehler im SFTP-Upload: {exc}")
         raise

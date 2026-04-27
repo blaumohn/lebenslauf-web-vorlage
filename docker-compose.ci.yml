@@ -10,6 +10,21 @@ x-ci-env: &ci-env
   COMPOSER_HOME: /home/ci/.composer
   CI_WORK_BASE: /tmp
 
+x-ci-preview-base: &ci-preview-base
+  <<: *ci-base
+  volumes:
+    - ".:/src:ro"
+    - "composer_home_preview:/home/ci/.composer"
+    - "npm_cache_preview:/home/ci/.npm"
+  environment:
+    <<: *ci-env
+    APP_PIPELINE: preview
+    DEBUG: "${DEBUG:-0}"
+  command: bash /src/bin/ci
+  depends_on:
+    - sftp-server
+    - preview-web
+
 services:
   ci-dev:
     <<: *ci-base
@@ -23,19 +38,16 @@ services:
     command: bash /src/bin/ci
 
   ci-preview:
-    <<: *ci-base
-    volumes:
-      - ".:/src:ro"
-      - "composer_home_preview:/home/ci/.composer"
-      - "npm_cache_preview:/home/ci/.npm"
-    environment:
-      <<: *ci-env
-      APP_PIPELINE: preview
-      DEBUG: "${DEBUG:-0}"
-    command: bash /src/bin/ci
-    depends_on:
-      - sftp-server
-      - preview-web
+    <<: *ci-preview-base
+    command: bash /src/bin/ci test-admin-deploy
+
+  ci-diff-preview:
+    <<: *ci-preview-base
+    command: bash /src/bin/ci test-nonempty-diff
+
+  ci-diff-vendor-preview:
+    <<: *ci-preview-base
+    command: bash /src/bin/ci test-composer-lock-changed
 
   sftp-server:
     image: atmoz/sftp:alpine
@@ -51,6 +63,7 @@ services:
     command: bash /scripts/config-apache.sh
     volumes:
       - "preview_deploy:/var/www/html"
+      - "./scripts/config-apache.sh:/scripts/config-apache.sh:ro"
 
 volumes:
   composer_home_dev:

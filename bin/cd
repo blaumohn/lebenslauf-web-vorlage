@@ -19,9 +19,11 @@ main() {
   fi
 
   local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
-  local deploy_dir="${DEPLOY_DIR:?DEPLOY_DIR nicht gesetzt}"
 
-  DEPLOY_DIR="$deploy_dir"
+  if [[ -n "${DEPLOY_BEFORE:-}" ]] && git diff --quiet "$DEPLOY_BEFORE" HEAD; then
+    exit 0
+  fi
+
   pip install --quiet paramiko
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
   run_pipeline "$pipeline"

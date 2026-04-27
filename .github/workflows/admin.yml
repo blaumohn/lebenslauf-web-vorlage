@@ -1,20 +1,22 @@
-name: Preview Deploy
+name: Admin
 
 on:
-  push:
-    branches:
-      - preview
   workflow_dispatch:
+    inputs:
+      command:
+        description: 'Admin-Befehl'
+        required: true
+        type: choice
+        options:
+          - reset-preview
 
 jobs:
-  deploy:
+  run:
     runs-on: ubuntu-latest
     environment: preview
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -28,11 +30,12 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Run preview pipeline and deploy
+      - name: Reset Preview
+        if: inputs.command == 'reset-preview'
         shell: bash
         env:
           APP_PIPELINE: ${{ vars.APP_PIPELINE }}
-          DEPLOY_BEFORE: ${{ github.event.before }}
+          DEPLOY_BEFORE: ""
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}

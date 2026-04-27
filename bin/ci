@@ -13,11 +13,8 @@ DEPLOY_DIR="$ROOT_DIR/var/deploy"
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
 main() {
-  if [[ $# -gt 0 ]]; then
-    echo "bin/ci verwendet keine Argumente" >&2
-    exit 1
-  fi
   local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
+  local test_case="${1:-}"
 
   prepare_work_dir
 
@@ -25,8 +22,38 @@ main() {
     setup_preview_ci_env
   fi
 
+  case "$test_case" in
+    test-admin-deploy)             export DEPLOY_BEFORE="" ;;
+    test-nonempty-diff)            setup_nonempty_diff_test ;;
+    test-composer-lock-changed)    setup_composer_lock_test ;;
+    *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
+  esac
+
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
   run_pipeline "$pipeline"
+
+  if [[ "$pipeline" == "preview" ]]; then
+    if [[ "$test_case" == "test-nonempty-diff" ]]; then
+      smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
+    fi
+    http_smoke_checks "preview-web" "80"
+  fi
+}
+
+setup_nonempty_diff_test() {
+  export DEPLOY_BEFORE="$(git rev-parse HEAD)"
+  printf '<!-- ci-diff-test -->\n' > public/ci-diff-test.html
+  git add public/ci-diff-test.html
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "test: diff-deploy ci-test"
+}
+
+setup_composer_lock_test() {
+  export DEPLOY_BEFORE="$(git rev-parse HEAD)"
+  printf '\n' >> composer.lock
+  git add composer.lock
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "test: diff-deploy composer-lock-changed ci-test"
 }
 
 prepare_work_dir() {
@@ -50,6 +77,15 @@ prepare_work_dir() {
   cd "$work_dir"
 }
 
+setup_preview_ci_env() {
+  export FTP_HOST="sftp-server"
+  export FTP_USER="preview-ci"
+  export FTP_PASS="ci-pass"
+  export FTP_PORT="22"
+  export FTP_SERVER_DIR="/public"
+  export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
+}
+
 await_sftp_host_key() {
   local host="$1" port="$2" keys attempt
 
@@ -60,15 +96,6 @@ await_sftp_host_key() {
   done
   echo "SFTP-Hostschlüssel von ${host}:${port} nicht erreichbar" >&2
   exit 1
-}
-
-setup_preview_ci_env() {
-  export FTP_HOST="sftp-server"
-  export FTP_USER="preview-ci"
-  export FTP_PASS="ci-pass"
-  export FTP_PORT="22"
-  export FTP_SERVER_DIR="/public"
-  export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
 }
 
 main "$@"
