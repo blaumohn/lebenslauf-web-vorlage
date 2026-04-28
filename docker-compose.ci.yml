@@ -13,14 +13,14 @@ x-ci-env: &ci-env
 x-ci-preview-base: &ci-preview-base
   <<: *ci-base
   volumes:
-    - ".:/src:ro"
+    - ".:/repo:ro"
     - "composer_home_preview:/home/ci/.composer"
     - "npm_cache_preview:/home/ci/.npm"
   environment:
     <<: *ci-env
     APP_PIPELINE: preview
     DEBUG: "${DEBUG:-0}"
-  command: bash /src/bin/ci
+  command: bash /repo/bin/ci
   depends_on:
     - sftp-server
     - preview-web
@@ -29,25 +29,25 @@ services:
   ci-dev:
     <<: *ci-base
     volumes:
-      - ".:/src:ro"
+      - ".:/repo:ro"
       - "composer_home_dev:/home/ci/.composer"
       - "npm_cache_dev:/home/ci/.npm"
     environment:
       <<: *ci-env
       APP_PIPELINE: dev
-    command: bash /src/bin/ci
+    command: bash /repo/bin/ci
 
   ci-preview:
     <<: *ci-preview-base
-    command: bash /src/bin/ci test-admin-deploy
+    command: bash /repo/bin/ci test-admin-deploy
 
   ci-diff-preview:
     <<: *ci-preview-base
-    command: bash /src/bin/ci test-nonempty-diff
+    command: bash /repo/bin/ci test-push-deploy
 
   ci-diff-vendor-preview:
     <<: *ci-preview-base
-    command: bash /src/bin/ci test-composer-lock-changed
+    command: bash /repo/bin/ci test-composer-lock-changed
 
   sftp-server:
     image: atmoz/sftp:alpine

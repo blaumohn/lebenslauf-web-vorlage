@@ -1,13 +1,21 @@
 run_pipeline() {
   local pipeline="$1" is_dev docroot
-  [[ $pipeline == dev ]] && is_dev=1
+
+  require_env_set ROOT_DIR
+  require_env_nonempty pipeline
+  
+  [[ $pipeline == dev ]] && is_dev=1 || is_dev=
+
+  if [[ ! $is_dev ]]; then
+    require_env_set LAST_DEPLOY_COMMIT DEPLOY_DIR
+  fi
 
   cli setup "$pipeline" ${is_dev:+--copy-sample-content}
   overrides="$(php scripts/build-overrides-json.php)"
   cli build "$pipeline" ${is_dev:+cv} --overrides "$overrides"
   [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
 
-  if [[ -n "${is_dev:-}" ]]; then
+  if [[ $is_dev ]]; then
     docroot="$ROOT_DIR/public"
   else
     deploy "$pipeline" "$overrides"
@@ -19,44 +27,15 @@ run_pipeline() {
 
 deploy() {
   local pipeline="$1" overrides="$2"
-  local cfg_json diff_files
+  local cfg_json include_vendor=true
 
   prepare_deploy_dir
   verify_artifact
 
   cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
+  include_vendor="$(should_include_vendor)"
 
-  : "${DEPLOY_BEFORE?DEPLOY_BEFORE ist nicht gesetzt}"
-  if [[ -z "$DEPLOY_BEFORE" ]]; then
-    sftp_upload "$cfg_json"
-  else
-    diff_files="$(git diff --name-only "$DEPLOY_BEFORE" HEAD)"
-    [[ -n "$diff_files" ]] && sftp_upload_diff "$cfg_json" "$diff_files"
-  fi
-}
-
-sftp_upload() {
-  local cfg_json="$1"
-  SFTP_CFG_JSON="$cfg_json" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
-}
-
-sftp_upload_diff() {
-  local cfg_json="$1" diff_files="$2" diff_json
-
-  diff_json="$(make_diff_json "$diff_files")"
-  SFTP_CFG_JSON="$cfg_json" SFTP_DIFF_JSON="$diff_json" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
-}
-
-make_diff_json() {
-  local diff_files="$1" vendor_full=false
-  echo "$diff_files" | grep -qx "composer\.lock" && vendor_full=true
-
-  python3 -c "
-import sys, json
-files = [f for f in sys.argv[1].splitlines() if f]
-vendor = sys.argv[2] == 'true'
-print(json.dumps({'diff_files': files, 'vendor_full': vendor}))
-" "$diff_files" "$vendor_full"
+  sftp_upload "$cfg_json" "$include_vendor"
 }
 
 prepare_deploy_dir() {
@@ -72,6 +51,13 @@ prepare_deploy_dir() {
   copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
 }
 
+copy_deploy_htaccess() {
+  local scope="$1"
+  local target="$2"
+
+  cp "$ROOT_DIR/src/resources/http/$scope/.htaccess" "$target"
+}
+
 verify_artifact() {
   test -f "$DEPLOY_DIR/public/index.php"
   test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
@@ -80,11 +66,26 @@ verify_artifact() {
   test -f "$DEPLOY_DIR/var/.htaccess"
 }
 
-copy_deploy_htaccess() {
-  local scope="$1"
-  local target="$2"
+no_changes_since_deploy() {
+  [[ -n "${LAST_DEPLOY_COMMIT:-}" ]] && git diff --quiet "$LAST_DEPLOY_COMMIT" HEAD
+}
 
-  cp "$ROOT_DIR/src/resources/http/$scope/.htaccess" "$target"
+should_include_vendor() {
+  local diff_files
+
+  if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
+    echo true
+    return
+  fi
+
+  diff_files="$(git diff --name-only "$LAST_DEPLOY_COMMIT" HEAD)"
+  echo "$diff_files" | grep -qx "composer\.lock" && echo true && return
+  echo false
+}
+
+sftp_upload() {
+  local cfg_json="$1" include_vendor="$2"
+  SFTP_CFG_JSON="$cfg_json" SFTP_INCLUDE_VENDOR="$include_vendor" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
 }
 
 

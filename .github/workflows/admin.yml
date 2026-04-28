@@ -35,7 +35,7 @@ jobs:
         shell: bash
         env:
           APP_PIPELINE: ${{ vars.APP_PIPELINE }}
-          DEPLOY_BEFORE: ""
+          LAST_DEPLOY_COMMIT: ""
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}

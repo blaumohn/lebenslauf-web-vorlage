@@ -6,11 +6,14 @@ if [[ "${DEBUG:-0}" == "1" ]]; then
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PATH="$ROOT_DIR/bin:$PATH"
-COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
-DEPLOY_DIR="$ROOT_DIR/var/deploy"
+. "$ROOT_DIR/scripts/shell_env.sh"
+
+require_env_set LAST_DEPLOY_COMMIT
+require_env_nonempty APP_PIPELINE
 
 . "$ROOT_DIR/scripts/pipeline_lib.sh"
+
+COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
   if [[ $# -gt 0 ]]; then
@@ -18,15 +21,16 @@ main() {
     exit 1
   fi
 
-  local pipeline="${APP_PIPELINE:?APP_PIPELINE nicht gesetzt}"
-
-  if [[ -n "${DEPLOY_BEFORE:-}" ]] && git diff --quiet "$DEPLOY_BEFORE" HEAD; then
+  if no_changes_since_deploy; then
     exit 0
   fi
 
   pip install --quiet paramiko
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
-  run_pipeline "$pipeline"
+
+  DEPLOY_DIR="$ROOT_DIR/var/deploy"
+  export PATH="$ROOT_DIR/bin:$PATH"
+  run_pipeline "$APP_PIPELINE"
 }
 
 main "$@"
