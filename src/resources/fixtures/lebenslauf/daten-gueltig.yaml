@@ -12,8 +12,8 @@ kopfdaten:
 
 fussbereich:
   text:
-    de: "Erstellt mit der React/Next.js Vorlage von Dani Y.:"
-    es: "Creado con la plantilla React/Next.js de Dani Y.:"
+    de: "Erstellt mit der React/Next.js Vorlage von Dani Y."
+    es: "Creado con la plantilla React/Next.js de Dani Y."
   link: github.com/blaumohn/lebenslauf-vorlage
 
 motivation:
@@ -129,11 +129,18 @@ sprachen:
     stufe: C1
 
 ausbildung:
-  - uni: TU Berlin
-    grad: B.Sc. Informatik
+  - uni:
+      de: WIFI Wien
+      es: WIFI Viena
     beschreibung:
-      de: Studium mit Schwerpunkt auf Web- und Softwareentwicklung.
-      es: Estudios con enfoque en desarrollo web y de software.
+      de: >-
+        Weiterbildung in Projektkoordination, Bürosoftware und
+        digitaler Zusammenarbeit.
+      es: >-
+        Formación continua en coordinación de proyectos,
+        software de oficina y colaboración digital.
+  - grad: Zertifikat Webentwicklung
+    uni: BFI Wien
 
 interessen:
   - de: Open Source

@@ -20,6 +20,10 @@
     min-width: 0;
   }
 
+  header .header-main {
+    white-space: nowrap;
+  }
+
   header .header-aside {
     justify-self: end;
   }

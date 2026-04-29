@@ -24,6 +24,37 @@ final class CvValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testEducationDescriptionIsOptional(): void
+    {
+        $validator = new CvValidator($this->schemaPath());
+        $data = $this->validData();
+        unset($data['ausbildung'][0]['beschreibung']);
+
+        $errors = $validator->validate($data);
+        $this->assertSame([], $errors);
+    }
+
+    public function testEducationDegreeIsOptional(): void
+    {
+        $validator = new CvValidator($this->schemaPath());
+        $data = $this->validData();
+        unset($data['ausbildung'][0]['grad']);
+
+        $errors = $validator->validate($data);
+        $this->assertSame([], $errors);
+    }
+
+    public function testEducationNeedsDegreeOrDescription(): void
+    {
+        $validator = new CvValidator($this->schemaPath());
+        $data = $this->validData();
+        unset($data['ausbildung'][0]['grad']);
+        unset($data['ausbildung'][0]['beschreibung']);
+
+        $errors = $validator->validate($data);
+        $this->assertNotEmpty($errors);
+    }
+
     private function schemaPath(): string
     {
         return dirname(__DIR__, 2) . '/src/resources/build/schemas/lebenslauf.schema.json';
