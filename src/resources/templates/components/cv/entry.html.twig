@@ -1,5 +1,11 @@
 {% macro header(eintrag) %}
   <div class="entry-header">
+    <div class="entry-meta">
+      <div class="entry-time">{{ eintrag.header_time }}</div>
+    {% if eintrag.show_location %}
+      <div class="entry-location">{{ eintrag.location }}</div>
+    {% endif %}
+    </div>
     <div class="entry-title">
       {% if eintrag.show_project %}
         <span class="entry-project">{{ eintrag.project_line }}</span> | {{ eintrag.header_title }}
@@ -7,10 +13,6 @@
         {{ eintrag.header_title }}
       {% endif %}
     </div>
-    <span class="entry-time">{{ eintrag.header_time }}</span>
-  {% if eintrag.show_location %}
-    <div class="entry-location">{{ eintrag.location }}</div>
-  {% endif %}
   </div>
 
 {% endmacro %}
@@ -39,7 +41,7 @@
       <div class="entry-company-line">{{ eintrag.company_line }}</div>
     {% endif %}
 
-    <div{% if eintrag.grouped %} class="entry-group"{% endif %}>
+    <div class="entry-content{% if eintrag.grouped %} entry-group{% endif %}">
       {{ _self.header(eintrag) }}
       {% if eintrag.punkte is defined and eintrag.punkte|length %}
         {{ _self.points(eintrag.punkte) }}
