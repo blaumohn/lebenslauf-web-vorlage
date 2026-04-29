@@ -10,7 +10,7 @@ run_pipeline() {
     require_env_set LAST_DEPLOY_COMMIT DEPLOY_DIR
   fi
 
-  cli setup "$pipeline" ${is_dev:+--copy-sample-content}
+  cli setup "$pipeline" ${is_dev:+--with-sample-content}
   overrides="$(php scripts/build-overrides-json.php)"
   cli build "$pipeline" ${is_dev:+cv} --overrides "$overrides"
   [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
