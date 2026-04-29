@@ -20,14 +20,11 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
    Python environment. Requires step 1.
 
    ```bash
-   php bin/cli setup dev
+   php bin/cli setup dev --with-sample-content
    ```
 
-   Optional, without overwriting existing data:
-
-   ```bash
-   php bin/cli setup dev --copy-sample-content
-   ```
+   `--with-sample-content` creates sample data without overwriting existing
+   data.
 
 3. **Build CV** — render sample data into HTML views.
 

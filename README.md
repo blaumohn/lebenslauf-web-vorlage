@@ -20,14 +20,11 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
    Python-Umgebung einrichten. Setzt Schritt 1 voraus.
 
    ```bash
-   php bin/cli setup dev
+   php bin/cli setup dev --with-sample-content
    ```
 
-   Optional, ohne bestehende Daten zu überschreiben:
-
-   ```bash
-   php bin/cli setup dev --copy-sample-content
-   ```
+   `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu
+   überschreiben.
 
 3. **Lebenslauf bauen** — Beispieldaten in HTML-Ansichten rendern.
 
