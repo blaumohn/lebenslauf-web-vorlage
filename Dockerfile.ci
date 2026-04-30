@@ -3,6 +3,8 @@ RUN apk add --no-cache bash curl git python3 py3-paramiko openssh-client nodejs 
 RUN docker-php-ext-configure gd --with-jpeg && docker-php-ext-install -j$(nproc) gd
 RUN curl -sS https://getcomposer.org/installer \
     | php -- --install-dir=/usr/local/bin --filename=composer
+COPY tests/ci/ca.crt /usr/local/share/ca-certificates/ci-mailpit-ca.crt
+RUN update-ca-certificates
 RUN adduser -D -u 1000 ci \
     && mkdir -p /home/ci/.composer /home/ci/.npm \
     && chown -R ci:ci /home/ci/.composer /home/ci/.npm

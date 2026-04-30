@@ -15,7 +15,7 @@ x-ci-preview-smtp: &ci-preview-smtp
   SMTP_PORT: "1025"
   SMTP_USER: "ci"
   SMTP_PASS: "ci-pass"
-  SMTP_ENCRYPTION: "none"
+  SMTP_ENCRYPTION: "tls"
   SMTP_FROM_EMAIL: "noreply@ci.invalid"
   SMTP_FROM_NAME: "CI"
   CONTACT_TO_EMAIL: "ci-test@ci.invalid"
@@ -64,9 +64,13 @@ services:
     image: axllent/mailpit:latest
     environment:
       MP_SMTP_AUTH_FILE: "/smtp-auth"
-      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_SMTP_TLS_CERT: "/tls/mailpit.crt"
+      MP_SMTP_TLS_KEY: "/tls/mailpit.key"
+      MP_SMTP_REQUIRE_STARTTLS: "true"
     volumes:
       - "./tests/ci/smtp-auth:/smtp-auth:ro"
+      - "./tests/ci/mailpit.crt:/tls/mailpit.crt:ro"
+      - "./tests/ci/mailpit.key:/tls/mailpit.key:ro"
 
   sftp-server:
     image: atmoz/sftp:alpine
