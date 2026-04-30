@@ -13,8 +13,8 @@ require_env_nonempty APP_PIPELINE
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
-  local test_case="${1:-}" pipeline work_dir
-  pipeline="$APP_PIPELINE"
+  local test_case="${1:-}" work_dir
+  PIPELINE="$APP_PIPELINE"
 
   ROOT_DIR="$(clone_work_dir)"
   apply_working_state
@@ -22,7 +22,7 @@ main() {
   cd "$ROOT_DIR"
   . "$ROOT_DIR/scripts/pipeline_lib.sh"
 
-  if [[ "$pipeline" == "preview" ]]; then
+  if [[ "$PIPELINE" == "preview" ]]; then
     DEPLOY_DIR="$ROOT_DIR/var/deploy"
     setup_preview_ci_env
 
@@ -34,21 +34,25 @@ main() {
     esac
   fi
 
+  PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
+
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
   [[ -n "${CI_BUILD_ID:-}" ]] && printf '%s' "$CI_BUILD_ID" > vendor/.ci-build-id
-  run_pipeline "$pipeline"
+  run_pipeline
 
-  if [[ "$pipeline" == "preview" ]]; then
+  if [[ "$PIPELINE" == "preview" ]]; then
     if [[ "$test_case" == "test-push-deploy" ]]; then
       smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
-      check_vendor_not_uploaded "$pipeline"
+      check_vendor_not_uploaded
     fi
     if [[ "$test_case" == "test-composer-lock-changed" ]]; then
-      check_vendor_uploaded "$pipeline"
+      check_vendor_uploaded
     fi
     http_smoke_checks "preview-web" "80"
     . "$ROOT_DIR/tests/ci/smtp-smoke.sh"
     smtp_smoke
+    . "$ROOT_DIR/tests/ci/contact-smoke.sh"
+    contact_smoke
   fi
 }
 
@@ -77,15 +81,12 @@ setup_composer_lock_test() {
 }
 
 sftp_read_vendor_build_id() {
-  local pipeline="$1" overrides cfg_json
-  overrides="$(php scripts/build-overrides-json.php)"
-  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
-  SFTP_CFG_JSON="$cfg_json" python3 "$ROOT_DIR/scripts/sftp-read-vendor-build-id.py"
+  SFTP_CFG_JSON="$(pipeline_config deploy)" python3 "$ROOT_DIR/scripts/sftp-read-vendor-build-id.py"
 }
 
 check_vendor_not_uploaded() {
-  local pipeline="$1" server_id
-  server_id="$(sftp_read_vendor_build_id "$pipeline")"
+  local server_id
+  server_id="$(sftp_read_vendor_build_id)"
   if [[ "$server_id" == "$CI_BUILD_ID" ]]; then
     echo "[vendor-check] vendor/ fälschlicherweise hochgeladen: build_id=$CI_BUILD_ID" >&2
     return 1
@@ -93,8 +94,8 @@ check_vendor_not_uploaded() {
 }
 
 check_vendor_uploaded() {
-  local pipeline="$1" server_id
-  server_id="$(sftp_read_vendor_build_id "$pipeline")"
+  local server_id
+  server_id="$(sftp_read_vendor_build_id)"
   if [[ "$server_id" != "$CI_BUILD_ID" ]]; then
     echo "[vendor-check] vendor/ nicht hochgeladen: erwartet=$CI_BUILD_ID, server=$server_id" >&2
     return 1

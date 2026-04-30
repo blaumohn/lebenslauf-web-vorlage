@@ -30,7 +30,9 @@ main() {
 
   DEPLOY_DIR="$ROOT_DIR/var/deploy"
   export PATH="$ROOT_DIR/bin:$PATH"
-  run_pipeline "$APP_PIPELINE"
+  PIPELINE="$APP_PIPELINE"
+  PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
+  run_pipeline
 }
 
 main "$@"
