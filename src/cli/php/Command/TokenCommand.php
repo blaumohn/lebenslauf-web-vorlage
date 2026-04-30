@@ -2,6 +2,8 @@
 
 namespace App\Cli\Command;
 
+use App\Cli\Token\TokenRotateHandler;
+use App\Http\Cv\CvStorage;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenService;
@@ -32,30 +34,35 @@ final class TokenCommand extends BaseCommand
         }
 
         $profile = trim((string) $input->getArgument('profile'));
-        if ($profile === '') {
-            $output->writeln('<error>Usage: token rotate <PROFIL> [COUNT]</error>');
+        $count = max(1, (int) $input->getArgument('count'));
+
+        try {
+            $tokens = $this->buildHandler()->rotate($profile, $count);
+        } catch (\InvalidArgumentException $e) {
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
             return Command::FAILURE;
         }
 
-        $count = max(1, (int) $input->getArgument('count'));
-        $service = $this->buildTokenService();
-        $tokens = $service->generateTokens($count);
-        $service->rotate($profile, $tokens);
-
-        $output->writeln("New tokens for {$profile}:");
-        foreach ($tokens as $token) {
-            $output->writeln($token);
-        }
-
+        $this->printTokens($output, $profile, $tokens);
         return Command::SUCCESS;
     }
 
-    private function buildTokenService(): TokenService
+    private function printTokens(OutputInterface $output, string $profile, array $tokens): void
     {
-        $rootPath = $this->rootPath();
+        $output->writeln("Neue Token für {$profile}:");
+        foreach ($tokens as $token) {
+            $output->writeln($token);
+        }
+    }
+
+    private function buildHandler(): TokenRotateHandler
+    {
+        $root = $this->rootPath();
         $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
+        $cvStorage = new CvStorage($storage, Path::join($root, 'var', 'cache', 'html'));
+        $lockRunner = new RuntimeLockRunner(Path::join($root, 'var', 'state', 'locks'));
         $writer = new RuntimeAtomicWriter();
-        return new TokenService($storage, $lockRunner, $writer, Path::join($rootPath, 'var', 'state', 'tokens'));
+        $tokenService = new TokenService($storage, $lockRunner, $writer, Path::join($root, 'var', 'state', 'tokens'));
+        return new TokenRotateHandler($cvStorage, $tokenService);
     }
 }

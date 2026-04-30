@@ -3,7 +3,7 @@ kopfdaten:
     voll: Alex Beispiel
     kurz: Alex B.
   bereich:
-    de: Webentwicklung
+    de: Softwareentwicklung im Web-Bereich
     es: Desarrollo web
   ort: Berlin
   email: alex@example.com
@@ -12,8 +12,8 @@ kopfdaten:
 
 fussbereich:
   text:
-    de: "Erstellt mit der React/Next.js Vorlage von Dani Y.:"
-    es: "Creado con la plantilla React/Next.js de Dani Y.:"
+    de: "Erstellt mit der React/Next.js Vorlage von Dani Y."
+    es: "Creado con la plantilla React/Next.js de Dani Y."
   link: github.com/blaumohn/lebenslauf-vorlage
 
 motivation:
@@ -38,11 +38,32 @@ faehigkeiten:
       - Docker
       - Git
       - CI/CD
+      - de: Release-Automatisierung
+        es: Automatización de lanzamientos
+  - stufe:
+      de: Praxiserprobt
+      es: Probado en la práctica
+    wert: 4
+    technologien:
+      - Barrierefreiheit
+      - Design Tokens
+      - Browser-Kompatibilität
+      - de: Technische Dokumentation
+        es: Documentación técnica
+  - stufe:
+      de: Aufbauend
+      es: En desarrollo
+    wert: 3
+    technologien:
+      - PHP
+      - Twig
+      - YAML
+      - JSON Schema
 
 berufserfahrung:
   - titel: Frontend Developer
     unternehmen: Tech Solutions GmbH
-    ort: Berlin
+    ort: Berlin-Friedrichshain, Remote DACH
     zeitraum: 2021 ‒ 2023
     stelleGruppe:
       letzteStelle: true
@@ -50,17 +71,35 @@ berufserfahrung:
       - tags:
           - React
           - Tailwind
-        text: UI-Komponenten für ein Kundenportal entwickelt.
+          - Design-System
+        text: >-
+          UI-Komponenten für ein Kundenportal entwickelt, Varianten für
+          kompakte Listen, ausführliche Detailansichten und druckoptimierte
+          Darstellungen gepflegt.
       - tags:
           - Agil
           - Scrum
+          - Stakeholder-Kommunikation
         text:
-          de: Tägliche Arbeit in einem cross-funktionalen Team.
-          es: Trabajo diario en un equipo multifuncional.
+          de: >-
+            Tägliche Arbeit in einem cross-funktionalen Team mit Abstimmung
+            zwischen Produkt, Entwicklung, Qualitätssicherung und Support.
+          es: >-
+            Trabajo diario en un equipo multifuncional con coordinación entre
+            producto, desarrollo, control de calidad y soporte.
+      - tags:
+          - Accessibility
+          - Keyboard UX
+          - Browser Testing
+          - Release Notes
+        text: >-
+          Bedienkonzepte für Tastatur, Fokusführung und reduzierte
+          Bewegungen geprüft und die Ergebnisse für Freigaben in kurzen
+          Release-Notizen dokumentiert.
 
   - titel: Junior Frontend Developer
     unternehmen: Tech Solutions GmbH
-    ort: Berlin
+    ort: Potsdam-Babelsberg / Berlin-Mitte
     zeitraum: 2020 ‒ 2021
     stelleGruppe:
       letzteStelle: false
@@ -68,33 +107,86 @@ berufserfahrung:
       - tags:
           - HTML
           - CSS
-        text: Unterstützung bei der Entwicklung von Benutzeroberflächen für verschiedene Projekte.
+          - Responsive Layouts
+        text: >-
+          Unterstützung bei der Entwicklung von Benutzeroberflächen für
+          verschiedene Projekte, inklusive längerer Inhaltsblöcke und
+          variierender Abschnittslängen.
       - tags:
           - JavaScript
           - React
         text:
           de: Entwicklung von interaktiven UI-Komponenten.
           es: Desarrollé componentes de interfaz interactivos.
+      - tags:
+          - Formulare
+          - Validierung
+          - Fehlerzustände
+        text:
+          de: >-
+            Formularstrecken mit Pflichtfeldern, optionalen Angaben und
+            verständlichen Fehlermeldungen aufgebaut.
+          es: >-
+            Creé flujos de formularios con campos obligatorios, datos
+            opcionales y mensajes de error comprensibles.
 
   - titel: Backend Developer
     unternehmen: WebTech Innovations
-    ort: Hamburg
+    ort: Hamburg-Altona, Hybrid
     zeitraum: 2019 ‒ 2020
     punkte:
       - tags:
           - Node.js
           - Express
-        text: Entwicklung von RESTful APIs zur Integration mit Frontend-Systemen.
+          - API-Integration
+        text: >-
+          Entwicklung von RESTful APIs zur Integration mit Frontend-Systemen,
+          inklusive Fehlerbehandlung, Protokollierung und abgestimmten
+          Antwortformaten.
       - tags:
           - MongoDB
           - Docker
         text:
-          de: Aufbau und Verwaltung von Datenbanken sowie Containerisierung der Anwendung.
-          es: Creé y administré bases de datos y contenedoricé la aplicación con Docker.
+          de: >-
+            Aufbau und Verwaltung von Datenbanken sowie Containerisierung der
+            Anwendung für lokale Entwicklung, Testumgebungen und Demos.
+          es: >-
+            Creé y administré bases de datos y contenedoricé la aplicación para
+            desarrollo local, entornos de prueba y demostraciones.
+      - tags:
+          - Monitoring
+          - Log-Auswertung
+          - Schnittstellenanalyse
+        text: >-
+          Wiederkehrende Schnittstellenfehler mit Log-Auswertung eingegrenzt
+          und technische Ursachen so beschrieben, dass sie zwischen Backend,
+          Frontend und Betrieb nachvollziehbar blieben.
+
+  - titel: Werkstudent UI Engineering
+    unternehmen: Digital Services AG
+    ort: Köln-Ehrenfeld, Düsseldorf Medienhafen
+    zeitraum: 2017 ‒ 2018
+    punkte:
+      - tags:
+          - Prototyping
+          - Design Review
+          - Nutzerfeedback
+        text: >-
+          Klickbare Prototypen für interne Werkzeuge erstellt und Rückmeldungen
+          aus kurzen Review-Runden in umsetzbare UI-Anpassungen übersetzt.
+      - tags:
+          - Tabellen
+          - Filter
+          - Leere Zustände
+          - Ladezustände
+        text: >-
+          Tabellenansichten mit Filtern, leeren Zuständen und Ladezuständen
+          vorbereitet, damit auch unvollständige Testdaten in der Vorlage
+          realistische Layout-Abweichungen zeigen.
 
   - titel: Praktikant Frontend Developer
     unternehmen: Creative Web GmbH
-    ort: München
+    ort: München-Schwabing, Vor-Ort
     zeitraum: 2018 ‒ 2019
     punkte:
       - tags:
@@ -104,9 +196,42 @@ berufserfahrung:
       - tags:
           - JavaScript
           - React
+          - Komponentenvarianten
         text:
-          de: Entwicklung von interaktiven Webkomponenten im Team.
-          es: Desarrollé componentes web interactivos dentro del equipo.
+          de: >-
+            Entwicklung von interaktiven Webkomponenten im Team, darunter
+            Navigationszustände, kompakte Karten und wiederverwendbare
+            Inhaltsmodule.
+          es: >-
+            Desarrollé componentes web interactivos dentro del equipo,
+            incluidos estados de navegación, tarjetas compactas y módulos de
+            contenido reutilizables.
+
+  - titel: Freie Mitarbeit Webpflege
+    unternehmen: Kulturverein Beispielstadt
+    ort: Leipzig-Plagwitz und remote
+    zeitraum: 2016 ‒ 2017
+    punkte:
+      - tags:
+          - CMS
+        text: Kurze Inhaltsaktualisierungen für Veranstaltungsseiten umgesetzt.
+      - tags:
+          - Redaktion
+          - Bildpflege
+          - Termine
+        text: >-
+          Wiederkehrende redaktionelle Aktualisierungen vorbereitet, Bilder für
+          unterschiedliche Seitenbereiche zugeschnitten und Terminlisten
+          konsistent gehalten.
+      - tags:
+          - Ehrenamtliche Teams
+          - Abstimmung
+          - Übergabe
+          - Checklisten
+        text: >-
+          Übergaben mit ehrenamtlichen Teams über kurze Checklisten
+          strukturiert, damit Inhalte auch bei wechselnden Ansprechpersonen
+          nachvollziehbar gepflegt werden konnten.
 
 opensource:
   - titel: react-visualizer
@@ -116,24 +241,98 @@ opensource:
       - tags:
           - Open Source
           - React
-        text: Ein Tool zur Visualisierung von React-Komponenten-Hierarchien.
+          - Komponentenbaum
+        text: >-
+          Ein Tool zur Visualisierung von React-Komponenten-Hierarchien mit
+          Fokus auf nachvollziehbare Zustände, Filter und exportierbare
+          Ansichten.
       - tags:
           - Open Source
           - Testing
-        text: Implementierung von Unit-Tests zur Sicherstellung der Funktionalität und Robustheit der Anwendung.
+          - Dokumentation
+        text: >-
+          Implementierung von Unit-Tests zur Sicherstellung der Funktionalität
+          und Robustheit der Anwendung sowie Ergänzung kurzer
+          Nutzungshinweise für neue Beitragende.
+      - tags:
+          - Issues
+          - Review
+          - Release-Vorbereitung
+        text: >-
+          Eingehende Issues sortiert, kleine Pull Requests geprüft und die
+          Release-Vorbereitung mit reproduzierbaren Prüfschritten unterstützt.
+  - titel: layout-sandbox
+    projekt: cv-layout-sandbox
+    zeitraum: "2021"
+    punkte:
+      - tags:
+          - CSS
+          - Print
+          - A4-Layout
+        text: >-
+          Experimentelle Drucklayouts für Lebensläufe verglichen, darunter
+          eng gesetzte Abschnitte, längere Ortsangaben und unterschiedlich
+          breite Tag-Zeilen.
+      - tags:
+          - Fixture-Daten
+          - Varianten
+          - Regressionstest
+          - Visuelle Prüfung
+        text: >-
+          Beispielinhalte mit mehreren Einträgen, wechselnden Punktmengen und
+          langen Begriffen gepflegt, um visuelle Abweichungen früh sichtbar zu
+          machen.
 
 sprachen:
   - sprache: Deutsch
     stufe: Muttersprache
   - sprache: Englisch
     stufe: C1
+  - sprache: Spanisch
+    stufe: B1
+  - sprache:
+      de: Französisch
+      es: Francés
+    stufe:
+      de: Grundkenntnisse
+      es: Conocimientos básicos
 
 ausbildung:
-  - uni: TU Berlin
-    grad: B.Sc. Informatik
+  - uni:
+      de: WIFI Wien
+      es: WIFI Viena
     beschreibung:
-      de: Studium mit Schwerpunkt auf Web- und Softwareentwicklung.
-      es: Estudios con enfoque en desarrollo web y de software.
+      de: >-
+        Weiterbildung in Projektkoordination, Bürosoftware und
+        digitaler Zusammenarbeit.
+      es: >-
+        Formación continua en coordinación de proyectos,
+        software de oficina y colaboración digital.
+  - grad:
+      de: Zertifikat Webentwicklung
+      es: Certificado de Desarrollo Web
+    uni: BFI Wien
+  - grad:
+      de: Berufsbegleitender Lehrgang UX-Grundlagen
+      es: Curso paralelo al trabajo sobre fundamentos de UX
+    uni:
+      de: Volkshochschule Berlin
+      es: Universidad popular de Berlín
+    beschreibung:
+      de: >-
+        Grundlagen zu Informationsarchitektur, Formularverständlichkeit und
+        einfachen Usability-Tests.
+      es: >-
+        Fundamentos de arquitectura de información, claridad de formularios y
+        pruebas sencillas de usabilidad.
+  - uni: Online-Kursplattform Beispiel
+    beschreibung:
+      de: >-
+        Mehrteilige Lernreihe zu CSS-Layout, responsiven Rastern und
+        druckfreundlichen Webansichten.
+      es: >-
+        Serie de aprendizaje sobre diseño CSS, retículas responsivas y vistas
+        web aptas para impresión.
 
 interessen:
   - de: Open Source
@@ -142,6 +341,10 @@ interessen:
     es: Blogs de tecnologia
   - de: Barrierefreiheit
     es: Accesibilidad
+  - de: Lokale Tech-Meetups
+    es: Encuentros tecnológicos locales
+  - de: Drucklayout und Typografie
+    es: Diseño impreso y tipografía
 
 vortraege:
   - titel: "Proxies: Ereignismanagement in Node.js"
@@ -149,3 +352,13 @@ vortraege:
     beschreibung:
       de: ABC Aventura Vortragsreihe
       es: Serie de conferencias ABC Aventura
+  - titel: "CSS für druckbare Weboberflächen"
+    datum: "2023"
+    beschreibung:
+      de: Meetup für Frontend-Entwicklung und digitale Vorlagen
+      es: Encuentro sobre desarrollo frontend y plantillas digitales
+  - titel: "Fixture-Daten als Layout-Werkzeug"
+    datum: "2022"
+    beschreibung:
+      de: Interner Kurzvortrag zu Testdaten, Varianten und visueller Prüfung
+      es: Charla interna sobre datos de prueba, variantes y revisión visual

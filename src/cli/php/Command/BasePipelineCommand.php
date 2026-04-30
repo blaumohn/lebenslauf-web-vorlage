@@ -19,10 +19,10 @@ abstract class BasePipelineCommand extends BaseCommand
     {
         $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name');
         $this->addOption(
-            'override',
+            'overrides',
             null,
-            InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-            'Config-Ueberschreibung als KEY=VALUE'
+            InputOption::VALUE_OPTIONAL,
+            'Config-Überschreibungen als JSON (phase.gruppe.var oder pipeline.phase.gruppe.var)'
         );
         $this->configurePipelineCommand();
     }
@@ -42,7 +42,7 @@ abstract class BasePipelineCommand extends BaseCommand
             return Command::FAILURE;
         }
 
-        $overrides = $this->requireOverrides($input, $output);
+        $overrides = $this->parseOverrides($input, $output);
         if ($overrides === null) {
             return Command::FAILURE;
         }
@@ -79,44 +79,4 @@ abstract class BasePipelineCommand extends BaseCommand
         return $this->config;
     }
 
-    protected function requireOverrides(InputInterface $input, OutputInterface $output): ?array
-    {
-        $rawOverrides = $input->getOption('override');
-        if (!is_array($rawOverrides)) {
-            return [];
-        }
-
-        $overrides = [];
-        foreach ($rawOverrides as $rawOverride) {
-            $pair = $this->parseOverride($rawOverride);
-            if ($pair === null) {
-                $output->writeln('<error>Override muss als KEY=VALUE angegeben werden.</error>');
-                return null;
-            }
-            [$key, $value] = $pair;
-            $overrides[$key] = $value;
-        }
-
-        return $overrides;
-    }
-
-    private function parseOverride(mixed $rawOverride): ?array
-    {
-        if (!is_string($rawOverride)) {
-            return null;
-        }
-
-        $separator = strpos($rawOverride, '=');
-        if ($separator === false) {
-            return null;
-        }
-
-        $key = trim(substr($rawOverride, 0, $separator));
-        if ($key === '') {
-            return null;
-        }
-
-        $value = substr($rawOverride, $separator + 1);
-        return [$key, $value];
-    }
 }

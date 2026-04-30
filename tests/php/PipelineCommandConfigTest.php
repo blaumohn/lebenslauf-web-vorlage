@@ -25,19 +25,19 @@ final class PipelineCommandConfigTest extends TestCase
         self::assertStringContainsString('config=src', $tester->getDisplay());
     }
 
-    public function testOverrideRequiresKeyValueSyntax(): void
+    public function testOverridesRejectsInvalidJson(): void
     {
         $command = new PipelineCommandConfigTestCommand();
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute([
-            'pipeline' => 'dev',
-            '--override' => ['PYTHON_PATHS'],
+            'pipeline'    => 'dev',
+            '--overrides' => 'kein-json',
         ]);
 
         self::assertSame(1, $exitCode);
         self::assertStringContainsString(
-            'Override muss als KEY=VALUE angegeben werden.',
+            '--overrides muss ein gültiges JSON-Objekt sein.',
             $tester->getDisplay()
         );
     }
@@ -48,7 +48,11 @@ final class PipelineCommandConfigTest extends TestCase
         $service = new PipelineConfigService($rootPath, 'src/resources/config');
 
         $report = $service->describe('dev', 'python', [
-            'PYTHON_PATHS' => 'src:.',
+            'python' => [
+                'tooling' => [
+                    'PYTHON_PATHS' => 'src:.',
+                ],
+            ],
         ]);
 
         self::assertSame('src:.', $report['values']['PYTHON_PATHS'] ?? null);

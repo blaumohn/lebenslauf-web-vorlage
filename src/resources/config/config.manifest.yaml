@@ -108,7 +108,7 @@ variable-groups:
           SMTP_PASS.
         example: "user"
     SMTP_PASS:
-      sources: [system, local]
+      sources: [local, cli]
       meta:
         notes: >-
           Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
@@ -145,11 +145,13 @@ variable-groups:
         desc: "FTP-Port"
         example: "21"
     FTP_HOST:
-      sources: [system, local]
+      sources: [local, cli]
     FTP_USER:
-      sources: [system, local]
+      sources: [local, cli]
     FTP_PASS:
-      sources: [system, local]
+      sources: [local, cli]
+    SSH_KNOWN_HOST_LINE:
+      sources: [local, cli]
 
   tooling:
     PYTHON_CMD:
@@ -203,7 +205,5 @@ pipelines:
         - LEBENSLAUF_PUBLIC_PROFILE
 
   preview:
-    runtime:
-      smtp: "*"
     deploy:
       ftp: "*"

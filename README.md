@@ -20,14 +20,11 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
    Python-Umgebung einrichten. Setzt Schritt 1 voraus.
 
    ```bash
-   php bin/cli setup dev
+   php bin/cli setup dev --with-sample-content
    ```
 
-   Optional, ohne bestehende Daten zu überschreiben:
-
-   ```bash
-   php bin/cli setup dev --copy-sample-content
-   ```
+   `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu
+   überschreiben.
 
 3. **Lebenslauf bauen** — Beispieldaten in HTML-Ansichten rendern.
 
@@ -43,3 +40,24 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
 
 Eigene Daten und Konfiguration (E-Mail, SMTP, Deployment):
 [Dokumentation → docs.template.ysdani.com](https://docs.template.ysdani.com/de/getting-started/)
+
+## CI lokal prüfen
+
+Die lokale CI läuft containerisiert mit getrennten Einstiegen für
+`dev` und `preview`:
+
+```bash
+composer run ci:dev
+composer run ci:preview
+```
+
+Für den Preview-Lauf wird der Compose-Stack nach Ende von `ci-preview`
+automatisch beendet und anschließend heruntergefahren, damit der
+langlebige Hilfsdienst `sftp-server` den Lauf nicht offen hält.
+
+Optional richtet ein versionierter Pre-Push-Hook diesen Lauf lokal vor
+jedem Push ein:
+
+```bash
+sh scripts/install-hooks.sh
+```

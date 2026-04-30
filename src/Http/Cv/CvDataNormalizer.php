@@ -57,7 +57,11 @@ final class CvDataNormalizer
 
     private function isIntlString(array $value): bool
     {
-        return $this->isAssoc($value) && $this->looksLikeLanguageMap($value);
+        if (!$this->isAssoc($value) || !$this->looksLikeLanguageMap($value)) {
+            return false;
+        }
+
+        return $this->hasPreferredLang($value) || $this->hasSingleLang($value);
     }
 
     private function pickLang(array $value): string
@@ -90,5 +94,16 @@ final class CvDataNormalizer
             }
         }
         return count($value) > 0;
+    }
+
+    private function hasPreferredLang(array $value): bool
+    {
+        return ($this->lang !== '' && array_key_exists($this->lang, $value))
+            || array_key_exists('de', $value);
+    }
+
+    private function hasSingleLang(array $value): bool
+    {
+        return count($value) === 1;
     }
 }

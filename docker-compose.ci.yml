@@ -1,0 +1,73 @@
+x-ci-base: &ci-base
+  build:
+    context: .
+    dockerfile: Dockerfile.ci
+  read_only: true
+  tmpfs:
+    - /tmp:exec,mode=1777
+
+x-ci-env: &ci-env
+  COMPOSER_HOME: /home/ci/.composer
+  CI_WORK_BASE: /tmp
+
+x-ci-preview-base: &ci-preview-base
+  <<: *ci-base
+  volumes:
+    - ".:/repo:ro"
+    - "composer_home_preview:/home/ci/.composer"
+    - "npm_cache_preview:/home/ci/.npm"
+  environment:
+    <<: *ci-env
+    APP_PIPELINE: preview
+    DEBUG: "${DEBUG:-0}"
+  command: bash /repo/bin/ci
+  depends_on:
+    - sftp-server
+    - preview-web
+
+services:
+  ci-dev:
+    <<: *ci-base
+    volumes:
+      - ".:/repo:ro"
+      - "composer_home_dev:/home/ci/.composer"
+      - "npm_cache_dev:/home/ci/.npm"
+    environment:
+      <<: *ci-env
+      APP_PIPELINE: dev
+    command: bash /repo/bin/ci
+
+  ci-preview:
+    <<: *ci-preview-base
+    command: bash /repo/bin/ci test-admin-deploy
+
+  ci-diff-preview:
+    <<: *ci-preview-base
+    command: bash /repo/bin/ci test-push-deploy
+
+  ci-diff-vendor-preview:
+    <<: *ci-preview-base
+    command: bash /repo/bin/ci test-composer-lock-changed
+
+  sftp-server:
+    image: atmoz/sftp:alpine
+    command: "preview-ci:ci-pass:1000::public"
+    volumes:
+      - "preview_deploy:/home/preview-ci/public"
+
+  preview-web:
+    image: php:8.2-apache
+    environment:
+      APACHE_RUN_USER: "#1000"
+      APACHE_RUN_GROUP: "#1000"
+    command: bash /scripts/config-apache.sh
+    volumes:
+      - "preview_deploy:/var/www/html"
+      - "./scripts/config-apache.sh:/scripts/config-apache.sh:ro"
+
+volumes:
+  composer_home_dev:
+  npm_cache_dev:
+  composer_home_preview:
+  npm_cache_preview:
+  preview_deploy:

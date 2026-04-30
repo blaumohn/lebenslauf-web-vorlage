@@ -22,6 +22,12 @@
     width: 87.5%;
   }
 
+  @media print {
+    .section-line {
+      break-after: avoid;
+    }
+  }
+
   .section-text {
     font-size: 0.875rem;
     color: var(--gray-800);

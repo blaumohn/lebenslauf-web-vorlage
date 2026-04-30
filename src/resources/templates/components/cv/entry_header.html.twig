@@ -1,13 +1,14 @@
 <div class="entry-header">
+  <div class="entry-meta">
+    <div class="entry-time">{{ eintrag.zeitraum }}</div>
+  {% if eintrag.ort is defined %}
+    <div class="entry-location">{{ eintrag.ort }}</div>
+  {% endif %}
+  </div>
   <div class="entry-title">
     {% if eintrag.projekt is defined and eintrag.unternehmen is defined %}
       <span class="entry-project">{{ eintrag.projekt }}</span> |
     {% endif %}
     {{ eintrag.titel }}
   </div>
-  <span class="entry-time">{{ eintrag.zeitraum }}</span>
 </div>
-
-{% if eintrag.ort is defined %}
-  <div class="entry-location">{{ eintrag.ort }}</div>
-{% endif %}

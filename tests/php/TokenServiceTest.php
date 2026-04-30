@@ -37,6 +37,17 @@ final class TokenServiceTest extends TestCase
         $this->assertFalse($service->verify('DEFAULT', 'gamma'));
     }
 
+    public function testRotateRejectsInvalidProfileName(): void
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->rotate('../traversal', ['token']);
+    }
+
     public function testFindProfileForToken(): void
     {
         $storage = new FileStorage();

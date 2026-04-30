@@ -2,7 +2,7 @@ app:
   APP_BASE_PATH: ""
 
 lebenslauf:
-  LEBENSLAUF_DATEN_PFAD: tests/fixtures/lebenslauf
+  LEBENSLAUF_DATEN_PFAD: src/resources/fixtures/lebenslauf
   LEBENSLAUF_YAML_PFAD: ""
   LEBENSLAUF_PUBLIC_PROFILE: gueltig
   LEBENSLAUF_LANG_DEFAULT: de

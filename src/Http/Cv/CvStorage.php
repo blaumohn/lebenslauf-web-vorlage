@@ -59,6 +59,11 @@ final class CvStorage
         $this->storage->writeText($this->privatePath($profile, $lang), $html);
     }
 
+    public function hasPrivate(string $profile): bool
+    {
+        return is_file($this->privatePath($profile));
+    }
+
     public function hasPublic(): bool
     {
         if (is_file($this->publicPath())) {

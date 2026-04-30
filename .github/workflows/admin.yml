@@ -1,0 +1,46 @@
+name: Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Admin-Befehl'
+        required: true
+        type: choice
+        options:
+          - reset-preview
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Reset Preview
+        if: inputs.command == 'reset-preview'
+        shell: bash
+        env:
+          APP_PIPELINE: ${{ vars.APP_PIPELINE }}
+          LAST_DEPLOY_COMMIT: ""
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_PORT: ${{ vars.FTP_PORT }}
+          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
+          SSH_KNOWN_HOST_LINE: ${{ secrets.SSH_KNOWN_HOST_LINE }}
+        run: bin/cd

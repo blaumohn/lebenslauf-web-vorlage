@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Interne Ordner nie direkt ausliefern
+RewriteRule ^(?:var|src|vendor)(?:/|$) - [R=404,L]
+
+# Startseite auf public leiten
+RewriteRule ^$ public/index.php [L]
+
+# Öffentliche Dateien unter /public direkt zulassen
+RewriteCond %{REQUEST_URI} ^/public/
+RewriteRule ^ - [L]
+
+# Sonstige Anfragen an public weitergeben
+RewriteRule ^(.*)$ public/$1 [L]

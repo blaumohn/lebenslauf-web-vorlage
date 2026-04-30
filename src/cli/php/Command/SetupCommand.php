@@ -6,6 +6,7 @@ use App\Cli\PythonResolver;
 use App\Cli\Setup\SampleContentCopier;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,6 +16,8 @@ use Symfony\Component\Process\Process;
 #[AsCommand(name: 'setup', description: 'Richtet die Entwicklungsumgebung ein.')]
 final class SetupCommand extends BasePipelineCommand
 {
+    private const ACTION_SAMPLE_CONTENT = 'sample-content';
+
     protected function commandPhase(): string
     {
         return 'setup';
@@ -22,7 +25,8 @@ final class SetupCommand extends BasePipelineCommand
 
     protected function configurePipelineCommand(): void
     {
-        $this->addOption('copy-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt einmalig nach .local kopieren')
+        $this->addArgument('action', InputArgument::OPTIONAL, 'Einzelne Setup-Aktion, z. B. sample-content')
+            ->addOption('with-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt zusätzlich nach .local kopieren')
             ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
@@ -31,26 +35,38 @@ final class SetupCommand extends BasePipelineCommand
     protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
         $configValues = $this->commandConfig()->all();
+        $action = (string) $input->getArgument('action');
 
-        if ($input->getOption('copy-sample-content')) {
+        if ($action === self::ACTION_SAMPLE_CONTENT) {
+            return $this->copySampleContent($configValues, $output)
+                ? Command::SUCCESS
+                : Command::FAILURE;
+        }
+        if ($input->getOption('with-sample-content')) {
             if (!$this->copySampleContent($configValues, $output)) {
                 return Command::FAILURE;
             }
         }
-        if (!$input->getOption('skip-python')) {
-            $resolver = new PythonResolver($this->rootPath(), $configValues);
-            if (!$this->ensureVenv($resolver, $input, $output)) {
-                return Command::FAILURE;
-            }
-            if (!$this->installPythonDeps($input, $output)) {
-                return Command::FAILURE;
-            }
-        }
-        if (!$this->installNodeDependencies($input, $output)) {
+        if (!$this->runSetupSteps($input, $output)) {
             return Command::FAILURE;
         }
 
         return Command::SUCCESS;
+    }
+
+    private function runSetupSteps(InputInterface $input, OutputInterface $output): bool
+    {
+        $configValues = $this->commandConfig()->all();
+        if (!$input->getOption('skip-python')) {
+            $resolver = new PythonResolver($this->rootPath(), $configValues);
+            if (!$this->ensureVenv($resolver, $input, $output)) {
+                return false;
+            }
+            if (!$this->installPythonDeps($input, $output)) {
+                return false;
+            }
+        }
+        return $this->installNodeDependencies($input, $output);
     }
 
     private function copySampleContent(array $configValues, OutputInterface $output): bool

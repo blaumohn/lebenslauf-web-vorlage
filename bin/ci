@@ -5,99 +5,137 @@ if [[ "${DEBUG:-0}" == "1" ]]; then
   set -x
 fi
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMMAND="${1:-}"
-PIPELINE="${2:-}"
+ROOT_DIR_RO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$ROOT_DIR_RO/scripts/shell_env.sh"
 
-usage() {
-  echo "Usage: ci <command> <pipeline>"
-  echo "Commands: config-check, smoke"
-}
+require_env_nonempty APP_PIPELINE
 
-require_args() {
-  if [[ "$COMMAND" != "" && "$PIPELINE" != "" ]]; then
-    return 0
-  fi
-  usage
-  exit 1
-}
-
-ensure_preview_pipeline() {
-  local pipeline="$1"
-  if [[ "$pipeline" == "preview" ]]; then
-    return 0
-  fi
-  echo "Unbekannte Pipeline fuer $COMMAND: $pipeline" >&2
-  exit 1
-}
-
-run_config_check() {
-  local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
-
-  local profile
-  profile="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  if [[ "$profile" != "gueltig" ]]; then
-    echo "Erwartet LEBENSLAUF_PUBLIC_PROFILE=gueltig, erhalten: $profile" >&2
-    exit 1
-  fi
-
-  local mail_stdout
-  mail_stdout="$(php "$ROOT_DIR/bin/cli" config get "$pipeline" MAIL_STDOUT --phase runtime)"
-  if [[ "$mail_stdout" != "1" ]]; then
-    echo "Erwartet MAIL_STDOUT=1, erhalten: $mail_stdout" >&2
-    exit 1
-  fi
-
-  php "$ROOT_DIR/bin/cli" config lint "$pipeline"
-}
-
-prepare_deploy_dir() {
-  rm -rf "$ROOT_DIR/deploy"
-  mkdir -p "$ROOT_DIR/deploy/var/cache"
-  mkdir -p "$ROOT_DIR/deploy/src"
-  cp -a public vendor "$ROOT_DIR/deploy/"
-  cp -a src/http src/resources "$ROOT_DIR/deploy/src/"
-  cp -a var/cache/html "$ROOT_DIR/deploy/var/cache/"
-}
-
-verify_artifact() {
-  test -f "$ROOT_DIR/deploy/public/index.php"
-  test -f "$ROOT_DIR/deploy/var/cache/html/cv-public.html"
-}
-
-smoke_http() {
-  php -S 127.0.0.1:8081 -t "$ROOT_DIR/public" > /tmp/preview-http.log 2>&1 &
-  local server_pid=$!
-  trap 'kill $server_pid' EXIT
-  sleep 1
-  curl --fail --silent --show-error http://127.0.0.1:8081/ > /tmp/preview-home.html
-  curl --fail --silent --show-error http://127.0.0.1:8081/cv > /tmp/preview-cv.html
-  curl --fail --silent --show-error http://127.0.0.1:8081/contact > /tmp/preview-contact.html
-}
-
-run_smoke() {
-  local pipeline="$1"
-  ensure_preview_pipeline "$pipeline"
-  prepare_deploy_dir
-  verify_artifact
-  smoke_http
-}
+COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
-  require_args
-  case "$COMMAND" in
-    config-check)
-      run_config_check "$PIPELINE"
-      ;;
-    smoke)
-      run_smoke "$PIPELINE"
-      ;;
-    *)
-      usage
-      exit 1
-      ;;
-  esac
+  local test_case="${1:-}" pipeline work_dir
+  pipeline="$APP_PIPELINE"
+
+  ROOT_DIR="$(clone_work_dir)"
+  apply_working_state
+  export PATH="$ROOT_DIR/bin:$PATH"
+  cd "$ROOT_DIR"
+  . "$ROOT_DIR/scripts/pipeline_lib.sh"
+
+  if [[ "$pipeline" == "preview" ]]; then
+    DEPLOY_DIR="$ROOT_DIR/var/deploy"
+    setup_preview_ci_env
+
+    case "$test_case" in
+      test-admin-deploy)          export LAST_DEPLOY_COMMIT="" ;;
+      test-push-deploy)           setup_push_deploy_test ;;
+      test-composer-lock-changed) setup_composer_lock_test ;;
+      *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
+    esac
+  fi
+
+  composer install "${COMPOSER_INSTALL_ARGS[@]}"
+  [[ -n "${CI_BUILD_ID:-}" ]] && printf '%s' "$CI_BUILD_ID" > vendor/.ci-build-id
+  run_pipeline "$pipeline"
+
+  if [[ "$pipeline" == "preview" ]]; then
+    if [[ "$test_case" == "test-push-deploy" ]]; then
+      smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
+      check_vendor_not_uploaded "$pipeline"
+    fi
+    if [[ "$test_case" == "test-composer-lock-changed" ]]; then
+      check_vendor_uploaded "$pipeline"
+    fi
+    http_smoke_checks "preview-web" "80"
+  fi
+}
+
+test_no_diff_deploy() {
+  no_changes_since_deploy \
+    || { echo "[no-diff-check] Deploy-Skip bei leerem Diff fehlgeschlagen" >&2; return 1; }
+}
+
+setup_push_deploy_test() {
+  export LAST_DEPLOY_COMMIT="$(git rev-parse HEAD)"
+  test_no_diff_deploy
+  printf '<!-- ci-diff-test -->\n' > public/ci-diff-test.html
+  git add public/ci-diff-test.html
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "test: diff-deploy ci-test"
+  export CI_BUILD_ID="$(git rev-parse HEAD)"
+}
+
+setup_composer_lock_test() {
+  export LAST_DEPLOY_COMMIT="$(git rev-parse HEAD)"
+  printf '\n' >> composer.lock
+  git add composer.lock
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "test: diff-deploy composer-lock-changed ci-test"
+  export CI_BUILD_ID="$(git rev-parse HEAD)"
+}
+
+sftp_read_vendor_build_id() {
+  local pipeline="$1" overrides cfg_json
+  overrides="$(php scripts/build-overrides-json.php)"
+  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
+  SFTP_CFG_JSON="$cfg_json" python3 "$ROOT_DIR/scripts/sftp-read-vendor-build-id.py"
+}
+
+check_vendor_not_uploaded() {
+  local pipeline="$1" server_id
+  server_id="$(sftp_read_vendor_build_id "$pipeline")"
+  if [[ "$server_id" == "$CI_BUILD_ID" ]]; then
+    echo "[vendor-check] vendor/ fälschlicherweise hochgeladen: build_id=$CI_BUILD_ID" >&2
+    return 1
+  fi
+}
+
+check_vendor_uploaded() {
+  local pipeline="$1" server_id
+  server_id="$(sftp_read_vendor_build_id "$pipeline")"
+  if [[ "$server_id" != "$CI_BUILD_ID" ]]; then
+    echo "[vendor-check] vendor/ nicht hochgeladen: erwartet=$CI_BUILD_ID, server=$server_id" >&2
+    return 1
+  fi
+}
+
+clone_work_dir() {
+  local work_dir
+  work_dir="$(mktemp -d "${CI_WORK_BASE:-/tmp}/ci-XXXXXX")"
+  git clone --local --no-hardlinks /repo "$work_dir"
+  echo "$work_dir"
+}
+
+apply_working_state() {
+  local diff
+  diff="$(git -C /repo -c safe.directory=/repo diff --binary HEAD)"
+  [ -n "$diff" ] && echo "$diff" | git -C "$ROOT_DIR" apply --whitespace=nowarn
+  git -C /repo -c safe.directory=/repo ls-files --others --exclude-standard \
+    | while IFS= read -r f; do
+        mkdir -p "$ROOT_DIR/$(dirname "$f")"
+        cp "/repo/$f" "$ROOT_DIR/$f"
+      done
+}
+
+setup_preview_ci_env() {
+  export FTP_HOST="sftp-server"
+  export FTP_USER="preview-ci"
+  export FTP_PASS="ci-pass"
+  export FTP_PORT="22"
+  export FTP_SERVER_DIR="/public"
+  export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
+}
+
+await_sftp_host_key() {
+  local host="$1" port="$2" keys attempt
+
+  for attempt in $(seq 1 10); do
+    keys="$(ssh-keyscan -p "$port" "$host" 2>/dev/null | grep -v '^#')"
+    [[ -n "$keys" ]] && echo "$keys" && return
+    sleep 1
+  done
+  echo "SFTP-Hostschlüssel von ${host}:${port} nicht erreichbar" >&2
+  exit 1
 }
 
 main "$@"

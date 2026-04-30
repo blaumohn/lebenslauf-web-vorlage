@@ -10,22 +10,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: preview
-    env:
-      APP_ENV: preview
-      SMTP_PASS: ${{ secrets.SMTP_PASS }}
-      FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
-      FTP_HOST: ${{ secrets.FTP_HOST }}
-      FTP_USER: ${{ secrets.FTP_USER }}
-      FTP_PASS: ${{ secrets.FTP_PASS }}
-      FTP_PORT: ${{ secrets.FTP_PORT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.1"
+          php-version: "8.2"
           tools: composer:v2
 
       - name: Setup Node
@@ -34,31 +28,16 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Verify required deploy inputs
-        run: |
-          : "${FTP_SERVER_DIR:?FTP_SERVER_DIR missing}"
-
-      - name: Config check preview
-        run: bin/ci config-check preview
-
-      - name: Install dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
-
-      - name: Setup preview
-        run: php bin/cli setup preview
-
-      - name: Build preview
-        run: php bin/cli build preview
-
-      - name: Smoke test preview deploy artifact
-        run: bin/ci smoke preview
-
-      - name: FTP deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          port: ${{ secrets.FTP_PORT || env.FTP_PORT }}
-          local-dir: deploy/
-          server-dir: ${{ vars.FTP_SERVER_DIR }}
+      - name: Run preview pipeline and deploy
+        shell: bash
+        env:
+          APP_PIPELINE: ${{ vars.APP_PIPELINE }}
+          LAST_DEPLOY_COMMIT: ${{ github.event.before }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_PORT: ${{ vars.FTP_PORT }}
+          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
+          SSH_KNOWN_HOST_LINE: ${{ secrets.SSH_KNOWN_HOST_LINE }}
+        run: bin/cd

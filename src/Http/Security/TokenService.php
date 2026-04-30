@@ -50,8 +50,16 @@ final class TokenService
 
     public function rotate(string $profile, array $plainTokens): void
     {
+        if (!$this->isValidProfileName($profile)) {
+            throw new \InvalidArgumentException("Profilname ungültig: '{$profile}'.");
+        }
         $locked = fn() => $this->rotateLocked($profile, $plainTokens);
         $this->lockRunner->runWithLock('token_' . $profile, $locked);
+    }
+
+    private function isValidProfileName(string $profile): bool
+    {
+        return $profile !== '' && (bool) preg_match('/^[A-Za-z0-9_.-]+$/', $profile);
     }
 
     public function generateTokens(int $count): array

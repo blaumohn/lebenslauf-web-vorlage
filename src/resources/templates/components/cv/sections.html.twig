@@ -52,7 +52,11 @@
     <div class="section-body">
       {% for eintrag in daten %}
         <ul>
-          <li>{{ eintrag.beschreibung }}, {{ eintrag.grad }}, {{ eintrag.uni }}</li>
+          <li>{{ [
+            eintrag.beschreibung|default(null),
+            eintrag.grad|default(null),
+            eintrag.uni|default(null)
+          ]|filter(wert => wert is not empty)|join(', ') }}</li>
         </ul>
       {% endfor %}
     </div>

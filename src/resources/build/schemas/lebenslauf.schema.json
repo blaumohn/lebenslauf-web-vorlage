@@ -75,12 +75,16 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["uni", "grad", "beschreibung"],
+        "required": ["uni"],
         "properties": {
           "uni": { "$ref": "#/definitions/intlString" },
           "grad": { "$ref": "#/definitions/intlString" },
           "beschreibung": { "$ref": "#/definitions/intlString" }
-        }
+        },
+        "anyOf": [
+          { "required": ["grad"] },
+          { "required": ["beschreibung"] }
+        ]
       }
     },
     "vortraege": {

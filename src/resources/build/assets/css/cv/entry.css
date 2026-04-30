@@ -14,12 +14,11 @@
   }
 
   .entry-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
     margin-bottom: 12px;
-    position: relative;
+  }
+
+  .entry-content {
+    display: flow-root;
   }
 
   .entry-title {
@@ -34,8 +33,20 @@
     color: var(--gray-800);
   }
 
+  .entry-meta {
+    float: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    margin-left: 1rem;
+    margin-bottom: 0.25rem;
+    max-width: 9rem;
+    text-align: right;
+    margin-right: 3%;
+  }
+
   .entry-time {
-    margin-right: 1rem;
     font-size: 0.875rem;
     font-weight: 300;
     color: var(--gray-700);
@@ -43,10 +54,6 @@
   }
 
   .entry-location {
-    position: absolute;
-    top: 100%;
-    right: 1rem;
-    text-align: right;
     font-size: 0.875rem;
     font-weight: 300;
     color: var(--gray-700);
@@ -64,20 +71,22 @@
   }
 
   .entry-points {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: block;
+    margin-left: 0;
+    width: 90%;
   }
 
   .entry-point {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
     break-inside: avoid;
+  }
+
+  .entry-point + .entry-point {
+    margin-top: 10px;
   }
 
   .entry-list {
     margin: 0;
+    margin-right: 0;
   }
 
   .tag-list {
@@ -146,5 +155,8 @@
 
   .language-level {
     color: var(--gray-500);
+  }
+
+  @media print {
   }
 }

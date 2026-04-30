@@ -20,14 +20,11 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
    Python environment. Requires step 1.
 
    ```bash
-   php bin/cli setup dev
+   php bin/cli setup dev --with-sample-content
    ```
 
-   Optional, without overwriting existing data:
-
-   ```bash
-   php bin/cli setup dev --copy-sample-content
-   ```
+   `--with-sample-content` creates sample data without overwriting existing
+   data.
 
 3. **Build CV** — render sample data into HTML views.
 
@@ -43,3 +40,23 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
 
 Own data and configuration (email, SMTP, deployment):
 [Documentation → docs.template.ysdani.com](https://docs.template.ysdani.com/en/getting-started/)
+
+## Run CI locally
+
+The local CI runs in Docker with separate entry points for `dev` and
+`preview`:
+
+```bash
+composer run ci:dev
+composer run ci:preview
+```
+
+For the preview run, the Compose stack stops automatically when
+`ci-preview` finishes and is then brought down so the long-lived helper
+service `sftp-server` does not keep the command open.
+
+An optional versioned pre-push hook wires that check into every push:
+
+```bash
+sh scripts/install-hooks.sh
+```

@@ -2,7 +2,6 @@
 
 namespace App\Cli\Command;
 
-use App\Cli\Config\AppConfigValidator;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,7 +19,8 @@ final class ConfigCommand extends BaseCommand
             ->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
-            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase');
+            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase')
+            ->addOption('overrides', null, InputOption::VALUE_OPTIONAL, 'Config-Überschreibungen als JSON');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -46,8 +46,9 @@ final class ConfigCommand extends BaseCommand
     private function handleGet(InputInterface $input, OutputInterface $output): int
     {
         $key = trim((string) $input->getArgument('arg1'));
-        if ($key === '') {
-            $output->writeln('<error>Usage: config get <PIPELINE> <KEY></error>');
+
+        $overrides = $this->parseOverrides($input, $output);
+        if ($overrides === null) {
             return Command::FAILURE;
         }
 
@@ -56,29 +57,43 @@ final class ConfigCommand extends BaseCommand
         if ($pipeline === null) {
             return Command::FAILURE;
         }
-        $phase = $this->resolvePhase($input, 'runtime');
+        $phase = $this->requirePhase($input, $output);
+        if ($phase === null) {
+            return Command::FAILURE;
+        }
         try {
-            $values = $pipelineSpec->values($pipeline, $phase);
+            $values = $pipelineSpec->values($pipeline, $phase, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
         }
 
-        $value = (string) ($values[$key] ?? '');
-        $output->write($value);
+        if ($key === '') {
+            return $this->outputAllValues($values, $output);
+        }
+
+        $output->write((string) ($values[$key] ?? ''));
         return Command::SUCCESS;
     }
 
     private function handleShow(InputInterface $input, OutputInterface $output): int
     {
+        $overrides = $this->parseOverrides($input, $output);
+        if ($overrides === null) {
+            return Command::FAILURE;
+        }
+
         $pipelineSpec = $this->configService();
         $pipeline = $this->requirePipeline($input, $output);
         if ($pipeline === null) {
             return Command::FAILURE;
         }
-        $phase = $this->resolvePhase($input, 'runtime');
+        $phase = $this->requirePhase($input, $output);
+        if ($phase === null) {
+            return Command::FAILURE;
+        }
         try {
-            $report = $pipelineSpec->describe($pipeline, $phase);
+            $report = $pipelineSpec->describe($pipeline, $phase, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -104,6 +119,11 @@ final class ConfigCommand extends BaseCommand
 
     private function handleLint(InputInterface $input, OutputInterface $output): int
     {
+        $overrides = $this->parseOverrides($input, $output);
+        if ($overrides === null) {
+            return Command::FAILURE;
+        }
+
         $pipelineSpec = $this->configService();
         $pipeline = $this->requirePipeline($input, $output);
         if ($pipeline === null) {
@@ -112,22 +132,26 @@ final class ConfigCommand extends BaseCommand
 
         $requestedPhase = $this->resolveOptionString($input, 'phase');
         if ($requestedPhase !== null) {
-            $result = $this->lintPhase($pipelineSpec, $pipeline, $requestedPhase, $output);
-            return $result;
+            return $this->lintPhase($pipelineSpec, $pipeline, $requestedPhase, $output, $overrides);
         }
 
-        $result = $this->lintAllPhases($pipelineSpec, $pipeline, $output);
-        return $result;
+        return $this->lintAllPhases($pipelineSpec, $pipeline, $output, $overrides);
+    }
+    private function outputAllValues(array $values, OutputInterface $output): int
+    {
+        $output->write(json_encode($values, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return Command::SUCCESS;
     }
 
     private function lintAllPhases(
         PipelineConfigService $pipelineSpec,
         string $pipeline,
-        OutputInterface $output
+        OutputInterface $output,
+        array $overrides = []
     ): int {
         $phases = $this->defaultLintPhases();
         foreach ($phases as $phase) {
-            $result = $this->lintPhase($pipelineSpec, $pipeline, $phase, $output);
+            $result = $this->lintPhase($pipelineSpec, $pipeline, $phase, $output, $overrides);
             if ($result !== Command::SUCCESS) {
                 return $result;
             }
@@ -139,12 +163,12 @@ final class ConfigCommand extends BaseCommand
         PipelineConfigService $pipelineSpec,
         string $pipeline,
         string $phase,
-        OutputInterface $output
+        OutputInterface $output,
+        array $overrides = []
     ): int {
         $context = $this->contextLabel($pipeline, $phase);
         try {
-            $values = $pipelineSpec->values($pipeline, $phase);
-            $this->validateAppConfig($values);
+            $values = $pipelineSpec->values($pipeline, $phase, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -160,6 +184,11 @@ final class ConfigCommand extends BaseCommand
 
     private function handleCompile(InputInterface $input, OutputInterface $output): int
     {
+        $overrides = $this->parseOverrides($input, $output);
+        if ($overrides === null) {
+            return Command::FAILURE;
+        }
+
         $target = trim((string) $input->getArgument('arg2'));
         $targetPath = $target === '' ? null : $this->resolvePath($target);
 
@@ -168,12 +197,14 @@ final class ConfigCommand extends BaseCommand
         if ($pipeline === null) {
             return Command::FAILURE;
         }
-        $phase = $this->resolvePhase($input, 'runtime');
+        $phase = $this->requirePhase($input, $output);
+        if ($phase === null) {
+            return Command::FAILURE;
+        }
         $context = $this->contextLabel($pipeline, $phase);
         try {
-            $values = $pipelineSpec->values($pipeline, $phase);
-            $this->validateAppConfig($values);
-            $path = $pipelineSpec->compile($pipeline, $phase, $targetPath);
+            $values = $pipelineSpec->values($pipeline, $phase, $overrides);
+            $path = $pipelineSpec->compile($pipeline, $phase, $targetPath, $overrides);
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return Command::FAILURE;
@@ -182,17 +213,6 @@ final class ConfigCommand extends BaseCommand
         $output->writeln("Pipeline-Phase: {$context}");
         $output->writeln("Compiled config written: {$path}");
         return Command::SUCCESS;
-    }
-
-    private function validateAppConfig(array $values): void
-    {
-        $errors = (new AppConfigValidator())->validate($values);
-        if ($errors === []) {
-            return;
-        }
-        throw new \RuntimeException(
-            "Config-Validierung fehlgeschlagen:\n- " . implode("\n- ", $errors)
-        );
     }
 
     private function resolveOptionString(InputInterface $input, string $name): ?string
@@ -205,10 +225,14 @@ final class ConfigCommand extends BaseCommand
         return $value === '' ? null : $value;
     }
 
-    private function resolvePhase(InputInterface $input, string $fallback): string
+    private function requirePhase(InputInterface $input, OutputInterface $output): ?string
     {
-        $requested = $this->resolveOptionString($input, 'phase');
-        return $requested ?? $fallback;
+        $phase = $this->resolveOptionString($input, 'phase');
+        if ($phase !== null) {
+            return $phase;
+        }
+        $output->writeln('<error>--phase fehlt. Beispiel: --phase runtime</error>');
+        return null;
     }
 
     private function contextLabel(string $pipeline, string $phase): string

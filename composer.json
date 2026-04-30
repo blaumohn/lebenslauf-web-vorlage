@@ -9,7 +9,7 @@
     }
   ],
   "require": {
-    "php": ">=8.1",
+    "php": "^8.2",
     "pipeline-config-spec/lib": "dev-main@dev",
     "opis/json-schema": "^2.4",
     "slim/slim": "^4.12",
@@ -29,12 +29,17 @@
   "autoload": {
     "psr-4": {
       "App\\Content\\": "src/content/",
-      "App\\Http\\": "src/http/",
+      "App\\Http\\": "src/Http/",
       "App\\Cli\\": "src/cli/php/",
       "App\\Cli\\Shared\\": "src/cli/php/shared/"
     }
   },
-    "scripts": {
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    }
+  },
+  "scripts": {
       "dev": [
       "Composer\\Config::disableProcessTimeout",
       "php bin/cli python dev src/cli/py/dev/dev.py --"
@@ -59,9 +64,17 @@
     "setup": "php bin/cli setup dev",
     "setup:dev": "php bin/cli setup dev",
     "setup:preview": "php bin/cli setup preview",
-    "tests:smoke": [
+    "ci:dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev --override PYTHON_PATHS='src:.' tests/py/smoke.py"
+      "docker compose -f docker-compose.ci.yml up --remove-orphans --build ci-dev"
+    ],
+    "ci:preview": [
+      "Composer\\Config::disableProcessTimeout",
+      "bash scripts/run-ci-preview.sh"
+    ],
+    "ci:preview:debug": [
+      "Composer\\Config::disableProcessTimeout",
+      "DEBUG=1 bash scripts/run-ci-preview.sh"
     ],
     "deploy:preview": [
       "php bin/cli build preview"
