@@ -47,6 +47,8 @@ main() {
       check_vendor_uploaded "$pipeline"
     fi
     http_smoke_checks "preview-web" "80"
+    . "$ROOT_DIR/tests/ci/smtp-smoke.sh"
+    smtp_smoke
   fi
 }
 

@@ -85,6 +85,7 @@ final class MailService
         $mailer->SMTPAuth = true;
         $mailer->Username = (string) $this->config->get('SMTP_USER');
         $mailer->Password = (string) $this->config->get('SMTP_PASS');
-        $mailer->SMTPSecure = (string) $this->config->get('SMTP_ENCRYPTION');
+        $encryption = (string) $this->config->get('SMTP_ENCRYPTION');
+        $mailer->SMTPSecure = $encryption === 'none' ? '' : $encryption;
     }
 }
