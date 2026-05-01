@@ -1,25 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+COMPOSE_FILE="docker-compose.ci.yml"
+CI_SERVICE="ci-preview"
+
 main() {
-  local exit_code=0
+  build_image
+  start_helpers
+  trap down_stack EXIT
+  run_tests
+}
 
-  docker compose -f docker-compose.ci.yml build
-  docker compose -f docker-compose.ci.yml run ci-preview \
-    || exit_code=$?
+build_image() {
+  docker compose -f "$COMPOSE_FILE" build
+}
 
-  if [[ $exit_code -eq 0 ]]; then
-    docker compose -f docker-compose.ci.yml run --no-deps ci-diff-preview \
-      || exit_code=$?
-  fi
+start_helpers() {
+  docker compose -f "$COMPOSE_FILE" up -d sftp-server preview-web mailpit
+}
 
-  if [[ $exit_code -eq 0 ]]; then
-    docker compose -f docker-compose.ci.yml run --no-deps ci-diff-vendor-preview \
-      || exit_code=$?
-  fi
+down_stack() {
+  docker compose -f "$COMPOSE_FILE" down --remove-orphans
+}
 
-  docker compose -f docker-compose.ci.yml down --remove-orphans
-  return "$exit_code"
+run_test() {
+  docker compose -f "$COMPOSE_FILE" run --rm --no-deps "$CI_SERVICE" \
+    bash /repo/bin/ci "$1"
+}
+
+run_tests() {
+  run_test test-admin-deploy
+  run_test test-push-deploy
+  run_test test-composer-lock-changed
 }
 
 main "$@"

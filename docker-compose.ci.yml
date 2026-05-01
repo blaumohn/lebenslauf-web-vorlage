@@ -30,7 +30,6 @@ x-ci-preview-base: &ci-preview-base
     <<: [*ci-env, *ci-preview-smtp]
     APP_PIPELINE: preview
     DEBUG: "${DEBUG:-0}"
-  command: bash /repo/bin/ci
   depends_on:
     - sftp-server
     - preview-web
@@ -50,15 +49,6 @@ services:
 
   ci-preview:
     <<: *ci-preview-base
-    command: bash /repo/bin/ci test-admin-deploy
-
-  ci-diff-preview:
-    <<: *ci-preview-base
-    command: bash /repo/bin/ci test-push-deploy
-
-  ci-diff-vendor-preview:
-    <<: *ci-preview-base
-    command: bash /repo/bin/ci test-composer-lock-changed
 
   mailpit:
     image: axllent/mailpit:latest
