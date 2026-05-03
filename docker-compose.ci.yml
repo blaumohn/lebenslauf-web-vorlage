@@ -71,8 +71,8 @@ services:
   preview-web:
     image: php:8.2-apache
     environment:
-      APACHE_RUN_USER: "#1000"
-      APACHE_RUN_GROUP: "#1000"
+      APACHE_RUN_USER: "preview-ci"
+      APACHE_RUN_GROUP: "preview-ci"
     command: bash /scripts/config-apache.sh
     volumes:
       - "preview_deploy:/var/www/html"
