@@ -31,7 +31,7 @@ final class CaptchaService
 
     public function createChallenge(string $ipHash): array
     {
-        $id = bin2hex(random_bytes(16));
+        $id = bin2hex(random_bytes(16)) . '_' . time();
         $solution = $this->generateSolution();
         $now = time();
         $data = [
@@ -57,6 +57,16 @@ final class CaptchaService
     {
         $locked = fn() => $this->verifyLocked($id, $answer, $ipHash);
         return (bool) $this->lockRunner->runWithLock('captcha_' . $id, $locked);
+    }
+
+    public function parseIdTimestamp(string $id): ?int
+    {
+        $pos = strrpos($id, '_');
+        if ($pos === false) {
+            return null;
+        }
+        $ts = substr($id, $pos + 1);
+        return ctype_digit($ts) ? (int) $ts : null;
     }
 
     public function cleanupExpired(): int

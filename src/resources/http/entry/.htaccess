@@ -1,0 +1,4 @@
+RewriteEngine On
+RewriteRule ^(?:a|b|vendor-a|vendor-b)(?:/|$) - [R=404,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
