@@ -7,6 +7,7 @@ import paramiko
 
 
 STATE_MARKER = "// deploy-state:"
+STATE_FILE = ".deploy-state.json"
 VALID_SLOTS = ("a", "b")
 
 
@@ -27,6 +28,27 @@ def parse_router_state(content):
                 return (tree, vendor)
         except (ValueError, AttributeError):
             pass
+    return None
+
+
+def parse_deploy_state(content):
+    try:
+        data = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return valid_state(data.get("tree", ""), data.get("vendor", ""))
+
+
+def format_deploy_state(tree, vendor):
+    data = {"tree": tree, "vendor": vendor}
+    return json.dumps(data, sort_keys=True) + "\n"
+
+
+def valid_state(tree, vendor):
+    if tree in VALID_SLOTS and vendor in VALID_SLOTS:
+        return (tree, vendor)
     return None
 
 
@@ -116,8 +138,15 @@ class SftpClient:
                 try:
                     self.sftp.remove(child)
                 except IOError as e:
+                    try:
+                        dir_attr = self.sftp.lstat(abs_path)
+                        dir_info = f"dir_uid={dir_attr.st_uid} dir_mode={oct(dir_attr.st_mode)}"
+                    except Exception:
+                        dir_info = "dir-stat-failed"
                     raise PermissionError(
-                        f"sftp.remove({child!r}) mode={oct(entry.st_mode)}: {e}"
+                        f"sftp.remove({child!r}) "
+                        f"file_uid={entry.st_uid} file_mode={oct(entry.st_mode)} "
+                        f"{dir_info}: {e}"
                     ) from e
         try:
             self.sftp.rmdir(abs_path)

@@ -4,7 +4,15 @@ import stat
 import time
 from pathlib import Path
 
-from sftp_lib import SftpClient, read_config, parse_router_state, STATE_MARKER, VALID_SLOTS
+from sftp_lib import (
+    SftpClient,
+    read_config,
+    parse_deploy_state,
+    parse_router_state,
+    format_deploy_state,
+    STATE_FILE,
+    STATE_MARKER,
+)
 
 INITIAL_SLOT = "a"
 
@@ -35,7 +43,13 @@ def deploy(client, include_vendor):
 
 
 def read_router_state(client):
-    return parse_router_state(client.read_file("index.php"))
+    deploy_state = parse_deploy_state(client.read_file(STATE_FILE))
+    router_state = parse_router_state(client.read_file("index.php"))
+    if deploy_state is not None and deploy_state == router_state:
+        return deploy_state
+    if router_state is not None:
+        return router_state
+    return deploy_state
 
 
 def deploy_fresh(client, include_vendor):
@@ -45,7 +59,7 @@ def deploy_fresh(client, include_vendor):
     upload_app_tree(client, tree)
     if include_vendor:
         upload_vendor_dir(client, vendor)
-    upload_htaccess(client)
+    upload_entry_htaccess(client, tree)
     upload_router(client, tree, vendor)
     log("Erstdeploy abgeschlossen")
 
@@ -59,7 +73,7 @@ def deploy_swap(client, state, include_vendor):
     if include_vendor:
         upload_vendor_dir(client, inactive_vendor)
     migrate_tokens(client, active_tree, inactive_tree)
-    upload_htaccess(client)
+    upload_entry_htaccess(client, inactive_tree)
     upload_router(client, inactive_tree, inactive_vendor)
     cleanup(client, active_tree, active_vendor, inactive_vendor)
     log(f"Deploy abgeschlossen: Baum {inactive_tree}, Vendor {inactive_vendor}")
@@ -129,16 +143,29 @@ def migrate_tokens(client, active_tree, inactive_tree):
         log(f"Tokens migriert: {count}")
 
 
-def upload_htaccess(client):
-    htaccess = Path("src/resources/http/entry/.htaccess")
-    if htaccess.exists():
-        client.put_file(htaccess, ".htaccess")
-        log("Entry .htaccess hochgeladen")
+def upload_entry_htaccess(client, tree):
+    content = generate_entry_htaccess(tree).encode("utf-8")
+    client.put_bytes(".htaccess", content)
+    log(f"Entry .htaccess hochgeladen: Baum {tree}")
+
+
+def generate_entry_htaccess(tree):
+    return (
+        "RewriteEngine On\n"
+        "RewriteCond %{THE_REQUEST} \\s/(?:a|b|vendor-a|vendor-b)(?:/|\\s|\\?)\n"
+        "RewriteRule ^ - [R=404,L]\n"
+        "RewriteRule ^index\\.php$ - [L]\n"
+        f"RewriteCond %{{DOCUMENT_ROOT}}/{tree}/public/$1 -f\n"
+        f"RewriteRule ^(.+)$ {tree}/public/$1 [END]\n"
+        "RewriteCond %{REQUEST_FILENAME} !-f\n"
+        "RewriteRule ^ index.php [L]\n"
+    )
 
 
 def upload_router(client, tree, vendor):
     content = generate_router(tree, vendor).encode("utf-8")
     client.put_bytes("index.php", content)
+    client.put_bytes(STATE_FILE, format_deploy_state(tree, vendor).encode("utf-8"))
     log(f"Root-Router hochgeladen: Baum {tree}, Vendor {vendor}")
 
 
@@ -146,6 +173,7 @@ def generate_router(tree, vendor):
     return (
         "<?php\n"
         f"{STATE_MARKER} tree={tree} vendor={vendor}\n"
+        f"define('APP_ROOT_DIR', __DIR__ . '/{tree}');\n"
         f"define('APP_VENDOR_DIR', __DIR__ . '/vendor-{vendor}');\n"
         f"require __DIR__ . '/{tree}/public/index.php';\n"
     )

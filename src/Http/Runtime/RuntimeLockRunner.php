@@ -36,6 +36,7 @@ final class RuntimeLockRunner
     private function runWithSymfonyLock(string $key, callable $operation): mixed
     {
         $this->ensureDir($this->lockDir);
+        $this->debugLockDir();
         $store = new FlockStore($this->lockDir);
         $factory = new LockFactory($store);
         $lock = $factory->createLock($key);
@@ -71,6 +72,27 @@ final class RuntimeLockRunner
             return $value;
         }
         throw new \RuntimeException('Lock-Key ist ungueltig.');
+    }
+
+    private function debugLockDir(): void
+    {
+        $dir = $this->lockDir;
+        $perms = file_exists($dir) ? decoct(fileperms($dir) & 0777) : 'n/a';
+        $owner = file_exists($dir) ? fileowner($dir) : -1;
+        $group = file_exists($dir) ? filegroup($dir) : -1;
+        $procUid = function_exists('posix_getuid') ? posix_getuid() : -1;
+        $procGid = function_exists('posix_getgid') ? posix_getgid() : -1;
+        error_log(sprintf(
+            '[LockRunner] dir=%s | exists=%s | writable=%s | perms=%s | uid=%d | gid=%d | proc_uid=%d | proc_gid=%d',
+            $dir,
+            is_dir($dir) ? 'yes' : 'no',
+            is_writable($dir) ? 'yes' : 'no',
+            $perms,
+            $owner,
+            $group,
+            $procUid,
+            $procGid,
+        ));
     }
 
     private function ensureDir(string $dir): void
