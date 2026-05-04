@@ -7,14 +7,13 @@ from pathlib import Path
 from sftp_lib import (
     SftpClient,
     read_config,
-    parse_deploy_state,
-    parse_router_state,
-    format_deploy_state,
-    STATE_FILE,
-    STATE_MARKER,
 )
-
-INITIAL_SLOT = "a"
+from sftp_deploy_state import DeployStateFile, DeploymentPlan, RouterState
+from sftp_deploy_templates import (
+    render_entry_htaccess,
+    render_fallback_entry_htaccess,
+    render_router,
+)
 
 
 def log(message):
@@ -43,8 +42,8 @@ def deploy(client, include_vendor):
 
 
 def read_router_state(client):
-    deploy_state = parse_deploy_state(client.read_file(STATE_FILE))
-    router_state = parse_router_state(client.read_file("index.php"))
+    deploy_state = DeployStateFile.read(client)
+    router_state = RouterState.read(client)
     if deploy_state is not None and deploy_state == router_state:
         return deploy_state
     if router_state is not None:
@@ -53,38 +52,34 @@ def read_router_state(client):
 
 
 def deploy_fresh(client, include_vendor):
-    tree = INITIAL_SLOT
-    vendor = INITIAL_SLOT
-    log(f"Erstdeploy: Baum {tree}, Vendor {vendor}")
-    upload_app_tree(client, tree)
+    plan = DeploymentPlan.fresh()
+    target = plan.target
+    log(f"Erstdeploy: Baum {target.tree}, Vendor {target.vendor}")
+    upload_app_tree(client, target.tree)
     if include_vendor:
-        upload_vendor_dir(client, vendor)
+        upload_vendor_dir(client, target.vendor)
     upload_fallback_entry_htaccess(client)
-    upload_router(client, tree, vendor)
-    upload_deploy_state(client, tree, vendor)
-    upload_entry_htaccess(client, tree)
+    upload_router(client, target)
+    upload_deploy_state(client, target)
+    upload_entry_htaccess(client, target)
     log("Erstdeploy abgeschlossen")
 
 
 def deploy_swap(client, state, include_vendor):
-    active_tree, active_vendor = state
-    inactive_tree = other_slot(active_tree)
-    inactive_vendor = other_slot(active_vendor) if include_vendor else active_vendor
-    log(f"Baum: {active_tree}→{inactive_tree}, Vendor: {active_vendor}→{inactive_vendor}")
-    upload_app_tree(client, inactive_tree)
+    plan = DeploymentPlan.swap(state, include_vendor)
+    active = plan.active
+    target = plan.target
+    log(f"Baum: {active.tree}→{target.tree}, Vendor: {active.vendor}→{target.vendor}")
+    upload_app_tree(client, target.tree)
     if include_vendor:
-        upload_vendor_dir(client, inactive_vendor)
-    migrate_tokens(client, active_tree, inactive_tree)
+        upload_vendor_dir(client, target.vendor)
+    migrate_tokens(client, active.tree, target.tree)
     upload_fallback_entry_htaccess(client)
-    upload_router(client, inactive_tree, inactive_vendor)
-    upload_deploy_state(client, inactive_tree, inactive_vendor)
-    upload_entry_htaccess(client, inactive_tree)
-    cleanup(client, active_tree, active_vendor, inactive_vendor)
-    log(f"Deploy abgeschlossen: Baum {inactive_tree}, Vendor {inactive_vendor}")
-
-
-def other_slot(slot):
-    return "b" if slot == "a" else "a"
+    upload_router(client, target)
+    upload_deploy_state(client, target)
+    upload_entry_htaccess(client, target)
+    cleanup(client, active, target)
+    log(f"Deploy abgeschlossen: Baum {target.tree}, Vendor {target.vendor}")
 
 
 def upload_app_tree(client, tree):
@@ -147,69 +142,35 @@ def migrate_tokens(client, active_tree, inactive_tree):
         log(f"Tokens migriert: {count}")
 
 
-def upload_entry_htaccess(client, tree):
-    content = generate_entry_htaccess(tree).encode("utf-8")
+def upload_entry_htaccess(client, state):
+    content = render_entry_htaccess(state).encode("utf-8")
     client.put_bytes(".htaccess", content)
-    log(f"Entry .htaccess hochgeladen: Baum {tree}")
+    log(f"Entry .htaccess hochgeladen: Baum {state.tree}")
 
 
 def upload_fallback_entry_htaccess(client):
-    content = generate_fallback_entry_htaccess().encode("utf-8")
+    content = render_fallback_entry_htaccess().encode("utf-8")
     client.put_bytes(".htaccess", content)
     log("Entry .htaccess ohne statische Slot-Regeln hochgeladen")
 
 
-def generate_fallback_entry_htaccess():
-    return (
-        "RewriteEngine On\n"
-        "RewriteCond %{THE_REQUEST} \\s/(?:a|b|vendor-a|vendor-b)(?:/|\\s|\\?)\n"
-        "RewriteRule ^ - [R=404,L]\n"
-        "RewriteCond %{REQUEST_FILENAME} !-f\n"
-        "RewriteRule ^ index.php [L]\n"
-    )
-
-
-def generate_entry_htaccess(tree):
-    return (
-        "RewriteEngine On\n"
-        "RewriteCond %{THE_REQUEST} \\s/(?:a|b|vendor-a|vendor-b)(?:/|\\s|\\?)\n"
-        "RewriteRule ^ - [R=404,L]\n"
-        "RewriteRule ^index\\.php$ - [L]\n"
-        f"RewriteCond %{{DOCUMENT_ROOT}}/{tree}/public/$1 -f\n"
-        f"RewriteRule ^(.+)$ {tree}/public/$1 [END]\n"
-        "RewriteCond %{REQUEST_FILENAME} !-f\n"
-        "RewriteRule ^ index.php [L]\n"
-    )
-
-
-def upload_router(client, tree, vendor):
-    content = generate_router(tree, vendor).encode("utf-8")
+def upload_router(client, state):
+    content = render_router(state).encode("utf-8")
     client.put_bytes("index.php", content)
-    log(f"Root-Router hochgeladen: Baum {tree}, Vendor {vendor}")
+    log(f"Root-Router hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
 
-def upload_deploy_state(client, tree, vendor):
-    content = format_deploy_state(tree, vendor).encode("utf-8")
-    client.put_bytes(STATE_FILE, content)
-    log(f"Deploy-State hochgeladen: Baum {tree}, Vendor {vendor}")
+def upload_deploy_state(client, state):
+    DeployStateFile.write(client, state)
+    log(f"Deploy-State hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
 
-def generate_router(tree, vendor):
-    return (
-        "<?php\n"
-        f"{STATE_MARKER} tree={tree} vendor={vendor}\n"
-        f"define('APP_ROOT_DIR', __DIR__ . '/{tree}');\n"
-        f"define('APP_VENDOR_DIR', __DIR__ . '/vendor-{vendor}');\n"
-        f"require __DIR__ . '/{tree}/public/index.php';\n"
-    )
-
-
-def cleanup(client, old_tree, old_vendor, new_vendor):
-    client.remove_dir(old_tree)
-    log(f"Alter App-Baum entfernt: {old_tree}")
-    if old_vendor != new_vendor:
-        client.remove_dir(f"vendor-{old_vendor}")
-        log(f"Alter Vendor entfernt: vendor-{old_vendor}")
+def cleanup(client, active, target):
+    client.remove_dir(active.tree)
+    log(f"Alter App-Baum entfernt: {active.tree}")
+    if active.vendor != target.vendor:
+        client.remove_dir(f"vendor-{active.vendor}")
+        log(f"Alter Vendor entfernt: vendor-{active.vendor}")
 
 
 def upload_dir(client, local_path, rel_remote, stats):
@@ -238,4 +199,5 @@ def new_stats():
     return {"directories": 0, "files": 0, "bytes": 0}
 
 
-main()
+if __name__ == "__main__":
+    main()

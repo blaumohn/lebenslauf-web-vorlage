@@ -4,10 +4,8 @@ import sys
 from sftp_lib import (
     SftpClient,
     read_config,
-    parse_deploy_state,
-    parse_router_state,
-    STATE_FILE,
 )
+from sftp_deploy_state import DeployStateFile, RouterState
 
 FALLBACK_VENDOR = "a"
 
@@ -21,14 +19,14 @@ def main():
 
 
 def read_vendor_slot(client):
-    deploy_state = parse_deploy_state(client.read_file(STATE_FILE))
-    router_state = parse_router_state(client.read_file("index.php"))
+    deploy_state = DeployStateFile.read(client)
+    router_state = RouterState.read(client)
     if deploy_state is not None and (router_state is None or deploy_state == router_state):
-        return deploy_state[1]
+        return deploy_state.vendor
     state = router_state
     if state is None:
         return FALLBACK_VENDOR
-    return state[1]
+    return state.vendor
 
 
 if __name__ == "__main__":
