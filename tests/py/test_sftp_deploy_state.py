@@ -6,7 +6,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
-from sftp_deploy_state import DeployStateFile, DeploymentPlan, RouterState, SlotState
+from sftp_deploy_state import DeployState, DeploymentPlan, SlotState
 from sftp_deploy_templates import (
     render_entry_htaccess,
     render_fallback_entry_htaccess,
@@ -18,20 +18,15 @@ from sftp_deploy_templates import (
 class SftpDeployStateTest(unittest.TestCase):
     def test_deploy_state_json_roundtrip(self):
         state = SlotState("b", "a")
-        content = DeployStateFile.format(state)
+        content = DeployState.format(state)
 
-        self.assertEqual(DeployStateFile.parse(content), state)
+        self.assertEqual(DeployState.parse(content), state)
         self.assertEqual(content, '{"tree": "b", "vendor": "a"}\n')
 
     def test_invalid_deploy_state_returns_none(self):
-        self.assertIsNone(DeployStateFile.parse('{"tree": "x", "vendor": "a"}'))
-        self.assertIsNone(DeployStateFile.parse("[]"))
-        self.assertIsNone(DeployStateFile.parse("{"))
-
-    def test_router_state_parse(self):
-        content = "<?php\n// deploy-state: tree=a vendor=b\n"
-
-        self.assertEqual(RouterState.parse(content), SlotState("a", "b"))
+        self.assertIsNone(DeployState.parse('{"tree": "x", "vendor": "a"}'))
+        self.assertIsNone(DeployState.parse("[]"))
+        self.assertIsNone(DeployState.parse("{"))
 
     def test_deployment_plan_swaps_tree_and_optional_vendor(self):
         active = SlotState("a", "b")
@@ -45,7 +40,7 @@ class SftpDeployStateTest(unittest.TestCase):
     def test_templates_render_current_deploy_files(self):
         state = SlotState("b", "a")
 
-        self.assertIn("tree=b vendor=a", render_router(state))
+        self.assertNotIn("deploy-state", render_router(state))
         self.assertIn("vendor-a", render_router(state))
         self.assertIn("b/public/$1", render_entry_htaccess(state))
         self.assertIn("RewriteRule ^ index.php [L]", render_fallback_entry_htaccess())

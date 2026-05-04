@@ -5,7 +5,7 @@ from sftp_lib import (
     SftpClient,
     read_config,
 )
-from sftp_deploy_state import DeployStateFile, RouterState
+from sftp_deploy_state import DeployState
 
 FALLBACK_VENDOR = "a"
 
@@ -19,14 +19,10 @@ def main():
 
 
 def read_vendor_slot(client):
-    deploy_state = DeployStateFile.read(client)
-    router_state = RouterState.read(client)
-    if deploy_state is not None and (router_state is None or deploy_state == router_state):
-        return deploy_state.vendor
-    state = router_state
-    if state is None:
+    deploy_state = DeployState.read(client)
+    if deploy_state is None:
         return FALLBACK_VENDOR
-    return state.vendor
+    return deploy_state.vendor
 
 
 if __name__ == "__main__":

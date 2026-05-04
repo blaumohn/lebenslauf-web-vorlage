@@ -8,7 +8,7 @@ from sftp_lib import (
     SftpClient,
     read_config,
 )
-from sftp_deploy_state import DeployStateFile, DeploymentPlan, RouterState
+from sftp_deploy_state import DeployState, DeploymentPlan
 from sftp_deploy_templates import (
     resource_path,
     render_entry_htaccess,
@@ -46,20 +46,11 @@ class SftpDeploy:
         self.client = None
 
     def deploy(self):
-        state = self.read_router_state()
+        state = DeployState.read(self.client)
         if state is None:
             self.deploy_fresh()
         else:
             self.deploy_swap(state)
-
-    def read_router_state(self):
-        deploy_state = DeployStateFile.read(self.client)
-        router_state = RouterState.read(self.client)
-        if deploy_state is not None and deploy_state == router_state:
-            return deploy_state
-        if router_state is not None:
-            return router_state
-        return deploy_state
 
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
@@ -175,7 +166,7 @@ class SftpDeploy:
         self.log(f"Root-Router hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
     def upload_deploy_state(self, state):
-        DeployStateFile.write(self.client, state)
+        DeployState.write(self.client, state)
         self.log(f"Deploy-State hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
     def cleanup(self, active, target):

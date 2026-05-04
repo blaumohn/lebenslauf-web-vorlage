@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from sftp_deploy_state import STATE_MARKER
-
 
 RESOURCE_DIR = Path(__file__).resolve().parents[1] / "src/resources/http"
 
@@ -10,7 +8,6 @@ def render_router(state):
     return render_template(
         "index.php.tpl",
         {
-            "state_marker": STATE_MARKER,
             "tree": state.tree,
             "vendor": state.vendor,
         },

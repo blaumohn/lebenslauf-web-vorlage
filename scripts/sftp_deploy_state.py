@@ -2,9 +2,7 @@ import json
 from dataclasses import dataclass
 
 
-STATE_MARKER = "// deploy-state:"
 STATE_FILE = ".deploy-state.json"
-ROUTER_FILE = "index.php"
 VALID_SLOTS = ("a", "b")
 
 
@@ -43,14 +41,14 @@ class DeploymentPlan:
         return cls(active, SlotState(tree, vendor))
 
 
-class DeployStateFile:
+class DeployState:
     @staticmethod
     def read(client):
-        return DeployStateFile.parse(client.read_file(STATE_FILE))
+        return DeployState.parse(client.read_file(STATE_FILE))
 
     @staticmethod
     def write(client, state):
-        client.put_bytes(STATE_FILE, DeployStateFile.format(state).encode("utf-8"))
+        client.put_bytes(STATE_FILE, DeployState.format(state).encode("utf-8"))
 
     @staticmethod
     def parse(content):
@@ -66,30 +64,6 @@ class DeployStateFile:
     def format(state):
         data = {"tree": state.tree, "vendor": state.vendor}
         return json.dumps(data, sort_keys=True) + "\n"
-
-
-class RouterState:
-    @staticmethod
-    def read(client):
-        return RouterState.parse(client.read_file(ROUTER_FILE))
-
-    @staticmethod
-    def parse(content):
-        for line in content.splitlines():
-            state = RouterState.parse_line(line.strip())
-            if state is not None:
-                return state
-        return None
-
-    @staticmethod
-    def parse_line(line):
-        if not line.startswith(STATE_MARKER):
-            return None
-        try:
-            parts = dict(kv.split("=") for kv in line[len(STATE_MARKER):].split())
-        except (ValueError, AttributeError):
-            return None
-        return SlotState.from_values(parts.get("tree", ""), parts.get("vendor", ""))
 
 
 def other_slot(slot):
