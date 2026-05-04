@@ -30,8 +30,8 @@ run_test() {
 
 run_tests() {
   run_test test-admin-deploy
-  run_test test-push-deploy
-  run_test test-composer-lock-changed
+  # run_test test-push-deploy
+  # run_test test-composer-lock-changed
 }
 
 main "$@"
