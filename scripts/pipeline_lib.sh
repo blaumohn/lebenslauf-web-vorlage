@@ -44,7 +44,7 @@ prepare_deploy_dir() {
   cp -a src/Http src/resources "$DEPLOY_DIR/src/"
   cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
   cp -a var/config "$DEPLOY_DIR/var/"
-  copy_deploy_htaccess root "$DEPLOY_DIR/.htaccess"
+  copy_deploy_htaccess app-slot "$DEPLOY_DIR/.htaccess"
   copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
   copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
 }
