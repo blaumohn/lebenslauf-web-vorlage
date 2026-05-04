@@ -1,3 +1,4 @@
+import configparser
 import sys
 import unittest
 from pathlib import Path
@@ -16,17 +17,24 @@ from sftp_deploy_templates import (
 
 
 class SftpDeployStateTest(unittest.TestCase):
-    def test_deploy_state_json_roundtrip(self):
+    def test_deploy_state_ini_roundtrip(self):
         state = SlotState("b", "a")
         content = DeployState.format(state)
 
         self.assertEqual(DeployState.parse(content), state)
-        self.assertEqual(content, '{"tree": "b", "vendor": "a"}\n')
+        parser = configparser.ConfigParser()
+        parser.read_string(content)
+        self.assertEqual(parser["state"]["tree"], "b")
+        self.assertEqual(parser["state"]["vendor"], "a")
 
     def test_invalid_deploy_state_returns_none(self):
-        self.assertIsNone(DeployState.parse('{"tree": "x", "vendor": "a"}'))
+        self.assertIsNone(DeployState.parse("[state]\ntree=x\nvendor=a\n"))
         self.assertIsNone(DeployState.parse("[]"))
-        self.assertIsNone(DeployState.parse("{"))
+        self.assertIsNone(DeployState.parse(""))
+
+    def test_deploy_state_format_rejects_missing_state(self):
+        with self.assertRaises(ValueError):
+            DeployState.format(None)
 
     def test_deployment_plan_swaps_tree_and_optional_vendor(self):
         active = SlotState("a", "b")

@@ -1,9 +1,17 @@
-import json
+import configparser
+import io
 from dataclasses import dataclass
 
 
-STATE_FILE = ".deploy-state.json"
+STATE_FILE = ".deploy-state.ini"
 VALID_SLOTS = ("a", "b")
+
+
+class IniConfig(configparser.ConfigParser):
+    def to_string(self):
+        out = io.StringIO()
+        self.write(out)
+        return out.getvalue()
 
 
 @dataclass(frozen=True)
@@ -48,23 +56,31 @@ class DeployState:
 
     @staticmethod
     def write(client, state):
-        client.put_bytes(STATE_FILE, DeployState.format(state).encode("utf-8"))
+        client.put_text(STATE_FILE, DeployState.format(state))
 
     @staticmethod
     def parse(content):
+        parser = configparser.ConfigParser()
         try:
-            data = json.loads(content)
-        except (json.JSONDecodeError, TypeError):
+            parser.read_string(content)
+        except configparser.Error:
             return None
-        if not isinstance(data, dict):
+        if not parser.has_section("state"):
             return None
-        return SlotState.from_values(data.get("tree", ""), data.get("vendor", ""))
+        tree = parser["state"].get("tree", "")
+        vendor = parser["state"].get("vendor", "")
+        return SlotState.from_values(tree, vendor)
 
     @staticmethod
     def format(state):
-        data = {"tree": state.tree, "vendor": state.vendor}
-        return json.dumps(data, sort_keys=True) + "\n"
-
+        if state is None:
+            raise ValueError("Deploy-State fehlt.")
+        config = IniConfig()
+        config["state"] = {
+            "tree": state.tree,
+            "vendor": state.vendor,
+        }
+        return config.to_string()
 
 def other_slot(slot):
     return "b" if slot == "a" else "a"
