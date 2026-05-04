@@ -7,7 +7,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from sftp_deploy_state import DeployStateFile, DeploymentPlan, RouterState, SlotState
-from sftp_deploy_templates import render_entry_htaccess, render_fallback_entry_htaccess, render_router
+from sftp_deploy_templates import (
+    render_entry_htaccess,
+    render_fallback_entry_htaccess,
+    render_router,
+    resource_path,
+)
 
 
 class SftpDeployStateTest(unittest.TestCase):
@@ -44,6 +49,7 @@ class SftpDeployStateTest(unittest.TestCase):
         self.assertIn("vendor-a", render_router(state))
         self.assertIn("b/public/$1", render_entry_htaccess(state))
         self.assertIn("RewriteRule ^ index.php [L]", render_fallback_entry_htaccess())
+        self.assertTrue(resource_path("entry-fallback.htaccess").is_file())
 
 
 if __name__ == "__main__":

@@ -25,6 +25,10 @@ def render_fallback_entry_htaccess():
     return read_resource("entry-fallback.htaccess")
 
 
+def resource_path(name):
+    return RESOURCE_DIR / name
+
+
 def render_template(name, values):
     content = read_resource(name)
     for key, value in values.items():
@@ -33,4 +37,4 @@ def render_template(name, values):
 
 
 def read_resource(name):
-    return (RESOURCE_DIR / name).read_text(encoding="utf-8")
+    return resource_path(name).read_text(encoding="utf-8")

@@ -46,6 +46,9 @@ class SftpClient:
         finally:
             os.unlink(tmp_path)
 
+    def put_text(self, rel_path, text):
+        self.put_bytes(rel_path, text.encode("utf-8"))
+
     def put_file(self, local_path, rel_path):
         self.sftp.put(str(local_path), self._abs(rel_path))
 

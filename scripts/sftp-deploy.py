@@ -10,8 +10,8 @@ from sftp_lib import (
 )
 from sftp_deploy_state import DeployStateFile, DeploymentPlan, RouterState
 from sftp_deploy_templates import (
+    resource_path,
     render_entry_htaccess,
-    render_fallback_entry_htaccess,
     render_router,
 )
 
@@ -143,20 +143,17 @@ def migrate_tokens(client, active_tree, inactive_tree):
 
 
 def upload_entry_htaccess(client, state):
-    content = render_entry_htaccess(state).encode("utf-8")
-    client.put_bytes(".htaccess", content)
+    client.put_text(".htaccess", render_entry_htaccess(state))
     log(f"Entry .htaccess hochgeladen: Baum {state.tree}")
 
 
 def upload_fallback_entry_htaccess(client):
-    content = render_fallback_entry_htaccess().encode("utf-8")
-    client.put_bytes(".htaccess", content)
+    client.put_file(resource_path("entry-fallback.htaccess"), ".htaccess")
     log("Entry .htaccess ohne statische Slot-Regeln hochgeladen")
 
 
 def upload_router(client, state):
-    content = render_router(state).encode("utf-8")
-    client.put_bytes("index.php", content)
+    client.put_text("index.php", render_router(state))
     log(f"Root-Router hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
 
