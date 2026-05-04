@@ -167,7 +167,7 @@ class SftpDeploy:
         self.log(f"Entry .htaccess hochgeladen: Baum {state.tree}")
 
     def upload_fallback_entry_htaccess(self):
-        self.client.put_file(resource_path("entry-fallback.htaccess"), ".htaccess")
+        self.client.put_file(resource_path(".htaccess-fallback"), ".htaccess")
         self.log("Entry .htaccess ohne statische Slot-Regeln hochgeladen")
 
     def upload_router(self, state):

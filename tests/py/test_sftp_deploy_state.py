@@ -49,7 +49,7 @@ class SftpDeployStateTest(unittest.TestCase):
         self.assertIn("vendor-a", render_router(state))
         self.assertIn("b/public/$1", render_entry_htaccess(state))
         self.assertIn("RewriteRule ^ index.php [L]", render_fallback_entry_htaccess())
-        self.assertTrue(resource_path("entry-fallback.htaccess").is_file())
+        self.assertTrue(resource_path(".htaccess-fallback").is_file())
 
 
 if __name__ == "__main__":
