@@ -9,6 +9,7 @@ from sftp_lib import (
     read_config,
 )
 from sftp_deploy_state import DeployState, DeploymentPlan
+from sftp_deploy_prepared import AdminTaskStore, PreparedDeployStore
 from sftp_deploy_templates import resource_path
 
 
@@ -68,9 +69,13 @@ class SftpDeploy:
         if self.include_vendor:
             self.upload_vendor_dir(target.vendor)
         self.migrate_tokens(active.tree, target.tree)
-        self.publish_switch(target)
-        self.cleanup(active, target)
-        self.log(f"Deploy abgeschlossen: Baum {target.tree}, Vendor {target.vendor}")
+        self.prepare_switch(target)
+        self.log(f"Deploy vorbereitet: Baum {target.tree}, Vendor {target.vendor}")
+
+    def prepare_switch(self, target):
+        prepared_path = PreparedDeployStore.write(self.client, target)
+        AdminTaskStore.enqueue_deploy_switch(self.client, prepared_path)
+        self.log(f"Switch vorbereitet: {prepared_path}")
 
     def publish_switch(self, target):
         self.upload_deploy_state(target)
