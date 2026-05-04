@@ -8,12 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from sftp_deploy_state import DeployState, DeploymentPlan, SlotState
-from sftp_deploy_templates import (
-    render_entry_htaccess,
-    render_fallback_entry_htaccess,
-    render_router,
-    resource_path,
-)
+from sftp_deploy_templates import resource_path
 
 
 class SftpDeployStateTest(unittest.TestCase):
@@ -45,14 +40,14 @@ class SftpDeployStateTest(unittest.TestCase):
         self.assertEqual(with_vendor.target, SlotState("b", "a"))
         self.assertEqual(without_vendor.target, SlotState("b", "b"))
 
-    def test_templates_render_current_deploy_files(self):
-        state = SlotState("b", "a")
+    def test_static_entry_resources_exist(self):
+        router = resource_path("index.php").read_text(encoding="utf-8")
+        htaccess = resource_path(".htaccess").read_text(encoding="utf-8")
 
-        self.assertNotIn("deploy-state", render_router(state))
-        self.assertIn("vendor-a", render_router(state))
-        self.assertIn("b/public/$1", render_entry_htaccess(state))
-        self.assertIn("RewriteRule ^ index.php [L]", render_fallback_entry_htaccess())
-        self.assertTrue(resource_path(".htaccess-fallback").is_file())
+        self.assertIn("parse_ini_file", router)
+        self.assertIn(".deploy-state.ini", router)
+        self.assertNotIn("// deploy-state:", router)
+        self.assertIn("RewriteRule ^ index.php [L]", htaccess)
 
 
 if __name__ == "__main__":

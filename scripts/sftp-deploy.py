@@ -9,11 +9,7 @@ from sftp_lib import (
     read_config,
 )
 from sftp_deploy_state import DeployState, DeploymentPlan
-from sftp_deploy_templates import (
-    resource_path,
-    render_entry_htaccess,
-    render_router,
-)
+from sftp_deploy_templates import resource_path
 
 
 def log(message):
@@ -59,6 +55,7 @@ class SftpDeploy:
         self.upload_app_tree(target.tree)
         if self.include_vendor:
             self.upload_vendor_dir(target.vendor)
+        self.upload_static_entry_files()
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
@@ -76,10 +73,12 @@ class SftpDeploy:
         self.log(f"Deploy abgeschlossen: Baum {target.tree}, Vendor {target.vendor}")
 
     def publish_switch(self, target):
-        self.upload_fallback_entry_htaccess()
-        self.upload_router(target)
         self.upload_deploy_state(target)
-        self.upload_entry_htaccess(target)
+
+    def upload_static_entry_files(self):
+        self.client.put_file(resource_path(".htaccess"), ".htaccess")
+        self.client.put_file(resource_path("index.php"), "index.php")
+        self.log("Statische Entry-Dateien hochgeladen")
 
     def upload_app_tree(self, tree):
         stats = new_stats()
@@ -152,18 +151,6 @@ class SftpDeploy:
             data = f.read()
         self.client.put_bytes(f"{dst}/{entry.filename}", data)
         return 1
-
-    def upload_entry_htaccess(self, state):
-        self.client.put_text(".htaccess", render_entry_htaccess(state))
-        self.log(f"Entry .htaccess hochgeladen: Baum {state.tree}")
-
-    def upload_fallback_entry_htaccess(self):
-        self.client.put_file(resource_path(".htaccess-fallback"), ".htaccess")
-        self.log("Entry .htaccess ohne statische Slot-Regeln hochgeladen")
-
-    def upload_router(self, state):
-        self.client.put_text("index.php", render_router(state))
-        self.log(f"Root-Router hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
 
     def upload_deploy_state(self, state):
         DeployState.write(self.client, state)
