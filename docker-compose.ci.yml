@@ -20,21 +20,6 @@ x-ci-preview-smtp: &ci-preview-smtp
   SMTP_FROM_NAME: "CI"
   CONTACT_TO_EMAIL: "ci-test@ci.invalid"
 
-x-ci-preview-base: &ci-preview-base
-  <<: *ci-base
-  volumes:
-    - ".:/repo:ro"
-    - "composer_home_preview:/home/ci/.composer"
-    - "npm_cache_preview:/home/ci/.npm"
-  environment:
-    <<: [*ci-env, *ci-preview-smtp]
-    APP_PIPELINE: preview
-    DEBUG: "${DEBUG:-0}"
-  depends_on:
-    - sftp-server
-    - preview-web
-    - mailpit
-
 services:
   ci-dev:
     <<: *ci-base
@@ -48,7 +33,19 @@ services:
     command: bash /repo/bin/ci
 
   ci-preview:
-    <<: *ci-preview-base
+    <<: *ci-base
+    volumes:
+      - ".:/repo:ro"
+      - "composer_home_preview:/home/ci/.composer"
+      - "npm_cache_preview:/home/ci/.npm"
+    environment:
+      <<: [*ci-env, *ci-preview-smtp]
+      APP_PIPELINE: preview
+      DEBUG: "${DEBUG:-0}"
+    depends_on:
+      - sftp-server
+      - preview-web
+      - mailpit
 
   mailpit:
     image: axllent/mailpit:latest
