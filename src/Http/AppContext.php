@@ -2,6 +2,9 @@
 
 namespace App\Http;
 
+use App\Http\Admin\AdminTaskRunner;
+use App\Http\Admin\Deploy\DeploySwitcher;
+use App\Http\Admin\Deploy\DeploySwitchTaskHandler;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Contact\MailService;
 use App\Http\Cv\CvStorage;
@@ -26,6 +29,7 @@ final class AppContext
     public IpHashService $ipHashService;
     public MailService $mailService;
     public IpResolver $ipResolver;
+    public AdminTaskRunner $adminTaskRunner;
 
     public static function fromConfig(ConfigCompiled $config): self
     {
@@ -52,8 +56,20 @@ final class AppContext
         $context->ipHashService = new IpHashService($ipSaltService->resolveSalt());
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
+        $context->adminTaskRunner = self::buildAdminTaskRunner($writer, $lockRunner, $config);
 
         return $context;
+    }
+
+    private static function buildAdminTaskRunner(
+        RuntimeAtomicWriter $writer,
+        RuntimeLockRunner $lockRunner,
+        ConfigCompiled $config,
+    ): AdminTaskRunner {
+        $entryPath = $config->entryPath();
+        $switcher = new DeploySwitcher($writer, $lockRunner, $entryPath);
+        $handlers = [new DeploySwitchTaskHandler($switcher)];
+        return new AdminTaskRunner($handlers, $entryPath);
     }
 
     private static function buildIpSaltService(

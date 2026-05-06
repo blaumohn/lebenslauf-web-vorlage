@@ -41,6 +41,9 @@ main() {
   run_pipeline
 
   if [[ "$PIPELINE" == "preview" ]]; then
+    if [[ -n "${LAST_DEPLOY_COMMIT:-}" ]]; then
+      trigger_admin_run "preview-web" "80"
+    fi
     if [[ "$test_case" == "test-push-deploy" ]]; then
       smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
       check_vendor_not_uploaded
@@ -78,6 +81,12 @@ setup_composer_lock_test() {
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
     commit -m "test: diff-deploy composer-lock-changed ci-test"
   export CI_BUILD_ID="$(git rev-parse HEAD)"
+}
+
+trigger_admin_run() {
+  local host="$1" port="$2" result
+  result="$(curl --fail --silent --show-error "http://${host}:${port}/admin/run")"
+  echo "[admin-trigger] ${result}"
 }
 
 sftp_read_vendor_build_id() {
