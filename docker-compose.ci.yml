@@ -10,6 +10,8 @@ x-ci-env: &ci-env
   COMPOSER_HOME: /home/ci/.composer
   CI_WORK_BASE: /tmp
 
+x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
+
 x-ci-preview-smtp: &ci-preview-smtp
   SMTP_HOST: "mailpit"
   SMTP_PORT: "1025"
@@ -24,23 +26,23 @@ services:
   ci-dev:
     <<: *ci-base
     volumes:
-      - ".:/repo:ro"
+      - *ci-repo-volume
       - "composer_home_dev:/home/ci/.composer"
       - "npm_cache_dev:/home/ci/.npm"
     environment:
       <<: *ci-env
-      APP_PIPELINE: dev
+      PIPELINE: dev
     command: bash /repo/bin/ci
 
   ci-preview:
     <<: *ci-base
     volumes:
-      - ".:/repo:ro"
+      - *ci-repo-volume
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
     environment:
       <<: [*ci-env, *ci-preview-smtp]
-      APP_PIPELINE: preview
+      PIPELINE: preview
       DEBUG: "${DEBUG:-0}"
     depends_on:
       - sftp-server
@@ -81,3 +83,4 @@ volumes:
   composer_home_preview:
   npm_cache_preview:
   preview_deploy:
+    name: preview_deploy

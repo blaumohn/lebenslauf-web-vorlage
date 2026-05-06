@@ -31,7 +31,7 @@ jobs:
       - name: Run preview pipeline and deploy
         shell: bash
         env:
-          APP_PIPELINE: ${{ vars.APP_PIPELINE }}
+          PIPELINE: ${{ vars.PIPELINE }}
           LAST_DEPLOY_COMMIT: ${{ github.event.before }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}

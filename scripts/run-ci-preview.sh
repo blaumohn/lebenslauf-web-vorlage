@@ -6,6 +6,7 @@ CI_SERVICE="ci-preview"
 
 main() {
   build_image
+  reset_preview_deploy
   start_helpers
   trap down_stack EXIT
   run_tests
@@ -21,6 +22,11 @@ start_helpers() {
 
 down_stack() {
   docker compose -f "$COMPOSE_FILE" down --remove-orphans
+}
+
+reset_preview_deploy() {
+  docker compose -f "$COMPOSE_FILE" down --remove-orphans
+  docker volume rm preview_deploy >/dev/null 2>&1 || true
 }
 
 run_test() {

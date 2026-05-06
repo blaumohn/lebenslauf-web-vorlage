@@ -1,22 +1,21 @@
 run_pipeline() {
   local is_dev docroot
 
-  require_env_set ROOT_DIR
   require_env_nonempty PIPELINE
   require_env_set PIPELINE_OVERRIDES
   
   [[ $PIPELINE == dev ]] && is_dev=1 || is_dev=
 
   if [[ ! $is_dev ]]; then
-    require_env_set LAST_DEPLOY_COMMIT DEPLOY_DIR
+    require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
   fi
 
   cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
   cli build "$PIPELINE" ${is_dev:+cv} --overrides "$PIPELINE_OVERRIDES"
-  [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
+  [[ -x vendor/bin/phpunit ]] && php vendor/bin/phpunit
 
   if [[ $is_dev ]]; then
-    docroot="$ROOT_DIR/public"
+    docroot="public"
   else
     deploy
     docroot="$DEPLOY_DIR/public"
@@ -53,7 +52,7 @@ copy_deploy_htaccess() {
   local scope="$1"
   local target="$2"
 
-  cp "$ROOT_DIR/src/resources/http/$scope/.htaccess" "$target"
+  cp "src/resources/http/$scope/.htaccess" "$target"
 }
 
 verify_artifact() {
@@ -83,7 +82,7 @@ should_include_vendor() {
 
 sftp_upload() {
   local include_vendor="$1"
-  SFTP_CFG_JSON="$(pipeline_config deploy)" SFTP_INCLUDE_VENDOR="$include_vendor" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
+  SFTP_CFG_JSON="$(pipeline_config deploy)" SFTP_INCLUDE_VENDOR="$include_vendor" python3 scripts/sftp-deploy.py
 }
 
 pipeline_config() {

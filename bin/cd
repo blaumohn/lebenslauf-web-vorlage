@@ -5,17 +5,19 @@ if [[ "${DEBUG:-0}" == "1" ]]; then
   set -x
 fi
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-. "$ROOT_DIR/scripts/shell_env.sh"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$REPO_DIR/scripts/shell_env.sh"
 
+require_env_nonempty PIPELINE
 require_env_set LAST_DEPLOY_COMMIT
-require_env_nonempty APP_PIPELINE
-
-. "$ROOT_DIR/scripts/pipeline_lib.sh"
 
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
+  cd "$REPO_DIR"
+  export PATH="$REPO_DIR/bin:$PATH"
+  . scripts/pipeline_lib.sh
+
   if [[ $# -gt 0 ]]; then
     echo "bin/cd verwendet keine Argumente" >&2
     exit 1
@@ -28,9 +30,7 @@ main() {
   pip install --quiet paramiko
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
 
-  DEPLOY_DIR="$ROOT_DIR/var/deploy"
-  export PATH="$ROOT_DIR/bin:$PATH"
-  PIPELINE="$APP_PIPELINE"
+  DEPLOY_DIR="var/deploy"
   PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
   run_pipeline
 }

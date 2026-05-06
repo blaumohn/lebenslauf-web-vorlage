@@ -3,7 +3,7 @@ smtp_smoke() {
   await_mailpit "$mailpit_api_url"
   assert_smtp_tls
   echo "[smtp-smoke] Sende Testmail..."
-  php "$ROOT_DIR/scripts/smoke-send-mail.php"
+  php "scripts/smoke-send-mail.php"
 
   local total
   total="$(curl --fail --silent --show-error \
@@ -33,7 +33,7 @@ assert_smtp_tls() {
   echo "[smtp-smoke] Prüfe TLS-Verbindung..."
   result="$(echo \
     | openssl s_client -connect "${host}:${port}" -starttls smtp \
-        -CAfile "$ROOT_DIR/tests/ci/ca.crt" 2>&1)"
+        -CAfile "tests/ci/ca.crt" 2>&1)"
   echo "$result" | grep -q "Verify return code: 0 (ok)" \
     || { echo "[smtp-smoke] TLS-Verifikation fehlgeschlagen" >&2
          echo "$result" | grep "Verify return code" >&2
