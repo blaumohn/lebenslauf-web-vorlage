@@ -2,10 +2,10 @@
 
 namespace App\Cli\Command;
 
-use App\Cli\Token\TokenRotateHandler;
 use App\Http\Cv\CvStorage;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
+use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -55,7 +55,7 @@ final class TokenCommand extends BaseCommand
         }
     }
 
-    private function buildHandler(): TokenRotateHandler
+    private function buildHandler(): TokenRotationService
     {
         $root = $this->rootPath();
         $storage = new FileStorage();
@@ -63,6 +63,6 @@ final class TokenCommand extends BaseCommand
         $lockRunner = new RuntimeLockRunner(Path::join($root, 'var', 'state', 'locks'));
         $writer = new RuntimeAtomicWriter();
         $tokenService = new TokenService($storage, $lockRunner, $writer, Path::join($root, 'var', 'state', 'tokens'));
-        return new TokenRotateHandler($cvStorage, $tokenService);
+        return new TokenRotationService($cvStorage, $tokenService);
     }
 }

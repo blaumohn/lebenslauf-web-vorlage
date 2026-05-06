@@ -42,7 +42,7 @@ abstract class FeatureTestCase extends TestCase
 
     protected function tearDown(): void
     {
-        $this->removeDir($this->root);
+        $this->removeDir(dirname($this->root));
     }
 
     protected function app(): App
@@ -100,18 +100,18 @@ abstract class FeatureTestCase extends TestCase
     {
         $suffix = '/php-mvp-app-' . bin2hex(random_bytes(6));
         $baseDir = sys_get_temp_dir();
-        $root = $baseDir . $suffix;
-        if (@mkdir($root, 0775, true)) {
-            return $root;
+        $base = $baseDir . $suffix;
+        if (@mkdir($base . '/app', 0775, true)) {
+            return $base . '/app';
         }
 
         $fallback = $this->projectRoot() . '/var/tmp';
-        $root = $fallback . $suffix;
-        if (@mkdir($root, 0775, true)) {
-            return $root;
+        $base = $fallback . $suffix;
+        if (@mkdir($base . '/app', 0775, true)) {
+            return $base . '/app';
         }
 
-        throw new RuntimeException('Konnte Test-Verzeichnis nicht anlegen: ' . $root);
+        throw new RuntimeException('Konnte Test-Verzeichnis nicht anlegen: ' . $base . '/app');
     }
 
     private function ensureDirs(array $dirs): void

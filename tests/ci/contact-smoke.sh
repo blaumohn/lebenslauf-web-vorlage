@@ -33,10 +33,10 @@ contact_smoke() {
 assert_contact_mail_content() {
   local runtime_config expected_to subject to
   runtime_config="$(pipeline_config runtime)"
-  expected_to="$(config_value "$runtime_config" CONTACT_TO_EMAIL)"
-  read -r subject to < <(mailpit_latest_message_subject_and_to)
+  expected_to="$(config_value "$runtime_config" MAIL_TO_EMAIL)"
+  IFS=$'\t' read -r subject to < <(mailpit_latest_message_subject_and_to)
 
-  [[ "$subject" == "Kontaktformular" ]] \
+  [[ "$subject" == *"/Contact]"* ]] \
     || { echo "[contact-smoke] Unerwartetes Mail-Subjekt: '$subject'" >&2; return 1; }
   [[ "$to" == "$expected_to" ]] \
     || { echo "[contact-smoke] Unerwarteter Empfänger: '$to'" >&2; return 1; }

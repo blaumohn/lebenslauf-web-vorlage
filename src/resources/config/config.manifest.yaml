@@ -63,20 +63,20 @@ variable-groups:
       meta:
         desc: "Maximale Kontaktformular-Absendungen pro Zeitfenster"
         example: "3"
-    CONTACT_TO_EMAIL:
+  mail:
+    MAIL_TO_EMAIL:
       meta:
-        desc: "Empfängeradresse für Kontaktformular"
+        desc: "Empfängeradresse für App-Nachrichten (Kontaktformular, Admin-Rückkanal)"
         notes: >-
-          Bleibt unabhängig vom SMTP-Absenderpfad. Der Wert bestimmt das
-          Ziel des Formulars, nicht den Absender der App.
+          Gemeinsame Empfängeradresse für alle automatisierten Nachrichten der App.
+          Unabhängig vom SMTP-Absenderpfad.
         example: "kontakt@example.invalid"
     MAIL_STDOUT:
       meta:
-        desc: "Kontaktformular-Ausgabe auf stdout statt Transport (1 = aktiv, für Entwicklung)"
+        desc: "Mail-Ausgabe auf stdout statt Transport (1 = aktiv, für Entwicklung)"
         notes: >-
-          Kontaktformular-Runtime-Schalter fuer den stdout-Pfad. In dev ist
-          dies der Transportersatz; preview kann zusaetzlich SMTP_*-Werte fuer
-          echten SMTP-Betrieb fuehren.
+          Gilt für alle Mail-Pfade der App. In dev als Transportersatz;
+          preview und produktion nutzen SMTP_*.
         example: "1"
 
   rate_limit:
@@ -125,7 +125,7 @@ variable-groups:
         desc: "Absenderadresse der App für ausgehende E-Mails"
         notes: >-
           Nur relevant bei echtem SMTP-Betrieb zusammen mit
-          SMTP_FROM_NAME. Nicht mit CONTACT_TO_EMAIL verwechseln.
+          SMTP_FROM_NAME. Nicht mit MAIL_TO_EMAIL verwechseln.
         example: "kontakt@example.invalid"
     SMTP_FROM_NAME:
       meta:
@@ -194,6 +194,7 @@ phases:
       - LEBENSLAUF_LANGS
     captcha: "*"
     contact: "*"
+    mail: "*"
     rate_limit: "*"
 
   deploy: {}
@@ -203,6 +204,9 @@ pipelines:
     setup:
       lebenslauf:
         - LEBENSLAUF_PUBLIC_PROFILE
+    runtime:
+      smtp:
+        - SMTP_FROM_NAME
 
   preview:
     runtime:

@@ -32,6 +32,7 @@ jobs:
         shell: bash
         env:
           PIPELINE: ${{ vars.PIPELINE }}
+          MAIL_TO_EMAIL: ${{ secrets.MAIL_TO_EMAIL }}
           LAST_DEPLOY_COMMIT: ${{ github.event.before }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
