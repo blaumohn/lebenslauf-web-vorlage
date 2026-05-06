@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use App\Http\ConfigCompiled;
-use App\Http\Contact\MailService;
+use App\Http\Mail\MailMessage;
+use App\Http\Mail\MailService;
 use PHPUnit\Framework\TestCase;
 
 final class MailServiceTest extends TestCase
@@ -22,18 +23,27 @@ final class MailServiceTest extends TestCase
         $this->removeDir($this->root);
     }
 
-    public function testRejectsInvalidContactRecipient(): void
+    public function testSendsToStdout(): void
     {
-        $this->writeConfig([
-            'MAIL_STDOUT' => '0',
-            'CONTACT_TO_EMAIL' => 'ungueltig',
-        ]);
+        $this->writeConfig(['MAIL_STDOUT' => '1', 'MAIL_TO_EMAIL' => 'a@example.invalid', 'SMTP_FROM_NAME' => 'TestApp']);
         $service = new MailService(new ConfigCompiled($this->root));
+        $message = new MailMessage('Test', 'Betreff', 'Inhalt');
+
+        $result = $service->send($message);
+
+        $this->assertTrue($result);
+    }
+
+    public function testRejectsInvalidRecipient(): void
+    {
+        $this->writeConfig(['MAIL_STDOUT' => '0', 'MAIL_TO_EMAIL' => 'ungueltig']);
+        $service = new MailService(new ConfigCompiled($this->root));
+        $message = new MailMessage(module: 'Test', title: 'Test', body: 'Text');
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('CONTACT_TO_EMAIL muss eine gueltige E-Mail-Adresse sein.');
+        $this->expectExceptionMessage('MAIL_TO_EMAIL ist keine gültige E-Mail-Adresse.');
 
-        $service->send('Max', 'max@example.invalid', 'Nachricht');
+        $service->send($message);
     }
 
     private function writeConfig(array $config): void

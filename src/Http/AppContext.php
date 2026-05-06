@@ -6,7 +6,7 @@ use App\Http\Admin\AdminTaskRunner;
 use App\Http\Admin\Deploy\DeploySwitcher;
 use App\Http\Admin\Deploy\DeploySwitchTaskHandler;
 use App\Http\Captcha\CaptchaService;
-use App\Http\Contact\MailService;
+use App\Http\Mail\MailService;
 use App\Http\Cv\CvStorage;
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;

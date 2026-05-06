@@ -20,7 +20,7 @@ x-ci-preview-smtp: &ci-preview-smtp
   SMTP_ENCRYPTION: "tls"
   SMTP_FROM_EMAIL: "noreply@ci.invalid"
   SMTP_FROM_NAME: "CI"
-  CONTACT_TO_EMAIL: "ci-test@ci.invalid"
+  MAIL_TO_EMAIL: "ci-test@ci.invalid"
 
 services:
   ci-dev:

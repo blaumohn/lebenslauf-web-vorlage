@@ -19,9 +19,9 @@ function build_overrides_json(): array
   return [
     'preview' => [
       'runtime' => [
-        'contact' => get_set_nonempty([
+        'mail' => get_set_nonempty([
+          'MAIL_TO_EMAIL',
           'MAIL_STDOUT',
-          'CONTACT_TO_EMAIL',
         ]),
         'smtp' => get_set_nonempty([
           'SMTP_HOST',

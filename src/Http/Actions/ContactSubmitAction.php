@@ -3,6 +3,7 @@
 namespace App\Http\Actions;
 
 use App\Http\AppContext;
+use App\Http\Mail\MailMessage;
 use App\Http\ResponseHelper;
 use App\Http\View\PageViewBuilder;
 use Psr\Http\Message\ResponseInterface;
@@ -41,7 +42,7 @@ final class ContactSubmitAction
             return $this->renderFormError($response, $ipHash, $form, $captchaOk);
         }
 
-        $sent = $this->context->mailService->send($form['name'], $form['email'], $form['message']);
+        $sent = $this->context->mailService->send($this->buildContactMessage($form));
         if (!$sent) {
             return $this->renderContactForm(
                 $response,
@@ -58,6 +59,18 @@ final class ContactSubmitAction
         ] + $base);
 
         return ResponseHelper::html($response, $html);
+    }
+
+    private function buildContactMessage(array $form): MailMessage
+    {
+        $body = "Name: {$form['name']}\n"
+            . "E-Mail: {$form['email']}\n\n"
+            . "Nachricht:\n{$form['message']}";
+        return new MailMessage(
+            module: 'Contact',
+            title: 'Neue Nachricht von ' . $form['name'],
+            body: $body,
+        );
     }
 
     private function renderRateLimit(ResponseInterface $response): ResponseInterface
