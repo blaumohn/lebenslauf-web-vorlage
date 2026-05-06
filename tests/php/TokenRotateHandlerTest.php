@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Cli\Token\TokenRotateHandler;
 use App\Http\Cv\CvStorage;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
+use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
@@ -66,15 +66,15 @@ final class TokenRotateHandlerTest extends TestCase
         $this->assertTrue($tokenService->verify('test', $tokens[0]));
     }
 
-    private function handler(): TokenRotateHandler
+    private function handler(): TokenRotationService
     {
         return $this->handlerWith($this->tokenService());
     }
 
-    private function handlerWith(TokenService $tokenService): TokenRotateHandler
+    private function handlerWith(TokenService $tokenService): TokenRotationService
     {
         $cvStorage = new CvStorage(new FileStorage(), $this->tempDir . '/html');
-        return new TokenRotateHandler($cvStorage, $tokenService);
+        return new TokenRotationService($cvStorage, $tokenService);
     }
 
     private function tokenService(): TokenService

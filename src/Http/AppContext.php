@@ -5,6 +5,7 @@ namespace App\Http;
 use App\Http\Admin\AdminTaskRunner;
 use App\Http\Admin\Deploy\DeploySwitcher;
 use App\Http\Admin\Deploy\DeploySwitchTaskHandler;
+use App\Http\Admin\Token\CvTokenRotationTaskHandler;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Mail\MailService;
 use App\Http\Cv\CvStorage;
@@ -13,6 +14,7 @@ use App\Http\Security\IpSaltService;
 use App\Http\Security\RateLimiter;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
+use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
@@ -56,7 +58,9 @@ final class AppContext
         $context->ipHashService = new IpHashService($ipSaltService->resolveSalt());
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
-        $context->adminTaskRunner = self::buildAdminTaskRunner($writer, $lockRunner, $config);
+        $context->adminTaskRunner = self::buildAdminTaskRunner(
+            $writer, $lockRunner, $config, $context->mailService, $context->cvStorage, $context->tokenService
+        );
 
         return $context;
     }
@@ -65,10 +69,17 @@ final class AppContext
         RuntimeAtomicWriter $writer,
         RuntimeLockRunner $lockRunner,
         ConfigCompiled $config,
+        MailService $mailService,
+        CvStorage $cvStorage,
+        TokenService $tokenService,
     ): AdminTaskRunner {
         $entryPath = $config->entryPath();
         $switcher = new DeploySwitcher($writer, $lockRunner, $entryPath);
-        $handlers = [new DeploySwitchTaskHandler($switcher)];
+        $rotateHandler = new TokenRotationService($cvStorage, $tokenService);
+        $handlers = [
+            new DeploySwitchTaskHandler($switcher),
+            new CvTokenRotationTaskHandler($rotateHandler, $mailService),
+        ];
         return new AdminTaskRunner($handlers, $entryPath);
     }
 
