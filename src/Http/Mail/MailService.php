@@ -28,7 +28,7 @@ final class MailService
             . "To: {$to}\n"
             . "Subject: {$message->subject($appName)}\n\n"
             . $message->body . "\n";
-        $stream = fopen('php://stdout', 'wb');
+        $stream = fopen('php://output', 'wb');
         if ($stream === false) {
             error_log($payload);
             return true;
