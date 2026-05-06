@@ -10,44 +10,56 @@ x-ci-env: &ci-env
   COMPOSER_HOME: /home/ci/.composer
   CI_WORK_BASE: /tmp
 
-x-ci-preview-base: &ci-preview-base
-  <<: *ci-base
-  volumes:
-    - ".:/repo:ro"
-    - "composer_home_preview:/home/ci/.composer"
-    - "npm_cache_preview:/home/ci/.npm"
-  environment:
-    <<: *ci-env
-    APP_PIPELINE: preview
-    DEBUG: "${DEBUG:-0}"
-  command: bash /repo/bin/ci
-  depends_on:
-    - sftp-server
-    - preview-web
+x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
+
+x-ci-preview-smtp: &ci-preview-smtp
+  SMTP_HOST: "mailpit"
+  SMTP_PORT: "1025"
+  SMTP_USER: "ci"
+  SMTP_PASS: "ci-pass"
+  SMTP_ENCRYPTION: "tls"
+  SMTP_FROM_EMAIL: "noreply@ci.invalid"
+  SMTP_FROM_NAME: "CI"
+  CONTACT_TO_EMAIL: "ci-test@ci.invalid"
 
 services:
   ci-dev:
     <<: *ci-base
     volumes:
-      - ".:/repo:ro"
+      - *ci-repo-volume
       - "composer_home_dev:/home/ci/.composer"
       - "npm_cache_dev:/home/ci/.npm"
     environment:
       <<: *ci-env
-      APP_PIPELINE: dev
+      PIPELINE: dev
     command: bash /repo/bin/ci
 
   ci-preview:
-    <<: *ci-preview-base
-    command: bash /repo/bin/ci test-admin-deploy
+    <<: *ci-base
+    volumes:
+      - *ci-repo-volume
+      - "composer_home_preview:/home/ci/.composer"
+      - "npm_cache_preview:/home/ci/.npm"
+    environment:
+      <<: [*ci-env, *ci-preview-smtp]
+      PIPELINE: preview
+      DEBUG: "${DEBUG:-0}"
+    depends_on:
+      - sftp-server
+      - preview-web
+      - mailpit
 
-  ci-diff-preview:
-    <<: *ci-preview-base
-    command: bash /repo/bin/ci test-push-deploy
-
-  ci-diff-vendor-preview:
-    <<: *ci-preview-base
-    command: bash /repo/bin/ci test-composer-lock-changed
+  mailpit:
+    image: axllent/mailpit:latest
+    environment:
+      MP_SMTP_AUTH_FILE: "/smtp-auth"
+      MP_SMTP_TLS_CERT: "/tls/mailpit.crt"
+      MP_SMTP_TLS_KEY: "/tls/mailpit.key"
+      MP_SMTP_REQUIRE_STARTTLS: "true"
+    volumes:
+      - "./tests/ci/smtp-auth:/smtp-auth:ro"
+      - "./tests/ci/mailpit.crt:/tls/mailpit.crt:ro"
+      - "./tests/ci/mailpit.key:/tls/mailpit.key:ro"
 
   sftp-server:
     image: atmoz/sftp:alpine
@@ -58,8 +70,8 @@ services:
   preview-web:
     image: php:8.2-apache
     environment:
-      APACHE_RUN_USER: "#1000"
-      APACHE_RUN_GROUP: "#1000"
+      APACHE_RUN_USER: "preview-ci"
+      APACHE_RUN_GROUP: "preview-ci"
     command: bash /scripts/config-apache.sh
     volumes:
       - "preview_deploy:/var/www/html"
@@ -71,3 +83,4 @@ volumes:
   composer_home_preview:
   npm_cache_preview:
   preview_deploy:
+    name: preview_deploy

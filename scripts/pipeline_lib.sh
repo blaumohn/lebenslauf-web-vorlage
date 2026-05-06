@@ -1,24 +1,23 @@
 run_pipeline() {
-  local pipeline="$1" is_dev docroot
+  local is_dev docroot
 
-  require_env_set ROOT_DIR
-  require_env_nonempty pipeline
+  require_env_nonempty PIPELINE
+  require_env_set PIPELINE_OVERRIDES
   
-  [[ $pipeline == dev ]] && is_dev=1 || is_dev=
+  [[ $PIPELINE == dev ]] && is_dev=1 || is_dev=
 
   if [[ ! $is_dev ]]; then
-    require_env_set LAST_DEPLOY_COMMIT DEPLOY_DIR
+    require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
   fi
 
-  cli setup "$pipeline" ${is_dev:+--with-sample-content}
-  overrides="$(php scripts/build-overrides-json.php)"
-  cli build "$pipeline" ${is_dev:+cv} --overrides "$overrides"
-  [[ -x "$ROOT_DIR/vendor/bin/phpunit" ]] && php "$ROOT_DIR/vendor/bin/phpunit"
+  cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
+  cli build "$PIPELINE" ${is_dev:+cv} --overrides "$PIPELINE_OVERRIDES"
+  [[ -x vendor/bin/phpunit ]] && php vendor/bin/phpunit
 
   if [[ $is_dev ]]; then
-    docroot="$ROOT_DIR/public"
+    docroot="public"
   else
-    deploy "$pipeline" "$overrides"
+    deploy
     docroot="$DEPLOY_DIR/public"
   fi
 
@@ -26,16 +25,14 @@ run_pipeline() {
 }
 
 deploy() {
-  local pipeline="$1" overrides="$2"
-  local cfg_json include_vendor=true
+  local include_vendor=true
 
   prepare_deploy_dir
   verify_artifact
 
-  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
   include_vendor="$(should_include_vendor)"
 
-  sftp_upload "$cfg_json" "$include_vendor"
+  sftp_upload "$include_vendor"
 }
 
 prepare_deploy_dir() {
@@ -46,7 +43,7 @@ prepare_deploy_dir() {
   cp -a src/Http src/resources "$DEPLOY_DIR/src/"
   cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
   cp -a var/config "$DEPLOY_DIR/var/"
-  copy_deploy_htaccess root "$DEPLOY_DIR/.htaccess"
+  copy_deploy_htaccess app-slot "$DEPLOY_DIR/.htaccess"
   copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
   copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
 }
@@ -55,7 +52,7 @@ copy_deploy_htaccess() {
   local scope="$1"
   local target="$2"
 
-  cp "$ROOT_DIR/src/resources/http/$scope/.htaccess" "$target"
+  cp "src/resources/http/$scope/.htaccess" "$target"
 }
 
 verify_artifact() {
@@ -84,10 +81,21 @@ should_include_vendor() {
 }
 
 sftp_upload() {
-  local cfg_json="$1" include_vendor="$2"
-  SFTP_CFG_JSON="$cfg_json" SFTP_INCLUDE_VENDOR="$include_vendor" python3 "$ROOT_DIR/scripts/sftp-deploy.py"
+  local include_vendor="$1"
+  SFTP_CFG_JSON="$(pipeline_config deploy)" SFTP_INCLUDE_VENDOR="$include_vendor" python3 scripts/sftp-deploy.py
 }
 
+pipeline_config() {
+  local phase="$1"
+  require_env_nonempty PIPELINE
+  require_env_set PIPELINE_OVERRIDES
+  cli config get "$PIPELINE" --phase "$phase" --overrides "$PIPELINE_OVERRIDES"
+}
+
+config_value() {
+  local config="$1" key="$2"
+  printf '%s' "$config" | jq -er --arg key "$key" '.[$key]'
+}
 
 with_http_server() {
   local port="$1"

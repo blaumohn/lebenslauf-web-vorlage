@@ -5,119 +5,193 @@ if [[ "${DEBUG:-0}" == "1" ]]; then
   set -x
 fi
 
-ROOT_DIR_RO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-. "$ROOT_DIR_RO/scripts/shell_env.sh"
+SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$SOURCE_REPO_DIR/scripts/shell_env.sh"
 
-require_env_nonempty APP_PIPELINE
+require_env_nonempty PIPELINE CI_WORK_BASE
 
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
-  local test_case="${1:-}" pipeline work_dir
-  pipeline="$APP_PIPELINE"
+  local test_case="${1:-}"
+  local ci_build_id=""
 
-  ROOT_DIR="$(clone_work_dir)"
+  WORK_REPO_DIR="$(clone_work_dir)"
+  cd "$WORK_REPO_DIR"
   apply_working_state
-  export PATH="$ROOT_DIR/bin:$PATH"
-  cd "$ROOT_DIR"
-  . "$ROOT_DIR/scripts/pipeline_lib.sh"
+  export PATH="$WORK_REPO_DIR/bin:$PATH"
 
-  if [[ "$pipeline" == "preview" ]]; then
-    DEPLOY_DIR="$ROOT_DIR/var/deploy"
-    setup_preview_ci_env
+  . scripts/pipeline_lib.sh
 
-    case "$test_case" in
-      test-admin-deploy)          export LAST_DEPLOY_COMMIT="" ;;
-      test-push-deploy)           setup_push_deploy_test ;;
-      test-composer-lock-changed) setup_composer_lock_test ;;
-      *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
-    esac
+  if [[ "$PIPELINE" != "dev" ]]; then
+    LAST_DEPLOY_COMMIT="$(setup_deploy_test_case "$test_case")"
+    DEPLOY_DIR="var/deploy"
+    set_ftp_vars
   fi
 
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
-  [[ -n "${CI_BUILD_ID:-}" ]] && printf '%s' "$CI_BUILD_ID" > vendor/.ci-build-id
-  run_pipeline "$pipeline"
+  ci_build_id="$(write_ci_build_id "$test_case")"
 
-  if [[ "$pipeline" == "preview" ]]; then
-    if [[ "$test_case" == "test-push-deploy" ]]; then
-      smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
-      check_vendor_not_uploaded "$pipeline"
-    fi
-    if [[ "$test_case" == "test-composer-lock-changed" ]]; then
-      check_vendor_uploaded "$pipeline"
-    fi
-    http_smoke_checks "preview-web" "80"
+  PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
+  run_pipeline
+  run_preview_checks "$test_case" "$ci_build_id"
+}
+
+setup_deploy_test_case() {
+  local test_case="$1"
+  case "$test_case" in
+    test-admin-deploy)          printf '\n' ;;
+    test-push-deploy)           setup_push_deploy_test ;;
+    test-composer-lock-changed) setup_composer_lock_test ;;
+    *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
+  esac
+}
+
+run_preview_checks() {
+  local test_case="$1" ci_build_id="$2"
+  if [[ "$PIPELINE" != "preview" ]]; then
+    return
   fi
+  trigger_preview_admin_run
+  run_preview_test_case_checks "$test_case" "$ci_build_id"
+  http_smoke_checks "preview-web" "80"
+  run_smtp_smoke
+  run_contact_smoke
+}
+
+trigger_preview_admin_run() {
+  if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
+    return
+  fi
+  trigger_admin_run "preview-web" "80"
+}
+
+run_preview_test_case_checks() {
+  local test_case="$1" ci_build_id="$2"
+  if [[ "$test_case" == "test-push-deploy" ]]; then
+    smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
+    check_vendor_not_uploaded "$ci_build_id"
+  fi
+  if [[ "$test_case" == "test-composer-lock-changed" ]]; then
+    check_vendor_uploaded "$ci_build_id"
+  fi
+  return 0
+}
+
+run_smtp_smoke() {
+  . tests/ci/smtp-smoke.sh
+  smtp_smoke
+}
+
+run_contact_smoke() {
+  . tests/ci/contact-smoke.sh
+  contact_smoke
 }
 
 test_no_diff_deploy() {
-  no_changes_since_deploy \
+  local last_deploy_commit="$1"
+  git diff --quiet "$last_deploy_commit" HEAD \
     || { echo "[no-diff-check] Deploy-Skip bei leerem Diff fehlgeschlagen" >&2; return 1; }
 }
 
 setup_push_deploy_test() {
-  export LAST_DEPLOY_COMMIT="$(git rev-parse HEAD)"
-  test_no_diff_deploy
+  local last_deploy_commit
+  last_deploy_commit="$(git rev-parse HEAD)"
+  test_no_diff_deploy "$last_deploy_commit"
   printf '<!-- ci-diff-test -->\n' > public/ci-diff-test.html
   git add public/ci-diff-test.html
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
-    commit -m "test: diff-deploy ci-test"
-  export CI_BUILD_ID="$(git rev-parse HEAD)"
+    commit -m "test: diff-deploy ci-test" >&2
+  printf '%s\n' "$last_deploy_commit"
 }
 
 setup_composer_lock_test() {
-  export LAST_DEPLOY_COMMIT="$(git rev-parse HEAD)"
+  local last_deploy_commit
+  last_deploy_commit="$(git rev-parse HEAD)"
   printf '\n' >> composer.lock
   git add composer.lock
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
-    commit -m "test: diff-deploy composer-lock-changed ci-test"
-  export CI_BUILD_ID="$(git rev-parse HEAD)"
+    commit -m "test: diff-deploy composer-lock-changed ci-test" >&2
+  printf '%s\n' "$last_deploy_commit"
+}
+
+write_ci_build_id() {
+  local test_case="$1" id
+  case "$test_case" in
+  test-push-deploy|test-composer-lock-changed)
+    id="$(git rev-parse HEAD)"
+    printf '%s' "$id" | tee vendor/.ci-build-id
+    ;;
+  esac
+}
+
+trigger_admin_run() {
+  local host="$1" port="$2" result
+  result="$(
+    curl --fail --silent --show-error \
+      "http://${host}:${port}/admin/run"
+  )"
+  echo "[admin-trigger] ${result}"
 }
 
 sftp_read_vendor_build_id() {
-  local pipeline="$1" overrides cfg_json
-  overrides="$(php scripts/build-overrides-json.php)"
-  cfg_json="$(cli config get "$pipeline" --phase deploy --overrides "$overrides")"
-  SFTP_CFG_JSON="$cfg_json" python3 "$ROOT_DIR/scripts/sftp-read-vendor-build-id.py"
+  SFTP_CFG_JSON="$(pipeline_config deploy)" \
+    python3 scripts/sftp-read-vendor-build-id.py
 }
 
 check_vendor_not_uploaded() {
-  local pipeline="$1" server_id
-  server_id="$(sftp_read_vendor_build_id "$pipeline")"
-  if [[ "$server_id" == "$CI_BUILD_ID" ]]; then
-    echo "[vendor-check] vendor/ fälschlicherweise hochgeladen: build_id=$CI_BUILD_ID" >&2
+  local ci_build_id="$1" server_id
+  server_id="$(sftp_read_vendor_build_id)"
+  if [[ "$server_id" == "$ci_build_id" ]]; then
+    echo "[vendor-check] vendor/ fälschlicherweise hochgeladen: build_id=$ci_build_id" >&2
     return 1
   fi
 }
 
 check_vendor_uploaded() {
-  local pipeline="$1" server_id
-  server_id="$(sftp_read_vendor_build_id "$pipeline")"
-  if [[ "$server_id" != "$CI_BUILD_ID" ]]; then
-    echo "[vendor-check] vendor/ nicht hochgeladen: erwartet=$CI_BUILD_ID, server=$server_id" >&2
+  local ci_build_id="$1" server_id
+  server_id="$(sftp_read_vendor_build_id)"
+  if [[ "$server_id" != "$ci_build_id" ]]; then
+    echo "[vendor-check] vendor/ nicht hochgeladen: erwartet=$ci_build_id, server=$server_id" >&2
     return 1
   fi
 }
 
 clone_work_dir() {
   local work_dir
-  work_dir="$(mktemp -d "${CI_WORK_BASE:-/tmp}/ci-XXXXXX")"
-  git clone --local --no-hardlinks /repo "$work_dir"
+  work_dir="$(mktemp -d "$CI_WORK_BASE/ci-XXXXXX")"
+  git clone --local --no-hardlinks "$SOURCE_REPO_DIR" "$work_dir"
   echo "$work_dir"
 }
 
 apply_working_state() {
+  apply_tracked_working_diff
+  copy_untracked_working_files
+}
+
+apply_tracked_working_diff() {
   local diff
-  diff="$(git -C /repo -c safe.directory=/repo diff --binary HEAD)"
-  [ -n "$diff" ] && echo "$diff" | git -C "$ROOT_DIR" apply --whitespace=nowarn
-  git -C /repo -c safe.directory=/repo ls-files --others --exclude-standard \
+  diff="$(git -C "$SOURCE_REPO_DIR" -c safe.directory="$SOURCE_REPO_DIR" diff --binary HEAD)"
+  if [[ -z "$diff" ]]; then
+    return 0
+  fi
+  echo "$diff" | git apply --whitespace=nowarn
+}
+
+copy_untracked_working_files() {
+  git -C "$SOURCE_REPO_DIR" -c safe.directory="$SOURCE_REPO_DIR" ls-files --others --exclude-standard \
     | while IFS= read -r f; do
-        mkdir -p "$ROOT_DIR/$(dirname "$f")"
-        cp "/repo/$f" "$ROOT_DIR/$f"
+        copy_untracked_working_file "$f"
       done
 }
 
-setup_preview_ci_env() {
+copy_untracked_working_file() {
+  local file="$1"
+  mkdir -p "$(dirname "$file")"
+  cp "$SOURCE_REPO_DIR/$file" "$file"
+}
+
+set_ftp_vars() {
   export FTP_HOST="sftp-server"
   export FTP_USER="preview-ci"
   export FTP_PASS="ci-pass"

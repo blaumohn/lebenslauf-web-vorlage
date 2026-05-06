@@ -25,10 +25,7 @@ final class CaptchaServiceTest extends TestCase
 
     public function testChallengeLifecycle(): void
     {
-        $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner($this->tempDir);
-        $writer = new RuntimeAtomicWriter();
-        $service = new CaptchaService($storage, $lockRunner, $writer, $this->tempDir, 60);
+        $service = $this->buildService();
 
         $challenge = $service->createChallenge('iphash');
         $this->assertNotEmpty($challenge['captcha_id']);
@@ -43,16 +40,39 @@ final class CaptchaServiceTest extends TestCase
         $this->assertNull($again);
     }
 
+    public function testCaptchaIdContainsTimestamp(): void
+    {
+        $service = $this->buildService();
+        $challenge = $service->createChallenge('iphash');
+        $id = $challenge['captcha_id'];
+
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}_\d+$/', $id);
+    }
+
+    public function testParseIdTimestampValid(): void
+    {
+        $service = $this->buildService();
+        $ts = time();
+        $id = bin2hex(random_bytes(16)) . '_' . $ts;
+
+        $this->assertSame($ts, $service->parseIdTimestamp($id));
+    }
+
+    public function testParseIdTimestampInvalid(): void
+    {
+        $service = $this->buildService();
+
+        $this->assertNull($service->parseIdTimestamp('nounderscore'));
+        $this->assertNull($service->parseIdTimestamp('abc_notanumber'));
+    }
+
     public function testRenderPng(): void
     {
         if (!extension_loaded('gd') || !function_exists('imagecreatetruecolor')) {
             $this->markTestSkipped('GD extension is required for CAPTCHA rendering.');
         }
 
-        $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner($this->tempDir);
-        $writer = new RuntimeAtomicWriter();
-        $service = new CaptchaService($storage, $lockRunner, $writer, $this->tempDir, 60);
+        $service = $this->buildService();
 
         $png = $service->renderPng('ABC123');
         $this->assertNotEmpty($png);
@@ -62,6 +82,14 @@ final class CaptchaServiceTest extends TestCase
         $this->assertIsArray($size);
         $this->assertGreaterThan(0, $size[0]);
         $this->assertGreaterThan(0, $size[1]);
+    }
+
+    private function buildService(): CaptchaService
+    {
+        $storage = new FileStorage();
+        $lockRunner = new RuntimeLockRunner($this->tempDir);
+        $writer = new RuntimeAtomicWriter();
+        return new CaptchaService($storage, $lockRunner, $writer, $this->tempDir, 60);
     }
 
     private function removeDir(string $dir): void

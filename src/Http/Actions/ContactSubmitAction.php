@@ -38,13 +38,7 @@ final class ContactSubmitAction
         $captchaOk = $this->isCaptchaValid($form, $ipHash);
 
         if ($this->isFormInvalid($form, $emailValid, $captchaOk)) {
-            return $this->renderContactForm(
-                $response,
-                $ipHash,
-                $this->formValues($form),
-                'Bitte Eingaben und CAPTCHA prüfen.',
-                403
-            );
+            return $this->renderFormError($response, $ipHash, $form, $captchaOk);
         }
 
         $sent = $this->context->mailService->send($form['name'], $form['email'], $form['message']);
@@ -117,6 +111,33 @@ final class ContactSubmitAction
             'email' => $form['email'],
             'message' => $form['message'],
         ];
+    }
+
+    private function renderFormError(
+        ResponseInterface $response,
+        string $ipHash,
+        array $form,
+        bool $captchaOk
+    ): ResponseInterface {
+        $isDeployHint = !$captchaOk && $this->isLikelyDeployCase($form['captcha_id']);
+        $error = $isDeployHint
+            ? 'Die Seite wurde aktualisiert. Bitte das Formular erneut absenden.'
+            : 'Bitte alle Felder korrekt ausfüllen.';
+        $status = $isDeployHint ? 200 : 403;
+        return $this->renderContactForm($response, $ipHash, $this->formValues($form), $error, $status);
+    }
+
+    private function isLikelyDeployCase(string $captchaId): bool
+    {
+        $ts = $this->context->captchaService->parseIdTimestamp($captchaId);
+        if ($ts === null) {
+            return false;
+        }
+        $ttl = $this->context->config->requireInt('CAPTCHA_TTL_SECONDS');
+        if ((time() - $ts) > $ttl) {
+            return false;
+        }
+        return $this->context->captchaService->getChallenge($captchaId) === null;
     }
 
     private function renderContactForm(

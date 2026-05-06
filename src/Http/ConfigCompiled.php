@@ -31,6 +31,11 @@ final class ConfigCompiled
         return $this->rootPath;
     }
 
+    public function entryPath(): string
+    {
+        return dirname($this->rootPath);
+    }
+
     public function get(string $key, mixed $default = null): mixed
     {
         if (!array_key_exists($key, $this->values)) {

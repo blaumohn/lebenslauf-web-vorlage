@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 import os
+import stat
 import time
 from pathlib import Path
 
-from sftp_lib import SftpClient, read_config
+from sftp_lib import (
+    SftpClient,
+    read_config,
+)
+from sftp_deploy_state import DeployState, DeploymentPlan
+from sftp_deploy_prepared import AdminTaskStore, PreparedDeployStore
+from sftp_deploy_templates import resource_path
 
 
-def log_status(message):
+def log(message):
     print(f"[sftp] {message}", flush=True)
 
 
@@ -17,87 +24,174 @@ def format_target(cfg):
 def main():
     cfg = read_config()
     include_vendor = os.environ.get("SFTP_INCLUDE_VENDOR", "true") == "true"
-    log_status(f"Verbinde zu {format_target(cfg)}")
-    with SftpClient(cfg) as client:
-        log_status("Verbindung hergestellt")
-        try:
-            upload(cfg, client.sftp, include_vendor)
-        except Exception as exc:
-            log_status(f"Fehler im SFTP-Upload: {exc}")
-            raise
+    log(f"Verbinde zu {format_target(cfg)}")
+    SftpDeploy(cfg, include_vendor).start()
 
 
-def upload(cfg, sftp, include_vendor):
-    stats = new_stats()
-    server_dir = cfg["FTP_SERVER_DIR"].rstrip("/")
-    started_at = time.monotonic()
-    log_status(f"Upload startet: {cfg['FTP_SERVER_DIR']}")
-    for item in sorted(Path("var/deploy").iterdir()):
-        if item.name == "vendor" and not include_vendor:
-            continue
-        remote_item = server_dir + "/" + item.name
-        if item.is_dir():
-            upload_dir(sftp, item, remote_item, stats)
+class SftpDeploy:
+    def __init__(self, cfg, include_vendor, logger=log):
+        self.cfg = cfg
+        self.include_vendor = include_vendor
+        self.log = logger
+        self.client = None
+
+    def start(self):
+        with SftpClient(self.cfg) as client:
+            self.client = client
+            self.log("Verbindung hergestellt")
+            self.deploy()
+        self.client = None
+
+    def deploy(self):
+        state = DeployState.read(self.client)
+        if state is None:
+            self.deploy_fresh()
         else:
-            upload_file(sftp, item, remote_item, stats)
-    duration = time.monotonic() - started_at
-    log_status(
-        "Upload abgeschlossen: "
-        f"{stats['files']} Dateien, "
-        f"{stats['directories']} Verzeichnisse, "
-        f"{stats['bytes']} Bytes, "
-        f"{duration:.2f}s"
-    )
+            self.deploy_swap(state)
 
+    def deploy_fresh(self):
+        plan = DeploymentPlan.fresh()
+        target = plan.target
+        self.log(f"Erstdeploy: Baum {target.tree}, Vendor {target.vendor}")
+        self.upload_app_tree(target.tree)
+        if self.include_vendor:
+            self.upload_vendor_dir(target.vendor)
+        self.upload_static_entry_files()
+        self.publish_switch(target)
+        self.log("Erstdeploy abgeschlossen")
 
-def mkdir_p(sftp, remote_path):
-    if remote_path == "/":
-        return False
-    try:
-        sftp.mkdir(remote_path)
-        return True
-    except OSError:
-        return False
+    def deploy_swap(self, state):
+        plan = DeploymentPlan.swap(state, self.include_vendor)
+        active = plan.active
+        target = plan.target
+        self.log(f"Baum: {active.tree}→{target.tree}, Vendor: {active.vendor}→{target.vendor}")
+        self.upload_app_tree(target.tree)
+        if self.include_vendor:
+            self.upload_vendor_dir(target.vendor)
+        self.migrate_tokens(active.tree, target.tree)
+        self.prepare_switch(target)
+        self.log(f"Deploy vorbereitet: Baum {target.tree}, Vendor {target.vendor}")
 
+    def prepare_switch(self, target):
+        prepared_path = PreparedDeployStore.write(self.client, target)
+        AdminTaskStore.enqueue_deploy_switch(self.client, prepared_path)
+        self.log(f"Switch vorbereitet: {prepared_path}")
 
-def ensure_remote_dir(sftp, remote_path):
-    parts = [p for p in remote_path.split("/") if p]
-    path = ""
-    for part in parts:
-        path = path + "/" + part
-        try:
-            sftp.mkdir(path)
-        except OSError:
-            pass
+    def publish_switch(self, target):
+        self.upload_deploy_state(target)
 
+    def upload_static_entry_files(self):
+        self.client.put_file(resource_path(".htaccess"), ".htaccess")
+        self.client.put_file(resource_path("index.php"), "index.php")
+        self.log("Statische Entry-Dateien hochgeladen")
 
-def file_size(path):
-    return path.stat().st_size
+    def upload_app_tree(self, tree):
+        stats = new_stats()
+        started_at = time.monotonic()
+        self.log(f"Upload App-Baum: {tree}")
+        self.client.ensure_dir(tree)
+        for item in sorted(Path("var/deploy").iterdir()):
+            self.upload_app_item(item, tree, stats)
+        self.log_upload_app_tree(tree, stats, started_at)
 
-
-def upload_dir(sftp, local_path, remote_path, stats):
-    created = mkdir_p(sftp, remote_path)
-    if created:
-        stats["directories"] += 1
-    for item in sorted(Path(local_path).iterdir()):
-        remote_item = remote_path.rstrip("/") + "/" + item.name
+    def upload_app_item(self, item, tree, stats):
+        if item.name == "vendor":
+            return
+        rel_remote = tree + "/" + item.name
         if item.is_dir():
-            upload_dir(sftp, item, remote_item, stats)
-            continue
-        sftp.put(str(item), remote_item)
+            self.upload_dir(item, rel_remote, stats)
+            return
+        self.upload_file(item, rel_remote, stats)
+
+    def log_upload_app_tree(self, tree, stats, started_at):
+        duration = time.monotonic() - started_at
+        self.log(
+            f"App-Baum hochgeladen: {stats['files']} Dateien, "
+            f"{stats['directories']} Verzeichnisse, "
+            f"{stats['bytes']} Bytes, {duration:.2f}s"
+        )
+
+    def upload_vendor_dir(self, vendor_slot):
+        stats = new_stats()
+        rel_dir = "vendor-" + vendor_slot
+        started_at = time.monotonic()
+        self.log(f"Upload Vendor: {rel_dir}")
+        self.client.ensure_dir(rel_dir)
+        for item in sorted(Path("var/deploy/vendor").iterdir()):
+            rel_remote = rel_dir + "/" + item.name
+            if item.is_dir():
+                self.upload_dir(item, rel_remote, stats)
+            else:
+                self.upload_file(item, rel_remote, stats)
+        self.log_upload_vendor(stats, started_at)
+
+    def log_upload_vendor(self, stats, started_at):
+        duration = time.monotonic() - started_at
+        self.log(
+            f"Vendor hochgeladen: {stats['files']} Dateien, "
+            f"{stats['bytes']} Bytes, {duration:.2f}s"
+        )
+
+    def migrate_tokens(self, active_tree, inactive_tree):
+        src = f"{active_tree}/var/state/tokens"
+        dst = f"{inactive_tree}/var/state/tokens"
+        try:
+            entries = self.client.listdir_attr(src)
+        except IOError:
+            return
+        self.copy_token_entries(entries, src, dst)
+
+    def copy_token_entries(self, entries, src, dst):
+        self.client.ensure_dir(dst)
+        count = 0
+        for entry in entries:
+            count += self.copy_token_entry(entry, src, dst)
+        if count:
+            self.log(f"Tokens migriert: {count}")
+
+    def copy_token_entry(self, entry, src, dst):
+        if not stat.S_ISREG(entry.st_mode):
+            return 0
+        with self.client.open(f"{src}/{entry.filename}", "rb") as f:
+            data = f.read()
+        self.client.put_bytes(f"{dst}/{entry.filename}", data)
+        return 1
+
+    def upload_deploy_state(self, state):
+        DeployState.write(self.client, state)
+        self.log(f"Deploy-State hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
+
+    def cleanup(self, active, target):
+        self.client.remove_dir(active.tree)
+        self.log(f"Alter App-Baum entfernt: {active.tree}")
+        if active.vendor != target.vendor:
+            self.client.remove_dir(f"vendor-{active.vendor}")
+            self.log(f"Alter Vendor entfernt: vendor-{active.vendor}")
+
+    def upload_dir(self, local_path, rel_remote, stats):
+        created = self.client.mkdir_p(rel_remote)
+        if created:
+            stats["directories"] += 1
+        for item in sorted(Path(local_path).iterdir()):
+            rel_child = rel_remote + "/" + item.name
+            if item.is_dir():
+                self.upload_dir(item, rel_child, stats)
+            else:
+                self.client.put_file(item, rel_child)
+                stats["files"] += 1
+                stats["bytes"] += item.stat().st_size
+
+    def upload_file(self, local_path, rel_remote, stats):
+        parent = str(Path(rel_remote).parent).replace("\\", "/")
+        self.client.ensure_dir(parent)
+        self.client.put_file(local_path, rel_remote)
         stats["files"] += 1
-        stats["bytes"] += file_size(item)
-
-
-def upload_file(sftp, local_path, remote_path, stats):
-    ensure_remote_dir(sftp, str(Path(remote_path).parent))
-    sftp.put(str(local_path), remote_path)
-    stats["files"] += 1
-    stats["bytes"] += file_size(local_path)
+        stats["bytes"] += Path(local_path).stat().st_size
 
 
 def new_stats():
     return {"directories": 0, "files": 0, "bytes": 0}
 
 
-main()
+if __name__ == "__main__":
+    main()
