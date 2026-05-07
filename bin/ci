@@ -26,7 +26,6 @@ main() {
   if [[ "$PIPELINE" != "dev" ]]; then
     LAST_DEPLOY_COMMIT="$(setup_deploy_test_case "$test_case")"
     DEPLOY_DIR="var/deploy"
-    set_ftp_vars
   fi
 
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
@@ -189,27 +188,6 @@ copy_untracked_working_file() {
   local file="$1"
   mkdir -p "$(dirname "$file")"
   cp "$SOURCE_REPO_DIR/$file" "$file"
-}
-
-set_ftp_vars() {
-  export FTP_HOST="sftp-server"
-  export FTP_USER="preview-ci"
-  export FTP_PASS="ci-pass"
-  export FTP_PORT="22"
-  export FTP_SERVER_DIR="/public"
-  export SSH_KNOWN_HOST_LINE="$(await_sftp_host_key sftp-server 22)"
-}
-
-await_sftp_host_key() {
-  local host="$1" port="$2" keys attempt
-
-  for attempt in $(seq 1 10); do
-    keys="$(ssh-keyscan -p "$port" "$host" 2>/dev/null | grep -v '^#')"
-    [[ -n "$keys" ]] && echo "$keys" && return
-    sleep 1
-  done
-  echo "SFTP-Hostschlüssel von ${host}:${port} nicht erreichbar" >&2
-  exit 1
 }
 
 main "$@"

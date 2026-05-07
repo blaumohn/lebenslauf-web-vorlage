@@ -17,10 +17,16 @@ x-ci-preview-smtp: &ci-preview-smtp
   SMTP_PORT: "1025"
   SMTP_USER: "ci"
   SMTP_PASS: "ci-pass"
-  SMTP_ENCRYPTION: "tls"
   SMTP_FROM_EMAIL: "noreply@ci.invalid"
-  SMTP_FROM_NAME: "CI"
   MAIL_TO_EMAIL: "ci-test@ci.invalid"
+
+x-ci-preview-sftp: &ci-preview-sftp
+  FTP_HOST: "sftp-server"
+  FTP_USER: "preview-ci"
+  FTP_PASS: "ci-pass"
+  FTP_PORT: "22"
+  FTP_SERVER_DIR: "/public"
+  SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
 
 services:
   ci-dev:
@@ -41,7 +47,7 @@ services:
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
     environment:
-      <<: [*ci-env, *ci-preview-smtp]
+      <<: [*ci-env, *ci-preview-smtp, *ci-preview-sftp]
       PIPELINE: preview
       DEBUG: "${DEBUG:-0}"
     depends_on:
@@ -66,6 +72,8 @@ services:
     command: "preview-ci:ci-pass:1000::public"
     volumes:
       - "preview_deploy:/home/preview-ci/public"
+      - "./tests/ci/sftp_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key:ro"
+      - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
   preview-web:
     image: php:8.2-apache

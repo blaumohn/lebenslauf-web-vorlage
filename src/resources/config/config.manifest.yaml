@@ -115,7 +115,7 @@ variable-groups:
           SMTP_USER. Gehört nicht in versionierte Beispielkonfigurationen.
     SMTP_ENCRYPTION:
       meta:
-        desc: "SMTP-Verschlüsselung (tls, ssl oder leer)"
+        desc: "SMTP-Verschlüsselung (tls oder none)"
         notes: >-
           Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
           SMTP_PORT.

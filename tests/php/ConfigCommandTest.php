@@ -37,7 +37,15 @@ final class ConfigCommandTest extends TestCase
             $manifest['pipelines'] ??= [];
             $manifest['pipelines']['preview'] ??= [];
             $manifest['pipelines']['preview']['runtime'] ??= [];
-            $manifest['pipelines']['preview']['runtime']['smtp'] = ['SMTP_PASS'];
+            $manifest['pipelines']['preview']['runtime']['smtp'] = [
+                'SMTP_HOST',
+                'SMTP_PORT',
+                'SMTP_USER',
+                'SMTP_PASS',
+                'SMTP_ENCRYPTION',
+                'SMTP_FROM_EMAIL',
+                'SMTP_FROM_NAME',
+            ];
             $this->writeManifest($manifestPath, $manifest);
 
             $tester = $this->tester();
@@ -46,7 +54,7 @@ final class ConfigCommandTest extends TestCase
                 'pipeline'    => 'preview',
                 'arg1'        => 'SMTP_PASS',
                 '--phase'     => 'runtime',
-                '--overrides' => '{"preview":{"runtime":{"smtp":{"SMTP_PASS":"preview-secret"}}}}',
+                '--overrides' => '{"preview":{"runtime":{"smtp":{"SMTP_HOST":"h","SMTP_USER":"u","SMTP_PASS":"preview-secret","SMTP_FROM_EMAIL":"from@example.invalid"}}}}',
             ]);
 
             self::assertSame(0, $exitCode);

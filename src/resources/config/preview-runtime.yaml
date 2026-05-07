@@ -17,5 +17,10 @@ mail:
   MAIL_TO_EMAIL: kontakt@beispiel.de
   MAIL_STDOUT: 0
 
+smtp:
+  SMTP_PORT: 587
+  SMTP_ENCRYPTION: tls
+  SMTP_FROM_NAME: "Lebenslauf Seite Preview"
+
 rate_limit:
   RATE_LIMIT_WINDOW_SECONDS: 600
