@@ -24,6 +24,8 @@
     "symfony/lock": "^7.0"
   },
   "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "squizlabs/php_codesniffer": "^3.13",
     "phpunit/phpunit": "^10.0"
   },
   "autoload": {
@@ -40,10 +42,10 @@
     }
   },
   "scripts": {
-      "dev": [
+    "dev": [
       "Composer\\Config::disableProcessTimeout",
       "php bin/cli python dev src/cli/py/dev/dev.py --"
-      ],
+    ],
     "dev:build": [
       "Composer\\Config::disableProcessTimeout",
       "php bin/cli python dev src/cli/py/dev/dev.py -- --build"
@@ -56,6 +58,19 @@
     "config:compile": "php bin/cli config compile dev",
     "config:lint": "php bin/cli config lint dev",
     "config:show": "php bin/cli config show dev",
+    "lint": [
+      "@lint:php",
+      "@lint:python",
+      "@lint:shell"
+    ],
+    "lint:php": [
+      "@lint:phpcs",
+      "@lint:phpstan"
+    ],
+    "lint:phpcs": "phpcs",
+    "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
+    "lint:python": "php bin/cli python dev tools/lint-python.py --",
+    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/*.sh",
     "test": "phpunit",
     "css:build": "npm run build:css",
     "build": "php bin/cli build dev",
@@ -70,11 +85,11 @@
     ],
     "ci:preview": [
       "Composer\\Config::disableProcessTimeout",
-      "bash scripts/run-ci-preview.sh"
+      "php bin/cli python dev tools/run-ci-preview.py --"
     ],
     "ci:preview:debug": [
       "Composer\\Config::disableProcessTimeout",
-      "DEBUG=1 bash scripts/run-ci-preview.sh"
+      "DEBUG=1 php bin/cli python dev tools/run-ci-preview.py --"
     ],
     "deploy:preview": [
       "php bin/cli build preview"
