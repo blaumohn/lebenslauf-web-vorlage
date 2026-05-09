@@ -14,7 +14,7 @@ use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'setup', description: 'Richtet die Entwicklungsumgebung ein.')]
-final class SetupCommand extends BasePipelineCommand
+final class SetupCommand extends BasePipelinePhaseCommand
 {
     private const ACTION_SAMPLE_CONTENT = 'sample-content';
 

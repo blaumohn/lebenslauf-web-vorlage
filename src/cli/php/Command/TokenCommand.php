@@ -16,8 +16,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 
 #[AsCommand(name: 'token', description: 'Token-Tools (rotate).')]
-final class TokenCommand extends BaseCommand
+final class TokenCommand extends Command
 {
+    use RootPathAware;
     protected function configure(): void
     {
         $this->addArgument('action', InputArgument::REQUIRED, 'rotate')
