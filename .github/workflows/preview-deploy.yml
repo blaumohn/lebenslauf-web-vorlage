@@ -33,16 +33,18 @@ jobs:
         env:
           PIPELINE: ${{ vars.PIPELINE }}
           LAST_DEPLOY_COMMIT: ${{ github.event.before }}
-          MAIL_TO_EMAIL: ${{ secrets.MAIL_TO_EMAIL }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
-          SMTP_FROM_NAME: ${{ vars.SMTP_FROM_NAME }}
-          FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_USER: ${{ secrets.FTP_USER }}
-          FTP_PASS: ${{ secrets.FTP_PASS }}
-          FTP_PORT: ${{ vars.FTP_PORT }}
-          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
-          SSH_KNOWN_HOST_LINE: ${{ secrets.SSH_KNOWN_HOST_LINE }}
-        run: bin/cd
+        run: |
+          bin/cd << EOF
+          smtp:
+            SMTP_HOST: "${{ secrets.SMTP_HOST }}"
+            SMTP_USER: "${{ secrets.SMTP_USER }}"
+            SMTP_PASS: "${{ secrets.SMTP_PASS }}"
+            SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL }}"
+          mail:
+            MAIL_TO_EMAIL: "${{ secrets.MAIL_TO_EMAIL }}"
+          sftp:
+            SFTP_HOST: "${{ secrets.SFTP_HOST }}"
+            SFTP_USER: "${{ secrets.SFTP_USER }}"
+            SFTP_PASS: "${{ secrets.SFTP_PASS }}"
+            SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE }}"
+          EOF
