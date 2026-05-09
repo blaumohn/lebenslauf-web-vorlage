@@ -20,10 +20,10 @@ class SftpClient:
         self._ssh.load_system_host_keys(str(known_hosts))
         self._ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         self._ssh.connect(
-            cfg["FTP_HOST"],
-            port=int(cfg["FTP_PORT"]),
-            username=cfg["FTP_USER"],
-            password=cfg["FTP_PASS"],
+            cfg["SFTP_HOST"],
+            port=int(cfg["SFTP_PORT"]),
+            username=cfg["SFTP_USER"],
+            password=cfg["SFTP_PASS"],
         )
         self.sftp = self._ssh.open_sftp()
 
@@ -60,7 +60,7 @@ class SftpClient:
             return False
 
     def ensure_dir(self, rel_path):
-        base = self.cfg["FTP_SERVER_DIR"].rstrip("/")
+        base = self.cfg["SFTP_SERVER_DIR"].rstrip("/")
         path = base
         for part in rel_path.split("/"):
             if not part:
@@ -84,7 +84,7 @@ class SftpClient:
         return self.sftp.open(self._abs(rel_path), mode)
 
     def _abs(self, rel_path):
-        return self.cfg["FTP_SERVER_DIR"].rstrip("/") + "/" + rel_path
+        return self.cfg["SFTP_SERVER_DIR"].rstrip("/") + "/" + rel_path
 
     def _remove_abs(self, abs_path):
         try:

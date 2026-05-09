@@ -31,7 +31,6 @@ main() {
   composer install "${COMPOSER_INSTALL_ARGS[@]}"
   ci_build_id="$(write_ci_build_id "$test_case")"
 
-  PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
   run_pipeline
   run_preview_checks "$test_case" "$ci_build_id"
 }

@@ -2,7 +2,7 @@
 
 namespace App\Cli\Util;
 
-use App\Cli\Command\BasePipelineCommand;
+use App\Cli\Command\BasePipelinePhaseCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -10,7 +10,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'python', description: 'Fuehrt ein Python-Skript ueber den CLI-Runner aus.')]
-final class PythonCommand extends BasePipelineCommand
+final class PythonCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
     {

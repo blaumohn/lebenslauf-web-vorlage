@@ -18,7 +18,7 @@ def log(message):
 
 
 def format_target(cfg):
-    return f"{cfg['FTP_HOST']}:{cfg['FTP_PORT']}{cfg['FTP_SERVER_DIR']}"
+    return f"{cfg['SFTP_HOST']}:{cfg['SFTP_PORT']}{cfg['SFTP_SERVER_DIR']}"
 
 
 def main():

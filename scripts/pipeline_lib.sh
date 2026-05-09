@@ -2,8 +2,9 @@ run_pipeline() {
   local is_dev docroot
 
   require_env_nonempty PIPELINE
-  require_env_set PIPELINE_OVERRIDES
-  
+
+  write_pipeline_config_from_stdin
+
   [[ $PIPELINE == dev ]] && is_dev=1 || is_dev=
 
   if [[ ! $is_dev ]]; then
@@ -11,7 +12,7 @@ run_pipeline() {
   fi
 
   cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
-  cli build "$PIPELINE" ${is_dev:+cv} --overrides "$PIPELINE_OVERRIDES"
+  cli build "$PIPELINE" ${is_dev:+cv}
   [[ -x vendor/bin/phpunit ]] && php vendor/bin/phpunit
 
   if [[ $is_dev ]]; then
@@ -22,6 +23,14 @@ run_pipeline() {
   fi
 
   with_http_server 8080 "$docroot" http_smoke_checks "127.0.0.1" "8080"
+}
+
+write_pipeline_config_from_stdin() {
+  if [[ -t 0 ]]; then
+    return
+  fi
+  mkdir -p .local
+  cat > .local/pipeline-config.yaml
 }
 
 deploy() {
@@ -88,8 +97,7 @@ sftp_upload() {
 pipeline_config() {
   local phase="$1"
   require_env_nonempty PIPELINE
-  require_env_set PIPELINE_OVERRIDES
-  cli config get "$PIPELINE" --phase "$phase" --overrides "$PIPELINE_OVERRIDES"
+  cli config get "$PIPELINE" --phase "$phase"
 }
 
 config_value() {

@@ -31,7 +31,6 @@ main() {
   composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
 
   DEPLOY_DIR="var/deploy"
-  PIPELINE_OVERRIDES="$(php scripts/build-overrides-json.php)"
   run_pipeline
 }
 
