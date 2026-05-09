@@ -1,3 +1,0 @@
-tooling:
-  PYTHON_CMD: .venv/bin/python
-  PYTHON_PATHS: src

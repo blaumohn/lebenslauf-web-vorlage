@@ -63,6 +63,7 @@ variable-groups:
       meta:
         desc: "Maximale Kontaktformular-Absendungen pro Zeitfenster"
         example: "3"
+
   mail:
     MAIL_TO_EMAIL:
       meta:
@@ -135,20 +136,21 @@ variable-groups:
           SMTP_FROM_EMAIL.
         example: "Lebenslauf"
 
-  ftp:
-    FTP_SERVER_DIR:
+  sftp:
+    SFTP_SERVER_DIR:
       meta:
-        desc: "Zielverzeichnis auf dem FTP-Server"
+        desc: "Zielverzeichnis auf dem SFTP-Server"
         example: "/home/user/public"
-    FTP_PORT:
+    SFTP_PORT:
+      default: "22"
       meta:
-        desc: "FTP-Port"
-        example: "21"
-    FTP_HOST:
+        desc: "SFTP-Port"
+        example: "22"
+    SFTP_HOST:
       sources: [local, cli]
-    FTP_USER:
+    SFTP_USER:
       sources: [local, cli]
-    FTP_PASS:
+    SFTP_PASS:
       sources: [local, cli]
     SSH_KNOWN_HOST_LINE:
       sources: [local, cli]
@@ -212,4 +214,4 @@ pipelines:
     runtime:
       smtp: "*"
     deploy:
-      ftp: "*"
+      sftp: "*"

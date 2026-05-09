@@ -3,6 +3,9 @@ app:
   TRUST_PROXY: 1
 
 lebenslauf:
+  LEBENSLAUF_DATEN_PFAD: src/resources/fixtures/lebenslauf
+  LEBENSLAUF_YAML_PFAD: ""
+  LEBENSLAUF_PUBLIC_PROFILE: gueltig
   LEBENSLAUF_LANG_DEFAULT: de
   LEBENSLAUF_LANGS: "de,en"
 
@@ -17,10 +20,13 @@ mail:
   MAIL_TO_EMAIL: kontakt@beispiel.de
   MAIL_STDOUT: 0
 
+rate_limit:
+  RATE_LIMIT_WINDOW_SECONDS: 600
+
 smtp:
   SMTP_PORT: 587
   SMTP_ENCRYPTION: tls
   SMTP_FROM_NAME: "Lebenslauf Seite Preview"
 
-rate_limit:
-  RATE_LIMIT_WINDOW_SECONDS: 600
+sftp:
+  SFTP_SERVER_DIR: /home/preview/public
