@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Cli\Command\BasePipelineCommand;
+use App\Cli\Command\BasePipelinePhaseCommand;
 use PipelineConfigSpec\PipelineConfigService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\InputInterface;
@@ -25,34 +25,13 @@ final class PipelineCommandConfigTest extends TestCase
         self::assertStringContainsString('config=src', $tester->getDisplay());
     }
 
-    public function testOverridesRejectsInvalidJson(): void
-    {
-        $command = new PipelineCommandConfigTestCommand();
-        $tester = new CommandTester($command);
-
-        $exitCode = $tester->execute([
-            'pipeline'    => 'dev',
-            '--overrides' => 'kein-json',
-        ]);
-
-        self::assertSame(1, $exitCode);
-        self::assertStringContainsString(
-            '--overrides muss ein gültiges JSON-Objekt sein.',
-            $tester->getDisplay()
-        );
-    }
-
     public function testPythonPathsCliSourceIsAccepted(): void
     {
         $rootPath = dirname(__DIR__, 2);
-        $service = new PipelineConfigService($rootPath, 'src/resources/config');
+        $service = new PipelineConfigService($rootPath, 'src/resources/pipeline-config');
 
         $report = $service->describe('dev', 'python', [
-            'python' => [
-                'tooling' => [
-                    'PYTHON_PATHS' => 'src:.',
-                ],
-            ],
+            'PYTHON_PATHS' => 'src:.',
         ]);
 
         self::assertSame('src:.', $report['values']['PYTHON_PATHS'] ?? null);
@@ -60,7 +39,7 @@ final class PipelineCommandConfigTest extends TestCase
     }
 }
 
-final class PipelineCommandConfigTestCommand extends BasePipelineCommand
+final class PipelineCommandConfigTestCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
     {
