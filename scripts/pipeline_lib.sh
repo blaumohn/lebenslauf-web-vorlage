@@ -148,9 +148,8 @@ start_php_server() {
 
 wait_for_http_server() {
   local port="$1"
-  local attempt
 
-  for attempt in $(seq 1 10); do
+  for _ in $(seq 1 10); do
     if curl --silent --show-error "http://127.0.0.1:${port}/" > /dev/null 2>&1; then
       return 0
     fi

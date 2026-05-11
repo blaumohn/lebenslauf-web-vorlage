@@ -6,7 +6,7 @@ contact_smoke() {
 
   prepare_contact_smoke_dirs
   pid="$(start_php_server "$CONTACT_SMOKE_PORT" "$DEPLOY_DIR/public" "/tmp/ci-contact.log")"
-  trap "kill $pid 2>/dev/null || true" RETURN
+  trap 'kill "$pid" 2>/dev/null || true' RETURN
   wait_for_http_server "$CONTACT_SMOKE_PORT"
 
   local captcha_id solution total_before status total_after

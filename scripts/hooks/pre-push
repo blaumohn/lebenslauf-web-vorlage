@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=sh
 # Pre-Push-Hook: fuehrt die lokale CI-Testmatrix vor dem Push aus.
 # Einrichtung: sh scripts/install-hooks.sh
 set -eu

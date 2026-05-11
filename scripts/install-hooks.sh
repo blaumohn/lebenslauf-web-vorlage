@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Richtet den versionierten Pre-Push-Hook ein.
 # Aufruf: sh scripts/install-hooks.sh
 set -eu
