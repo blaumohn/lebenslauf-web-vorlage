@@ -1,4 +1,4 @@
-MAILPIT_API_URL="${MAILPIT_API_URL:-http://mailpit:8025}"
+MAILPIT_API_URL="http://mailpit:8025"
 CONTACT_SMOKE_PORT="${CONTACT_SMOKE_PORT:-8082}"
 
 contact_smoke() {
@@ -31,9 +31,8 @@ contact_smoke() {
 }
 
 assert_contact_mail_content() {
-  local runtime_config expected_to subject to
-  runtime_config="$(pipeline_config runtime)"
-  expected_to="$(config_value "$runtime_config" MAIL_TO_EMAIL)"
+  local expected_to subject to
+  expected_to="$(cli python "$PIPELINE" --phases runtime tests/ci/read-mail-to.py)"
   IFS=$'\t' read -r subject to < <(mailpit_latest_message_subject_and_to)
 
   [[ "$subject" == *"/Contact]"* ]] \
