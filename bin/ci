@@ -77,8 +77,7 @@ run_preview_test_case_checks() {
 }
 
 run_smtp_smoke() {
-  . tests/ci/smtp-smoke.sh
-  smtp_smoke
+  cli python "$PIPELINE" --phases runtime tests/ci/smtp-smoke.py
 }
 
 run_contact_smoke() {
@@ -133,8 +132,7 @@ trigger_admin_run() {
 }
 
 sftp_read_vendor_build_id() {
-  SFTP_CFG_JSON="$(pipeline_config deploy)" \
-    python3 scripts/sftp-read-vendor-build-id.py
+  cli python "$PIPELINE" --phases deploy scripts/sftp-read-vendor-build-id.py
 }
 
 check_vendor_not_uploaded() {

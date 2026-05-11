@@ -30,7 +30,7 @@ write_pipeline_config_from_stdin() {
     return
   fi
   mkdir -p .local
-  cat > .local/pipeline-config.yaml
+  cat > ".local/${PIPELINE}.yaml"
 }
 
 deploy() {
@@ -91,19 +91,9 @@ should_include_vendor() {
 
 sftp_upload() {
   local include_vendor="$1"
-  SFTP_CFG_JSON="$(pipeline_config deploy)" SFTP_INCLUDE_VENDOR="$include_vendor" python3 scripts/sftp-deploy.py
+  SFTP_INCLUDE_VENDOR="$include_vendor" cli python "$PIPELINE" --phases deploy scripts/sftp-deploy.py
 }
 
-pipeline_config() {
-  local phase="$1"
-  require_env_nonempty PIPELINE
-  cli config get "$PIPELINE" --phase "$phase"
-}
-
-config_value() {
-  local config="$1" key="$2"
-  printf '%s' "$config" | jq -er --arg key "$key" '.[$key]'
-}
 
 with_http_server() {
   local port="$1"
