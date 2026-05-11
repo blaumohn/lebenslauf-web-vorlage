@@ -5,6 +5,7 @@ namespace App\Cli\Command;
 use App\Cli\ConfigValues;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,7 +19,8 @@ abstract class BasePipelineCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('overrides', null, InputOption::VALUE_REQUIRED, 'Config-Overrides als flaches JSON ({"KEY":"WERT"})');
+        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
+            ->addOption('overrides', null, InputOption::VALUE_REQUIRED, 'Config-Overrides als flaches JSON ({"KEY":"WERT"})');
     }
 
     protected function initialize(InputInterface $input, OutputInterface $output): void

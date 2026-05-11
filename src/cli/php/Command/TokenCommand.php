@@ -16,8 +16,7 @@ final class TokenCommand extends BasePipelineCommand
     protected function configure(): void
     {
         parent::configure();
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addArgument('action', InputArgument::REQUIRED, 'Aktion (rotate)')
+        $this->addArgument('action', InputArgument::REQUIRED, 'Aktion (rotate)')
             ->addArgument('profile', InputArgument::OPTIONAL, 'Token-Profil')
             ->addArgument('count', InputArgument::OPTIONAL, 'Anzahl Token', '1');
     }

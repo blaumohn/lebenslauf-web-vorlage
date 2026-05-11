@@ -27,7 +27,6 @@ final class SetupCommand extends BasePipelinePhaseCommand
     {
         $this->addArgument('action', InputArgument::OPTIONAL, 'Einzelne Setup-Aktion, z. B. sample-content')
             ->addOption('with-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt zusätzlich nach .local kopieren')
-            ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
     }
@@ -56,14 +55,12 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function runSetupSteps(InputInterface $input, OutputInterface $output): bool
     {
-        if (!$input->getOption('skip-python')) {
-            $resolver = new PythonResolver($this->rootPath());
-            if (!$this->ensureVenv($resolver, $input, $output)) {
-                return false;
-            }
-            if (!$this->installPythonDeps($input, $output)) {
-                return false;
-            }
+        $resolver = new PythonResolver($this->rootPath());
+        if (!$this->ensureVenv($resolver, $input, $output)) {
+            return false;
+        }
+        if (!$this->installPythonDeps($input, $output)) {
+            return false;
         }
         return $this->installNodeDependencies($input, $output);
     }

@@ -20,6 +20,10 @@ final class PythonRunner
         array $args = []
     ): int {
         $command = $this->resolveCommand();
+        if ($command === null) {
+            fwrite(STDERR, "Python-Venv fehlt. Bitte zuerst setup ausführen.\n");
+            return 1;
+        }
         $scriptPath = Path::join($this->rootPath, $script);
         $cmd = array_merge($command, [$scriptPath], $args);
         $env = $this->buildEnv($pipelineValues);
@@ -37,10 +41,10 @@ final class PythonRunner
         return (int) $process->getExitCode();
     }
 
-    private function resolveCommand(): array
+    private function resolveCommand(): ?array
     {
         $venv = Path::join($this->rootPath, '.venv', 'bin', 'python');
-        return is_file($venv) ? [$venv] : ['python3'];
+        return is_file($venv) ? [$venv] : null;
     }
 
     private function buildEnv(array $pipelineValues): array

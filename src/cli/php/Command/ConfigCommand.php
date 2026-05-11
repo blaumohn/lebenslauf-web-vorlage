@@ -16,12 +16,11 @@ final class ConfigCommand extends BasePipelineCommand
 {
     protected function configure(): void
     {
+        parent::configure();
         $this->addArgument('action', InputArgument::REQUIRED, 'get, show, lint oder compile')
-            ->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
-            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase')
-            ->addOption('overrides', null, InputOption::VALUE_REQUIRED, 'Config-Overrides als flaches JSON ({"KEY":"WERT"})');
+            ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -39,7 +38,7 @@ final class ConfigCommand extends BasePipelineCommand
         if ($action === 'compile') {
             return $this->handleCompile($input, $output);
         }
-        $output->writeln('<error>Usage: config <action> <PIPELINE> [ARGS]</error>');
+        $output->writeln('<error>Usage: config <PIPELINE> <action> [ARGS]</error>');
         return Command::FAILURE;
     }
 

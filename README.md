@@ -17,7 +17,7 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
    ```
 
 2. **Projekt einrichten** — Verzeichnisse anlegen, npm-Pakete und
-   Python-Umgebung einrichten. Setzt Schritt 1 voraus.
+   die Python-Umgebung unter `.venv/` einrichten. Setzt Schritt 1 voraus.
 
    ```bash
    php bin/cli setup dev --with-sample-content
@@ -25,6 +25,8 @@ Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://gi
 
    `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu
    überschreiben.
+
+   Python-Werkzeuge des Repos werden über `.venv/bin/python` ausgeführt.
 
 3. **Lebenslauf bauen** — Beispieldaten in HTML-Ansichten rendern.
 

@@ -16,8 +16,7 @@ final class CiCommand extends BasePipelineCommand
     protected function configure(): void
     {
         parent::configure();
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addArgument('args', InputArgument::IS_ARRAY, 'Zusätzliche Argumente für das CI-Skript');
+        $this->addArgument('args', InputArgument::IS_ARRAY, 'Zusätzliche Argumente für das CI-Skript');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

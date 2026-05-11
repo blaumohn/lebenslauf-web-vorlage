@@ -19,8 +19,7 @@ final class PythonCommand extends BasePipelineCommand
     protected function configure(): void
     {
         parent::configure();
-        $this->addArgument('pipeline', InputArgument::REQUIRED, 'Pipeline-Name')
-            ->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
+        $this->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
             ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente für das Skript')
             ->addOption('phases', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Pipeline-Phasen (z. B. --phases runtime --phases build)');
     }
