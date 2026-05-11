@@ -56,9 +56,8 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function runSetupSteps(InputInterface $input, OutputInterface $output): bool
     {
-        $configValues = $this->commandConfig()->all();
         if (!$input->getOption('skip-python')) {
-            $resolver = new PythonResolver($this->rootPath(), $configValues);
+            $resolver = new PythonResolver($this->rootPath());
             if (!$this->ensureVenv($resolver, $input, $output)) {
                 return false;
             }

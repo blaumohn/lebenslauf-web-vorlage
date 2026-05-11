@@ -44,11 +44,11 @@
   "scripts": {
     "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev src/cli/py/dev/dev.py --"
+      "php bin/cli python dev --phases build src/cli/py/dev/dev.py --"
     ],
     "dev:build": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev src/cli/py/dev/dev.py -- --build"
+      "php bin/cli python dev --phases build src/cli/py/dev/dev.py -- --build"
     ],
     "cv:build": "php bin/cli build dev cv",
     "cv:upload": "php bin/cli build dev upload",
@@ -81,15 +81,15 @@
     "setup:preview": "php bin/cli setup preview",
     "ci:dev": [
       "Composer\\Config::disableProcessTimeout",
-      "docker compose -f docker-compose.ci.yml up --remove-orphans --build ci-dev"
+      "php bin/cli ci dev"
     ],
     "ci:preview": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev tools/run-ci-preview.py --"
+      "php bin/cli ci preview"
     ],
     "ci:preview:debug": [
       "Composer\\Config::disableProcessTimeout",
-      "DEBUG=1 php bin/cli python dev tools/run-ci-preview.py --"
+      "DEBUG=1 php bin/cli ci preview"
     ],
     "deploy:preview": [
       "php bin/cli build preview"

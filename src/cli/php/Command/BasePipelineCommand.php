@@ -6,6 +6,7 @@ use App\Cli\ConfigValues;
 use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 abstract class BasePipelineCommand extends Command
@@ -14,6 +15,11 @@ abstract class BasePipelineCommand extends Command
 
     private ?string $pipelineName = null;
     private array $overrides = [];
+
+    protected function configure(): void
+    {
+        $this->addOption('overrides', null, InputOption::VALUE_REQUIRED, 'Config-Overrides als flaches JSON ({"KEY":"WERT"})');
+    }
 
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
@@ -48,6 +54,11 @@ abstract class BasePipelineCommand extends Command
     protected function pipelineValues(string $phase): array
     {
         return $this->configService()->values($this->pipelineName(), $phase, $this->overrides);
+    }
+
+    protected function pipelineHasPhase(string $phase): bool
+    {
+        return $this->configService()->cliVarsForPhase($this->pipelineName(), $phase) !== [];
     }
 
     protected function pipelineDescribe(string $phase): array

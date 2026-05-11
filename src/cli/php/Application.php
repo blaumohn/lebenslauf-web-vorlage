@@ -4,6 +4,7 @@ namespace App\Cli;
 
 use App\Cli\Command\BuildCommand;
 use App\Cli\Command\CaptchaCommand;
+use App\Cli\Command\CiCommand;
 use App\Cli\Command\ConfigCommand;
 use App\Cli\Command\IpHashCommand;
 use App\Cli\Command\SetupCommand;
@@ -23,6 +24,7 @@ final class Application extends SymfonyApplication
     {
         $this->add(new SetupCommand());
         $this->add(new BuildCommand());
+        $this->add(new CiCommand());
         $this->add(new PythonCommand());
         $this->add(new TokenCommand());
         $this->add(new CaptchaCommand());

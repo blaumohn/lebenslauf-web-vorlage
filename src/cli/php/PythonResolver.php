@@ -8,22 +8,10 @@ use Symfony\Component\Process\Process;
 final class PythonResolver
 {
     private string $rootPath;
-    private array $configValues;
 
-    public function __construct(string $rootPath, array $configValues = [])
+    public function __construct(string $rootPath)
     {
         $this->rootPath = rtrim($rootPath, DIRECTORY_SEPARATOR);
-        $this->configValues = $configValues;
-    }
-
-    public function rootPath(): string
-    {
-        return $this->rootPath;
-    }
-
-    public function scriptPath(string $script): string
-    {
-        return Path::join($this->rootPath, ltrim($script, DIRECTORY_SEPARATOR));
     }
 
     public function createVenv(string $path, bool $interactive = false): bool
@@ -47,24 +35,11 @@ final class PythonResolver
         return $process->isSuccessful();
     }
 
-    public function findPythonCommand(): ?array
-    {
-        $configured = $this->configCommand('PYTHON_CMD');
-        if ($configured === null) {
-            return null;
-        }
-        return $configured;
-    }
-
     private function findSystemPython(): ?string
     {
-        $candidates = ['python3', 'python'];
-        foreach ($candidates as $candidate) {
+        foreach (['python3', 'python'] as $candidate) {
             $path = trim((string) $this->which($candidate));
-            if ($path === '') {
-                continue;
-            }
-            if ($this->isPython3($candidate)) {
+            if ($path !== '' && $this->isPython3($candidate)) {
                 return $candidate;
             }
         }
@@ -73,9 +48,8 @@ final class PythonResolver
 
     private function isPython3(string $binary): bool
     {
-        $cmd = escapeshellarg($binary) . " -c " . escapeshellarg("import sys; print(sys.version_info[0])");
-        $output = trim((string) shell_exec($cmd));
-        return $output === '3';
+        $cmd = escapeshellarg($binary) . ' -c ' . escapeshellarg('import sys; print(sys.version_info[0])');
+        return trim((string) shell_exec($cmd)) === '3';
     }
 
     private function which(string $binary): string
@@ -84,34 +58,5 @@ final class PythonResolver
             return (string) shell_exec("where {$binary}");
         }
         return (string) shell_exec("command -v {$binary}");
-    }
-
-    private function configCommand(string $key): ?array
-    {
-        $value = trim((string) ($this->configValues[$key] ?? ''));
-        if ($value === '') {
-            return null;
-        }
-        $parts = preg_split('/\\s+/', $value);
-        if (!is_array($parts) || $parts === []) {
-            return null;
-        }
-        $parts = array_values(array_filter($parts, static fn (string $part): bool => $part !== ''));
-        if ($parts === []) {
-            return null;
-        }
-        $parts[0] = $this->resolveBinaryPath($parts[0]);
-        return $parts;
-    }
-
-    private function resolveBinaryPath(string $binary): string
-    {
-        if (Path::isAbsolute($binary)) {
-            return $binary;
-        }
-        if (str_contains($binary, '/') || str_contains($binary, '\\')) {
-            return Path::join($this->rootPath, $binary);
-        }
-        return $binary;
     }
 }

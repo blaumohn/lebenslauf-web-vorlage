@@ -2,8 +2,7 @@
 
 namespace App\Cli\Util;
 
-use App\Cli\ConfigValues;
-use App\Cli\PythonResolver;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 final class PythonRunner
@@ -16,105 +15,58 @@ final class PythonRunner
     }
 
     public function runScript(
-        ConfigValues $config,
         string $script,
-        array $args = [],
-        bool $interactive = false
+        array $pipelineValues = [],
+        array $args = []
     ): int {
-        $resolver = new PythonResolver($this->rootPath, $config->all());
-        $command = $resolver->findPythonCommand();
-        if ($command === null) {
-            fwrite(STDERR, "PYTHON_CMD fehlt fuer den Python-Runner.\n");
-            return 1;
-        }
-
-        $scriptPath = $resolver->scriptPath($script);
+        $command = $this->resolveCommand();
+        $scriptPath = Path::join($this->rootPath, $script);
         $cmd = array_merge($command, [$scriptPath], $args);
-        $env = $this->buildEnv($resolver, $config);
+        $env = $this->buildEnv($pipelineValues);
         $process = new Process($cmd, $this->rootPath, $env);
         $process->setTimeout(null);
-        if ($interactive && Process::isTtySupported()) {
+        if (Process::isTtySupported()) {
             $process->setTty(true);
-        }
-        $process->run();
-        if (!$process->isSuccessful()) {
-            fwrite(STDERR, $process->getErrorOutput());
+            $process->run();
+        } else {
+            $process->run(fn ($type, $buffer) => fwrite(
+                $type === Process::ERR ? STDERR : STDOUT,
+                $buffer
+            ));
         }
         return (int) $process->getExitCode();
     }
 
-    private function buildEnv(PythonResolver $resolver, ConfigValues $config): array
+    private function resolveCommand(): array
     {
-        $paths = array_merge(
-            $this->configPaths($resolver, $config),
-            $this->existingPaths($resolver)
-        );
-        $paths = $this->uniquePaths($paths);
-        if ($paths === []) {
-            return $_ENV;
-        }
-        $pythonPath = implode(PATH_SEPARATOR, $paths);
-        return array_merge($_ENV, ['PYTHONPATH' => $pythonPath]);
+        $venv = Path::join($this->rootPath, '.venv', 'bin', 'python');
+        return is_file($venv) ? [$venv] : ['python3'];
     }
 
-    private function configPaths(PythonResolver $resolver, ConfigValues $config): array
+    private function buildEnv(array $pipelineValues): array
     {
-        $value = trim((string) $config->get('PYTHON_PATHS', ''));
-        if ($value === '') {
-            return [];
+        $extras = ['PIPELINE_CFG_JSON' => $this->configJson($pipelineValues)];
+        $pythonPath = $this->buildPythonPath();
+        if ($pythonPath !== '') {
+            $extras['PYTHONPATH'] = $pythonPath;
         }
-        $parts = explode(PATH_SEPARATOR, $value);
-        return $this->normalizePaths($resolver, $parts);
+        return array_merge($_ENV, $extras);
     }
 
-    private function existingPaths(PythonResolver $resolver): array
+    private function buildPythonPath(): string
     {
-        $value = getenv('PYTHONPATH');
-        if ($value === false || trim($value) === '') {
-            return [];
+        $src = Path::join($this->rootPath, 'src');
+        $scripts = Path::join($this->rootPath, 'scripts');
+        $base = $src . PATH_SEPARATOR . $scripts;
+        $existing = getenv('PYTHONPATH');
+        if ($existing === false || $existing === '') {
+            return $base;
         }
-        $parts = explode(PATH_SEPARATOR, $value);
-        return $this->normalizePaths($resolver, $parts);
+        return $base . PATH_SEPARATOR . $existing;
     }
 
-    private function normalizePaths(PythonResolver $resolver, array $paths): array
+    private function configJson(array $values): string
     {
-        $normalized = [];
-        foreach ($paths as $path) {
-            $path = trim((string) $path);
-            if ($path === '') {
-                continue;
-            }
-            $normalized[] = $this->resolvePath($resolver, $path);
-        }
-        return $normalized;
-    }
-
-    private function resolvePath(PythonResolver $resolver, string $path): string
-    {
-        if ($path === '') {
-            return $path;
-        }
-        if ($path[0] === '/' || $path[0] === '\\') {
-            return $path;
-        }
-        if (str_contains($path, ':/')) {
-            return $path;
-        }
-        return $resolver->scriptPath($path);
-    }
-
-    private function uniquePaths(array $paths): array
-    {
-        $seen = [];
-        $unique = [];
-        foreach ($paths as $path) {
-            if (isset($seen[$path])) {
-                continue;
-            }
-            $seen[$path] = true;
-            $unique[] = $path;
-        }
-        return $unique;
+        return json_encode($values, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

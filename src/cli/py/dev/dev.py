@@ -1,6 +1,6 @@
 import argparse
+import json
 import os
-import subprocess
 import sys
 
 ROOT_PATH = os.getcwd()
@@ -84,26 +84,14 @@ def start_css_watch(supervisor):
 
 
 def resolve_yaml_inputs(root_path):
-    yaml_path = get_config_value(
-        "LEBENSLAUF_YAML_PFAD", root_path
-    )
-    yaml_dir = get_config_value(
-        "LEBENSLAUF_DATEN_PFAD", root_path
-    )
+    yaml_path = get_config_value("LEBENSLAUF_YAML_PFAD")
+    yaml_dir = get_config_value("LEBENSLAUF_DATEN_PFAD")
     return resolve_path(root_path, yaml_path), resolve_path(root_path, yaml_dir)
 
 
-def get_config_value(key, root_path):
-    cmd = ["php", "bin/cli", "config", "get", DEV_PIPELINE, key]
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=root_path,
-    )
-    if result.returncode != 0:
-        return ""
-    return result.stdout.strip()
+def get_config_value(key):
+    data = json.loads(os.environ.get("PIPELINE_CFG_JSON", "{}"))
+    return data.get("build", {}).get(key, "")
 
 
 def resolve_path(root_path, value):
