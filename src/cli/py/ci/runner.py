@@ -4,6 +4,7 @@ import sys
 
 COMPOSE_FILE = "docker-compose.ci.yml"
 CI_SERVICE_PREVIEW = "ci-preview"
+USAGE = "Usage: runner.py <pipeline>"
 PREVIEW_TEST_CASES = (
     "test-admin-deploy",
     "test-push-deploy",
@@ -12,13 +13,22 @@ PREVIEW_TEST_CASES = (
 
 
 def main() -> int:
-    pipeline = sys.argv[1] if len(sys.argv) > 1 else ""
-    if not pipeline:
-        print("Usage: runner.py <pipeline>", file=sys.stderr)
+    pipeline = resolve_pipeline(sys.argv[1:])
+    if pipeline is None:
+        print(USAGE, file=sys.stderr)
         return 1
     if pipeline == "dev":
         return run_dev()
     return run_preview()
+
+
+def resolve_pipeline(args) -> str | None:
+    if len(args) != 1:
+        return None
+    pipeline = args[0].strip()
+    if not pipeline:
+        return None
+    return pipeline
 
 
 def run_dev() -> int:

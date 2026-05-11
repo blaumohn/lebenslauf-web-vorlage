@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 import sys
 
+from cli.py.deploy.sftp_deploy_state import DeployState
 from cli.py.deploy.sftp_lib import (
     SftpClient,
     read_config,
 )
-from cli.py.deploy.sftp_deploy_state import DeployState
 
 FALLBACK_VENDOR = "a"
 

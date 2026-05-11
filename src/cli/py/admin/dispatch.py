@@ -6,6 +6,7 @@ import urllib.request
 from pathlib import Path
 
 from cli.py.admin.task import AdminTask
+from cli.py.deploy.sftp_lib import SftpClient
 
 ADMIN_TASK_DIR = "var/admin/tasks"
 ADMIN_TRIGGER_PATH = "/admin/run-tasks"
@@ -28,7 +29,6 @@ class AdminDispatch:
         self._http_trigger()
 
     def _enqueue_sftp(self, task: AdminTask) -> None:
-        from cli.py.deploy.sftp_lib import SftpClient
         with SftpClient(self._deploy) as client:
             enqueue_with_client(client, task)
 

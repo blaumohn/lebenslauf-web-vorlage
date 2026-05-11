@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Cli\Command\BasePipelinePhaseCommand;
+use App\Cli\Command\CiCommand;
 use PipelineConfigSpec\PipelineConfigService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,6 +37,14 @@ final class PipelineCommandConfigTest extends TestCase
 
         self::assertSame('/test-path', $report['values']['APP_BASE_PATH'] ?? null);
         self::assertSame('cli', $report['sources']['APP_BASE_PATH'] ?? null);
+    }
+
+    public function testCiCommandOnlyAcceptsPipelineArgument(): void
+    {
+        $definition = (new CiCommand())->getDefinition();
+
+        self::assertTrue($definition->hasArgument('pipeline'));
+        self::assertFalse($definition->hasArgument('args'));
     }
 }
 
