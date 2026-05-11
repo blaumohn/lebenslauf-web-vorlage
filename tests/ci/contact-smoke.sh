@@ -1,12 +1,13 @@
 MAILPIT_API_URL="http://mailpit:8025"
 CONTACT_SMOKE_PORT="${CONTACT_SMOKE_PORT:-8082}"
+CONTACT_SMOKE_SERVER_PID=""
 
 contact_smoke() {
-  local pid
-
   prepare_contact_smoke_dirs
-  pid="$(start_php_server "$CONTACT_SMOKE_PORT" "$DEPLOY_DIR/public" "/tmp/ci-contact.log")"
-  trap 'kill "$pid" 2>/dev/null || true' RETURN
+  CONTACT_SMOKE_SERVER_PID="$(
+    start_php_server "$CONTACT_SMOKE_PORT" "$DEPLOY_DIR/public" "/tmp/ci-contact.log"
+  )"
+  trap contact_smoke_cleanup RETURN
   wait_for_http_server "$CONTACT_SMOKE_PORT"
 
   local captcha_id solution total_before status total_after
@@ -28,6 +29,15 @@ contact_smoke() {
 
   assert_contact_mail_content
   echo "[contact-smoke] OK: Formular-Mail empfangen"
+}
+
+contact_smoke_cleanup() {
+  trap - RETURN
+  if [[ -z "${CONTACT_SMOKE_SERVER_PID:-}" ]]; then
+    return
+  fi
+  kill "$CONTACT_SMOKE_SERVER_PID" 2>/dev/null || true
+  CONTACT_SMOKE_SERVER_PID=""
 }
 
 assert_contact_mail_content() {
