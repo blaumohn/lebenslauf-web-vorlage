@@ -7,7 +7,8 @@ import paramiko
 
 
 def read_config():
-    return json.loads(os.environ["SFTP_CFG_JSON"])
+    data = json.loads(os.environ["PIPELINE_CFG_JSON"])
+    return data.get("deploy", {})
 
 
 class SftpClient:

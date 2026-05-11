@@ -4,13 +4,15 @@ import stat
 import time
 from pathlib import Path
 
-from sftp_lib import (
+from cli.py.deploy.sftp_lib import (
     SftpClient,
     read_config,
 )
-from sftp_deploy_state import DeployState, DeploymentPlan
-from sftp_deploy_prepared import AdminTaskStore, PreparedDeployStore
-from sftp_deploy_templates import resource_path
+from cli.py.deploy.sftp_deploy_state import DeployState, DeploymentPlan
+from cli.py.deploy.sftp_deploy_prepared import PreparedDeployStore
+from cli.py.deploy.sftp_deploy_templates import resource_path
+from cli.py.admin.task import AdminTask
+from cli.py.admin.dispatch import enqueue_with_client
 
 
 def log(message):
@@ -74,7 +76,8 @@ class SftpDeploy:
 
     def prepare_switch(self, target):
         prepared_path = PreparedDeployStore.write(self.client, target)
-        AdminTaskStore.enqueue_deploy_switch(self.client, prepared_path)
+        task = AdminTask("deploy_switch", {"prepared_state": prepared_path})
+        enqueue_with_client(self.client, task)
         self.log(f"Switch vorbereitet: {prepared_path}")
 
     def publish_switch(self, target):

@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 
 PREPARED_DIR = "var/admin/deploy-prepared"
-ADMIN_TASK_DIR = "var/admin/tasks"
 
 
 class PreparedDeployStore:
@@ -32,18 +31,3 @@ class PreparedDeployStore:
         return out.getvalue()
 
 
-class AdminTaskStore:
-    @staticmethod
-    def enqueue_deploy_switch(client, prepared_path: str) -> None:
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        rel_path = f"{ADMIN_TASK_DIR}/{timestamp}-deploy-switch.ini"
-        client.ensure_dir(ADMIN_TASK_DIR)
-        client.put_text(rel_path, AdminTaskStore._format(prepared_path))
-
-    @staticmethod
-    def _format(prepared_path: str) -> str:
-        config = configparser.ConfigParser()
-        config["task"] = {"type": "deploy_switch", "prepared_state": prepared_path}
-        out = io.StringIO()
-        config.write(out)
-        return out.getvalue()
