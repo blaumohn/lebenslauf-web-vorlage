@@ -22,20 +22,20 @@ final class PipelineCommandConfigTest extends TestCase
 
         self::assertSame(0, $exitCode);
         self::assertStringContainsString('pipeline=dev', $tester->getDisplay());
-        self::assertStringContainsString('config=src', $tester->getDisplay());
+        self::assertStringContainsString('config=.local/lebenslauf', $tester->getDisplay());
     }
 
-    public function testPythonPathsCliSourceIsAccepted(): void
+    public function testBuildPhaseCliOverrideIsAccepted(): void
     {
         $rootPath = dirname(__DIR__, 2);
         $service = new PipelineConfigService($rootPath, 'src/resources/pipeline-config');
 
-        $report = $service->describe('dev', 'python', [
-            'PYTHON_PATHS' => 'src:.',
+        $report = $service->describe('dev', 'build', [
+            'APP_BASE_PATH' => '/test-path',
         ]);
 
-        self::assertSame('src:.', $report['values']['PYTHON_PATHS'] ?? null);
-        self::assertSame('cli', $report['sources']['PYTHON_PATHS'] ?? null);
+        self::assertSame('/test-path', $report['values']['APP_BASE_PATH'] ?? null);
+        self::assertSame('cli', $report['sources']['APP_BASE_PATH'] ?? null);
     }
 }
 
@@ -43,13 +43,13 @@ final class PipelineCommandConfigTestCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
     {
-        return 'python';
+        return 'build';
     }
 
     protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('pipeline=' . $this->pipelineName());
-        $output->writeln('config=' . (string) $this->commandConfig()->get('PYTHON_PATHS', ''));
+        $output->writeln('config=' . (string) $this->commandConfig()->get('LEBENSLAUF_DATEN_PFAD', ''));
         return 0;
     }
 }

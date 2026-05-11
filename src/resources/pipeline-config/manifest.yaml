@@ -7,6 +7,14 @@ variable-groups:
           Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
           https://domain.tld/public
         example: "/public"
+    APP_ROOT_URL:
+      sources: [local, cli]
+      meta:
+        desc: "Wurzel-URL der laufenden Anwendung (Schema + Host)"
+        notes: >-
+          Nur der Ursprung — der Auslöser-Pfad wird intern ergänzt.
+          Kann aus GitHub-Vars oder .local/<pipeline>.yaml kommen.
+        example: "https://example.invalid"
     TRUST_PROXY:
       meta:
         desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
@@ -155,17 +163,6 @@ variable-groups:
     SSH_KNOWN_HOST_LINE:
       sources: [local, cli]
 
-  tooling:
-    PYTHON_CMD:
-      meta:
-        desc: "Python-Befehl oder Pfad zur Python-Executable"
-        example: ".venv/bin/python"
-    PYTHON_PATHS:
-      sources: [file, local, cli]
-      meta:
-        desc: "Kommagetrennte zusätzliche Python-Suchpfade"
-        example: "src"
-
   tests:
     CLONE_SOURCE:
       meta:
@@ -178,9 +175,6 @@ variable-groups:
 
 phases:
   setup: {}
-
-  python:
-    tooling: "*"
 
   build:
     app:
@@ -214,4 +208,6 @@ pipelines:
     runtime:
       smtp: "*"
     deploy:
+      app:
+        - APP_ROOT_URL
       sftp: "*"

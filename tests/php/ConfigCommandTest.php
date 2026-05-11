@@ -16,7 +16,7 @@ final class ConfigCommandTest extends TestCase
             'pipeline'     => 'preview',
             'arg1'         => 'SFTP_PORT',
             '--phase'      => 'deploy',
-            '--overrides'  => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k"}',
+            '--overrides'  => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
         ]);
         self::assertSame(0, $exitCode);
         self::assertSame('22', trim($tester->getDisplay()));
@@ -30,7 +30,7 @@ final class ConfigCommandTest extends TestCase
             'pipeline'     => 'preview',
             'arg1'         => 'SFTP_HOST',
             '--phase'      => 'deploy',
-            '--overrides'  => '{"SFTP_HOST":"override-host","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k"}',
+            '--overrides'  => '{"SFTP_HOST":"override-host","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
         ]);
         self::assertSame(0, $exitCode);
         self::assertSame('override-host', trim($tester->getDisplay()));
@@ -55,7 +55,7 @@ final class ConfigCommandTest extends TestCase
             'action'      => 'lint',
             'pipeline'    => 'preview',
             '--phase'     => 'deploy',
-            '--overrides' => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k"}',
+            '--overrides' => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
         ]);
         self::assertSame(0, $exitCode);
         self::assertStringContainsString('Config OK. Pipeline-Phase: preview/deploy', $tester->getDisplay());

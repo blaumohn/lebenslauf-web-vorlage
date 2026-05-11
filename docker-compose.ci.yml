@@ -53,6 +53,7 @@ services:
           SFTP_PASS: "ci-pass"
           SFTP_SERVER_DIR: "/public"
           SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
+          APP_ROOT_URL: "http://preview-web"
         YAML
       - --
     depends_on:

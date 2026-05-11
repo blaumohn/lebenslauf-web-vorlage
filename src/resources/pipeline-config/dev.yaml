@@ -26,6 +26,3 @@ rate_limit:
 smtp:
   SMTP_FROM_NAME: Lebenslauf
 
-tooling:
-  PYTHON_CMD: .venv/bin/python
-  PYTHON_PATHS: src
