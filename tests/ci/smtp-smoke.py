@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import json
 import os
 import smtplib
@@ -8,7 +6,6 @@ import sys
 import time
 import urllib.request
 from email.message import EmailMessage
-
 
 MAILPIT_API_URL = "http://mailpit:8025"
 

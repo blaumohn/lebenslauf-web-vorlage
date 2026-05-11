@@ -1,18 +1,17 @@
-#!/usr/bin/env python3
 import os
 import stat
 import time
 from pathlib import Path
 
+from cli.py.admin.dispatch import enqueue_with_client
+from cli.py.admin.task import AdminTask
+from cli.py.deploy.sftp_deploy_prepared import PreparedDeployStore
+from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState
+from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import (
     SftpClient,
     read_config,
 )
-from cli.py.deploy.sftp_deploy_state import DeployState, DeploymentPlan
-from cli.py.deploy.sftp_deploy_prepared import PreparedDeployStore
-from cli.py.deploy.sftp_deploy_templates import resource_path
-from cli.py.admin.task import AdminTask
-from cli.py.admin.dispatch import enqueue_with_client
 
 
 def log(message):
@@ -106,7 +105,7 @@ class SftpDeploy:
             return
         self.upload_file(item, rel_remote, stats)
 
-    def log_upload_app_tree(self, tree, stats, started_at):
+    def log_upload_app_tree(self, _tree, stats, started_at):
         duration = time.monotonic() - started_at
         self.log(
             f"App-Baum hochgeladen: {stats['files']} Dateien, "
@@ -140,7 +139,7 @@ class SftpDeploy:
         dst = f"{inactive_tree}/var/state/tokens"
         try:
             entries = self.client.listdir_attr(src)
-        except IOError:
+        except OSError:
             return
         self.copy_token_entries(entries, src, dst)
 
