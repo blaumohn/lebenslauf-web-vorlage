@@ -75,7 +75,13 @@ services:
 
   sftp-server:
     image: atmoz/sftp:alpine
-    command: "preview-ci:ci-pass:1000::public"
+    entrypoint: sh
+    command:
+      - -c
+      - |
+        cp /tmp/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key &&
+        chmod 600 /etc/ssh/ssh_host_ed25519_key &&
+        exec /entrypoint preview-ci:ci-pass:1000::public
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
       interval: 1s
@@ -84,7 +90,7 @@ services:
       start_period: 2s
     volumes:
       - "preview_deploy:/home/preview-ci/public"
-      - "./tests/ci/sftp_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key:ro"
+      - "./tests/ci/sftp_host_ed25519_key:/tmp/ssh_host_ed25519_key:ro"
       - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
   preview-web:
