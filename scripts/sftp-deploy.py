@@ -8,10 +8,8 @@ from cli.py.admin.task import AdminTask
 from cli.py.deploy.sftp_deploy_prepared import PreparedDeployStore
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState
 from cli.py.deploy.sftp_deploy_templates import resource_path
-from cli.py.deploy.sftp_lib import (
-    SftpClient,
-    read_config,
-)
+from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.pipeline_cfg import PipelineCfg
 
 
 def log(message):
@@ -23,7 +21,7 @@ def format_target(cfg):
 
 
 def main():
-    cfg = read_config()
+    cfg = PipelineCfg("deploy")
     include_vendor = os.environ.get("SFTP_INCLUDE_VENDOR", "true") == "true"
     log(f"Verbinde zu {format_target(cfg)}")
     SftpDeploy(cfg, include_vendor).start()

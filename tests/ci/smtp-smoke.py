@@ -1,5 +1,3 @@
-import json
-import os
 import smtplib
 import ssl
 import sys
@@ -7,12 +5,14 @@ import time
 import urllib.request
 from email.message import EmailMessage
 
+from cli.py.pipeline_cfg import PipelineCfg
+
 MAILPIT_API_URL = "http://mailpit:8025"
 
 
 def main():
     try:
-        config = read_config()
+        config = PipelineCfg("runtime")
         await_mailpit()
         assert_bad_password_rejected(config)
         send_test_mail(config)
@@ -20,11 +20,6 @@ def main():
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
-
-
-def read_config():
-    data = json.loads(os.environ["PIPELINE_CFG_JSON"])
-    return data.get("runtime", {})
 
 
 def await_mailpit():

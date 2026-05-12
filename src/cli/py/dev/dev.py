@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import sys
 
@@ -7,6 +6,7 @@ ROOT_PATH = os.getcwd()
 DEV_PIPELINE = "dev"
 
 from cli.py.dev.process_supervisor import ProcessSupervisor
+from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.util.run_helpers import run
 from cli.py.dev.watchers import css
 from cli.py.dev.watchers.file_watcher import FileWatcher
@@ -55,7 +55,8 @@ def ensure_initial_build(args, root_path):
 def setup_watchers(supervisor, root_path):
     start_css_watch(supervisor)
     file_watcher = FileWatcher()
-    yaml_path, yaml_dir = resolve_yaml_inputs(root_path)
+    cfg = PipelineCfg("build")
+    yaml_path, yaml_dir = resolve_yaml_inputs(root_path, cfg)
 
     def build_fn(build_root):
         run_cv_build(build_root)
@@ -83,15 +84,10 @@ def start_css_watch(supervisor):
         supervisor.start(f"css-{index}", cmd)
 
 
-def resolve_yaml_inputs(root_path):
-    yaml_path = get_config_value("LEBENSLAUF_YAML_PFAD")
-    yaml_dir = get_config_value("LEBENSLAUF_DATEN_PFAD")
+def resolve_yaml_inputs(root_path, cfg: PipelineCfg):
+    yaml_path = cfg.get("LEBENSLAUF_YAML_PFAD")
+    yaml_dir = cfg.get("LEBENSLAUF_DATEN_PFAD")
     return resolve_path(root_path, yaml_path), resolve_path(root_path, yaml_dir)
-
-
-def get_config_value(key):
-    data = json.loads(os.environ.get("PIPELINE_CFG_JSON", "{}"))
-    return data.get("build", {}).get(key, "")
 
 
 def resolve_path(root_path, value):

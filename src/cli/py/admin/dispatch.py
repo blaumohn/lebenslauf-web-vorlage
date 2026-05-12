@@ -1,11 +1,10 @@
 import argparse
-import json
-import os
 import urllib.request
 from pathlib import Path
 
 from cli.py.admin.task import AdminTask
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.pipeline_cfg import PipelineCfg
 
 ADMIN_TASK_DIR = "var/admin/tasks"
 ADMIN_TRIGGER_PATH = "/admin/run-tasks"
@@ -17,8 +16,8 @@ TASK_SCHEMAS = {
 
 
 class AdminDispatch:
-    def __init__(self, pipeline_cfg: dict):
-        self._deploy = pipeline_cfg.get("deploy", {})
+    def __init__(self, cfg: PipelineCfg):
+        self._deploy = cfg
 
     def enqueue(self, task: AdminTask) -> None:
         if self._deploy.get("SFTP_HOST"):
@@ -56,7 +55,7 @@ def enqueue_with_client(client, task: AdminTask) -> None:
 
 def main() -> None:
     args = parse_args()
-    cfg = json.loads(os.environ.get("PIPELINE_CFG_JSON", "{}"))
+    cfg = PipelineCfg("deploy")
     task = AdminTask(args.task_type, _build_params(args))
     AdminDispatch(cfg).enqueue(task)
 

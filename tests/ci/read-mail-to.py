@@ -1,10 +1,9 @@
-import json
-import os
+from cli.py.pipeline_cfg import PipelineCfg
 
 
 def main():
-    data = json.loads(os.environ["PIPELINE_CFG_JSON"])
-    print(data["runtime"]["MAIL_TO_EMAIL"], end="")
+    cfg = PipelineCfg("runtime")
+    print(cfg["MAIL_TO_EMAIL"], end="")
 
 
 if __name__ == "__main__":

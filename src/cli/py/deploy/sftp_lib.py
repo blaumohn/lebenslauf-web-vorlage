@@ -1,14 +1,8 @@
-import json
 import os
 import stat
 import tempfile
 from pathlib import Path
 import paramiko
-
-
-def read_config():
-    data = json.loads(os.environ["PIPELINE_CFG_JSON"])
-    return data.get("deploy", {})
 
 
 class SftpClient:
