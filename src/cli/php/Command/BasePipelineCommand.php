@@ -73,6 +73,20 @@ abstract class BasePipelineCommand extends Command
         return $this->configService()->compile($this->pipelineName(), $phase, $targetPath, $this->overrides);
     }
 
+    protected function getValuesByPhase(array $phases, OutputInterface $output): ?array
+    {
+        $result = [];
+        foreach ($phases as $phase) {
+            try {
+                $result[$phase] = $this->pipelineValues($phase);
+            } catch (\RuntimeException $e) {
+                $output->writeln('<error>' . $e->getMessage() . '</error>');
+                return null;
+            }
+        }
+        return $result;
+    }
+
     protected function resolvePipelineConfig(string $phase, OutputInterface $output): ?ConfigValues
     {
         try {

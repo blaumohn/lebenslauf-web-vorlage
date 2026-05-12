@@ -37,7 +37,7 @@ final class PythonCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $values = $this->buildPhaseValues($phases, $output);
+        $values = $this->getValuesByPhase($phases, $output);
         if ($values === null) {
             return Command::FAILURE;
         }
