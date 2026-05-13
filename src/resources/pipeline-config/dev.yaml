@@ -3,6 +3,9 @@ app:
   TRUST_PROXY: 0
 
 lebenslauf:
+  LEBENSLAUF_DATEN_PFAD: .local/lebenslauf
+  LEBENSLAUF_YAML_PFAD: ""
+  LEBENSLAUF_PUBLIC_PROFILE: default
   LEBENSLAUF_LANG_DEFAULT: de
   LEBENSLAUF_LANGS: "de,en"
 
@@ -17,8 +20,9 @@ mail:
   MAIL_TO_EMAIL: kontakt@beispiel.de
   MAIL_STDOUT: 1
 
+rate_limit:
+  RATE_LIMIT_WINDOW_SECONDS: 600
+
 smtp:
   SMTP_FROM_NAME: Lebenslauf
 
-rate_limit:
-  RATE_LIMIT_WINDOW_SECONDS: 600

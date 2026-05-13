@@ -16,13 +16,13 @@ class IniConfig(configparser.ConfigParser):
 
 @dataclass(frozen=True)
 class SlotState:
-    tree: str
+    app: str
     vendor: str
 
     @classmethod
-    def from_values(cls, tree, vendor):
-        if tree in VALID_SLOTS and vendor in VALID_SLOTS:
-            return cls(tree, vendor)
+    def from_values(cls, app, vendor):
+        if app in VALID_SLOTS and vendor in VALID_SLOTS:
+            return cls(app, vendor)
         return None
 
     @classmethod
@@ -30,7 +30,7 @@ class SlotState:
         return cls("a", "a")
 
     def as_tuple(self):
-        return (self.tree, self.vendor)
+        return (self.app, self.vendor)
 
 
 @dataclass(frozen=True)
@@ -44,9 +44,9 @@ class DeploymentPlan:
 
     @classmethod
     def swap(cls, active, include_vendor):
-        tree = other_slot(active.tree)
+        app = other_slot(active.app)
         vendor = other_slot(active.vendor) if include_vendor else active.vendor
-        return cls(active, SlotState(tree, vendor))
+        return cls(active, SlotState(app, vendor))
 
 
 class DeployState:
@@ -67,9 +67,9 @@ class DeployState:
             return None
         if not parser.has_section("state"):
             return None
-        tree = parser["state"].get("tree", "")
+        app = parser["state"].get("app", "")
         vendor = parser["state"].get("vendor", "")
-        return SlotState.from_values(tree, vendor)
+        return SlotState.from_values(app, vendor)
 
     @staticmethod
     def format(state):
@@ -77,7 +77,7 @@ class DeployState:
             raise ValueError("Deploy-State fehlt.")
         config = IniConfig()
         config["state"] = {
-            "tree": state.tree,
+            "app": state.app,
             "vendor": state.vendor,
         }
         return config.to_string()

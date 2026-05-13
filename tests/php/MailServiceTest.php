@@ -46,6 +46,24 @@ final class MailServiceTest extends TestCase
         $service->send($message);
     }
 
+    public function testRejectsUnsupportedSmtpEncryption(): void
+    {
+        $this->writeConfig([
+            'MAIL_STDOUT' => '0',
+            'MAIL_TO_EMAIL' => 'a@example.invalid',
+            'SMTP_HOST' => 'smtp.example.invalid',
+            'SMTP_ENCRYPTION' => 'ssl',
+            'SMTP_FROM_NAME' => 'TestApp',
+        ]);
+        $service = new MailService(new ConfigCompiled($this->root));
+        $message = new MailMessage(module: 'Test', title: 'Test', body: 'Text');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('SMTP_ENCRYPTION erlaubt nur none oder tls.');
+
+        $service->send($message);
+    }
+
     private function writeConfig(array $config): void
     {
         $path = $this->root . '/var/config/config.php';

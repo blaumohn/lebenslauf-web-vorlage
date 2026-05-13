@@ -22,7 +22,7 @@ abstract class FeatureTestCase extends TestCase
         $this->root = $this->createTestRoot();
         $this->copyDir(
             $this->configSourceDir(),
-            $this->root . '/src/resources/config'
+            $this->root . '/src/resources/pipeline-config'
         );
         $this->copyDir($this->projectRoot() . '/src/resources/templates', $this->root . '/src/resources/templates');
         $this->copyFile(
@@ -93,7 +93,7 @@ abstract class FeatureTestCase extends TestCase
 
     private function configSourceDir(): string
     {
-        return $this->projectRoot() . '/src/resources/config';
+        return $this->projectRoot() . '/src/resources/pipeline-config';
     }
 
     private function createTestRoot(): string
@@ -125,7 +125,7 @@ abstract class FeatureTestCase extends TestCase
 
     private function compileConfig(): void
     {
-        $configService = new PipelineConfigService($this->root, 'src/resources/config');
+        $configService = new PipelineConfigService($this->root, 'src/resources/pipeline-config');
         $configService->compile('dev', 'runtime');
     }
 

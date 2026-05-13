@@ -7,6 +7,14 @@ variable-groups:
           Nicht mit Dateisystem-Pfad verwechseln. Beispiel: /public bei
           https://domain.tld/public
         example: "/public"
+    APP_ROOT_URL:
+      sources: [local, cli]
+      meta:
+        desc: "Wurzel-URL der laufenden Anwendung (Schema + Host)"
+        notes: >-
+          Nur der Ursprung — der Auslöser-Pfad wird intern ergänzt.
+          Kann aus GitHub-Vars oder .local/<pipeline>.yaml kommen.
+        example: "https://example.invalid"
     TRUST_PROXY:
       meta:
         desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
@@ -63,6 +71,7 @@ variable-groups:
       meta:
         desc: "Maximale Kontaktformular-Absendungen pro Zeitfenster"
         example: "3"
+
   mail:
     MAIL_TO_EMAIL:
       meta:
@@ -115,7 +124,7 @@ variable-groups:
           SMTP_USER. Gehört nicht in versionierte Beispielkonfigurationen.
     SMTP_ENCRYPTION:
       meta:
-        desc: "SMTP-Verschlüsselung (tls, ssl oder leer)"
+        desc: "SMTP-Verschlüsselung (tls oder none)"
         notes: >-
           Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
           SMTP_PORT.
@@ -135,34 +144,24 @@ variable-groups:
           SMTP_FROM_EMAIL.
         example: "Lebenslauf"
 
-  ftp:
-    FTP_SERVER_DIR:
+  sftp:
+    SFTP_SERVER_DIR:
       meta:
-        desc: "Zielverzeichnis auf dem FTP-Server"
+        desc: "Zielverzeichnis auf dem SFTP-Server"
         example: "/home/user/public"
-    FTP_PORT:
+    SFTP_PORT:
+      default: "22"
       meta:
-        desc: "FTP-Port"
-        example: "21"
-    FTP_HOST:
+        desc: "SFTP-Port"
+        example: "22"
+    SFTP_HOST:
       sources: [local, cli]
-    FTP_USER:
+    SFTP_USER:
       sources: [local, cli]
-    FTP_PASS:
+    SFTP_PASS:
       sources: [local, cli]
     SSH_KNOWN_HOST_LINE:
       sources: [local, cli]
-
-  tooling:
-    PYTHON_CMD:
-      meta:
-        desc: "Python-Befehl oder Pfad zur Python-Executable"
-        example: ".venv/bin/python"
-    PYTHON_PATHS:
-      sources: [file, local, cli]
-      meta:
-        desc: "Kommagetrennte zusätzliche Python-Suchpfade"
-        example: "src"
 
   tests:
     CLONE_SOURCE:
@@ -176,9 +175,6 @@ variable-groups:
 
 phases:
   setup: {}
-
-  python:
-    tooling: "*"
 
   build:
     app:
@@ -212,4 +208,6 @@ pipelines:
     runtime:
       smtp: "*"
     deploy:
-      ftp: "*"
+      app:
+        - APP_ROOT_URL
+      sftp: "*"

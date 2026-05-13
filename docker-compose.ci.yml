@@ -12,16 +12,6 @@ x-ci-env: &ci-env
 
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
 
-x-ci-preview-smtp: &ci-preview-smtp
-  SMTP_HOST: "mailpit"
-  SMTP_PORT: "1025"
-  SMTP_USER: "ci"
-  SMTP_PASS: "ci-pass"
-  SMTP_ENCRYPTION: "tls"
-  SMTP_FROM_EMAIL: "noreply@ci.invalid"
-  SMTP_FROM_NAME: "CI"
-  MAIL_TO_EMAIL: "ci-test@ci.invalid"
-
 services:
   ci-dev:
     <<: *ci-base
@@ -41,9 +31,33 @@ services:
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
     environment:
-      <<: [*ci-env, *ci-preview-smtp]
+      <<: *ci-env
       PIPELINE: preview
       DEBUG: "${DEBUG:-0}"
+      GITHUB_RUN_ID: "${GITHUB_RUN_ID:-}"
+    command:
+      - bash
+      - -c
+      - |
+        exec bash /repo/bin/ci "$${CI_TEST_CASE:?CI_TEST_CASE fehlt}" <<'YAML'
+        app:
+          APP_ROOT_URL: "http://preview-web"
+        mail:
+          MAIL_TO_EMAIL: "ci-test@ci.invalid"
+        sftp:
+          SFTP_HOST: "sftp-server"
+          SFTP_USER: "preview-ci"
+          SFTP_PASS: "ci-pass"
+          SFTP_SERVER_DIR: "/public"
+          SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
+        smtp:
+          SMTP_HOST: "mailpit"
+          SMTP_PORT: "1025"
+          SMTP_USER: "ci"
+          SMTP_PASS: "ci-pass"
+          SMTP_FROM_EMAIL: "noreply@ci.invalid"
+        YAML
+      - --
     depends_on:
       - sftp-server
       - preview-web
@@ -63,9 +77,23 @@ services:
 
   sftp-server:
     image: atmoz/sftp:alpine
-    command: "preview-ci:ci-pass:1000::public"
+    entrypoint: sh
+    command:
+      - -c
+      - |
+        cp /tmp/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key &&
+        chmod 600 /etc/ssh/ssh_host_ed25519_key &&
+        exec /entrypoint preview-ci:ci-pass:1000::public
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+      start_period: 2s
     volumes:
       - "preview_deploy:/home/preview-ci/public"
+      - "./tests/ci/sftp_host_ed25519_key:/tmp/ssh_host_ed25519_key:ro"
+      - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
   preview-web:
     image: php:8.2-apache

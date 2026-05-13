@@ -11,9 +11,9 @@ function deploy_router_state()
     $state = is_file($stateFile) ? parse_ini_file($stateFile, true) : [];
     $state = is_array($state) ? $state : [];
     $section = $state['state'] ?? [];
-    $tree = deploy_router_valid_slot($section['tree'] ?? '') ? $section['tree'] : 'a';
+    $app = deploy_router_valid_slot($section['app'] ?? '') ? $section['app'] : 'a';
     $vendor = deploy_router_valid_slot($section['vendor'] ?? '') ? $section['vendor'] : 'a';
-    return [$tree, $vendor];
+    return [$app, $vendor];
 }
 
 function deploy_router_request_path()
@@ -53,9 +53,9 @@ function deploy_router_serve_public_file($appRoot)
     return true;
 }
 
-[$tree, $vendor] = deploy_router_state();
+[$app, $vendor] = deploy_router_state();
 
-define('APP_ROOT_DIR', __DIR__ . '/' . $tree);
+define('APP_ROOT_DIR', __DIR__ . '/' . $app);
 define('APP_VENDOR_DIR', __DIR__ . '/vendor-' . $vendor);
 
 if (deploy_router_serve_public_file(APP_ROOT_DIR)) {

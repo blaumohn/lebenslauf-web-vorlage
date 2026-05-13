@@ -17,7 +17,7 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
    ```
 
 2. **Set up project** — create directories, install npm packages and
-   Python environment. Requires step 1.
+   the Python environment under `.venv/`. Requires step 1.
 
    ```bash
    php bin/cli setup dev --with-sample-content
@@ -25,6 +25,8 @@ It builds on the earlier static [lebenslauf-vorlage](https://github.com/blaumohn
 
    `--with-sample-content` creates sample data without overwriting existing
    data.
+
+   Python tools in this repository run through `.venv/bin/python`.
 
 3. **Build CV** — render sample data into HTML views.
 

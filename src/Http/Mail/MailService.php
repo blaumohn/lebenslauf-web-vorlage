@@ -62,6 +62,10 @@ final class MailService
         $mailer->Username = (string) $this->config->get('SMTP_USER');
         $mailer->Password = (string) $this->config->get('SMTP_PASS');
         $encryption = (string) $this->config->get('SMTP_ENCRYPTION');
-        $mailer->SMTPSecure = $encryption === 'none' ? '' : $encryption;
+        $mailer->SMTPSecure = match ($encryption) {
+            'none' => '',
+            'tls' => PHPMailer::ENCRYPTION_STARTTLS,
+            default => throw new \RuntimeException('SMTP_ENCRYPTION erlaubt nur none oder tls.'),
+        };
     }
 }

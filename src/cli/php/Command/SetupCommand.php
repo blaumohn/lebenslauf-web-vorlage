@@ -14,7 +14,7 @@ use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'setup', description: 'Richtet die Entwicklungsumgebung ein.')]
-final class SetupCommand extends BasePipelineCommand
+final class SetupCommand extends BasePipelinePhaseCommand
 {
     private const ACTION_SAMPLE_CONTENT = 'sample-content';
 
@@ -27,7 +27,6 @@ final class SetupCommand extends BasePipelineCommand
     {
         $this->addArgument('action', InputArgument::OPTIONAL, 'Einzelne Setup-Aktion, z. B. sample-content')
             ->addOption('with-sample-content', null, InputOption::VALUE_NONE, 'Sample-Inhalt zusätzlich nach .local kopieren')
-            ->addOption('skip-python', null, InputOption::VALUE_NONE, 'Python-Setup ueberspringen')
             ->addOption('python-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer Pip')
             ->addOption('npm-cache-dir', null, InputOption::VALUE_REQUIRED, 'Cache-Verzeichnis fuer NPM');
     }
@@ -56,15 +55,12 @@ final class SetupCommand extends BasePipelineCommand
 
     private function runSetupSteps(InputInterface $input, OutputInterface $output): bool
     {
-        $configValues = $this->commandConfig()->all();
-        if (!$input->getOption('skip-python')) {
-            $resolver = new PythonResolver($this->rootPath(), $configValues);
-            if (!$this->ensureVenv($resolver, $input, $output)) {
-                return false;
-            }
-            if (!$this->installPythonDeps($input, $output)) {
-                return false;
-            }
+        $resolver = new PythonResolver($this->rootPath());
+        if (!$this->ensureVenv($resolver, $input, $output)) {
+            return false;
+        }
+        if (!$this->installPythonDeps($input, $output)) {
+            return false;
         }
         return $this->installNodeDependencies($input, $output);
     }

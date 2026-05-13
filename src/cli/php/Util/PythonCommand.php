@@ -3,55 +3,56 @@
 namespace App\Cli\Util;
 
 use App\Cli\Command\BasePipelineCommand;
+use App\Cli\Command\PythonRunnerAware;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'python', description: 'Fuehrt ein Python-Skript ueber den CLI-Runner aus.')]
+#[AsCommand(name: 'python', description: 'Führt ein Python-Skript mit gezielten Pipeline-Phasen aus.')]
 final class PythonCommand extends BasePipelineCommand
 {
-    protected function commandPhase(): string
-    {
-        return 'python';
-    }
+    use PythonRunnerAware;
 
-    protected function configurePipelineCommand(): void
+    protected function configure(): void
     {
+        parent::configure();
         $this->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
-            ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente fuer das Skript');
+            ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente für das Skript')
+            ->addOption('phases', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Pipeline-Phasen (z. B. --phases runtime --phases build)');
     }
 
-    protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $script = $this->resolveScript($input, $output);
         if ($script === null) {
             return Command::FAILURE;
         }
 
-        $runner = new PythonRunner($this->rootPath());
-        return $runner->runScript(
-            $this->commandConfig(),
-            $script,
-            $this->scriptArgs($input),
-            $input->isInteractive()
-        );
+        $phases = $input->getOption('phases');
+        if (!is_array($phases) || $phases === []) {
+            $output->writeln('<error>--phases fehlt. Beispiel: --phases runtime</error>');
+            return Command::FAILURE;
+        }
+
+        $values = $this->getValuesByPhase($phases, $output);
+        if ($values === null) {
+            return Command::FAILURE;
+        }
+
+        return $this->pythonRunner()->runScript($script, $values, $this->scriptArgs($input));
     }
 
     private function resolveScript(InputInterface $input, OutputInterface $output): ?string
     {
         $value = $input->getArgument('script');
-        if (!is_string($value)) {
+        if (!is_string($value) || trim($value) === '') {
             $output->writeln('<error>Script-Pfad fehlt.</error>');
             return null;
         }
-        $value = trim($value);
-        if ($value === '') {
-            $output->writeln('<error>Script-Pfad fehlt.</error>');
-            return null;
-        }
-        return $value;
+        return trim($value);
     }
 
     private function scriptArgs(InputInterface $input): array
@@ -61,12 +62,6 @@ final class PythonCommand extends BasePipelineCommand
             return [];
         }
         $args = array_map('strval', $args);
-        $filtered = array_filter($args, [$this, 'isNonEmptyString']);
-        return array_values($filtered);
-    }
-
-    private function isNonEmptyString(string $value): bool
-    {
-        return trim($value) !== '';
+        return array_values(array_filter($args, fn (string $v) => trim($v) !== ''));
     }
 }

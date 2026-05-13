@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'build', description: 'Erstellt CSS und Lebenslauf-HTML.')]
-final class BuildCommand extends BasePipelineCommand
+final class BuildCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
     {
@@ -58,7 +58,7 @@ final class BuildCommand extends BasePipelineCommand
 
     private function runCvOnly(OutputInterface $output): int
     {
-        if (!$this->compileRuntimeConfig($this->commandOverrides(), $output)) {
+        if (!$this->compileRuntimeConfig($output)) {
             return Command::FAILURE;
         }
         if (!$this->runCvBuild($this->commandConfig(), $output)) {
@@ -100,15 +100,10 @@ final class BuildCommand extends BasePipelineCommand
         return true;
     }
 
-    private function compileRuntimeConfig(array $overrides, OutputInterface $output): bool
+    private function compileRuntimeConfig(OutputInterface $output): bool
     {
-        $runtimeConfig = $this->resolvePipelineConfig($this->pipelineName(), 'runtime', $overrides, $output);
-        if ($runtimeConfig === null) {
-            return false;
-        }
-
         try {
-            $this->configService()->compile($this->pipelineName(), 'runtime', null, $overrides);
+            $this->pipelineCompile('runtime');
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;

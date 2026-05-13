@@ -1,10 +1,10 @@
-#!/bin/sh
+# shellcheck shell=sh
 # Richtet den versionierten Pre-Push-Hook ein.
 # Aufruf: sh scripts/install-hooks.sh
 set -eu
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+SCRIPT_DIR=$(cd -- "$(dirname "$0")" && pwd)
+REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
 HOOK_SRC="$SCRIPT_DIR/hooks/pre-push"
 HOOK_DST="$REPO_ROOT/.git/hooks/pre-push"
 

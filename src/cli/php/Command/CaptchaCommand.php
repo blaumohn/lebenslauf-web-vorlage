@@ -15,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 
 #[AsCommand(name: 'captcha', description: 'CAPTCHA-Tools (cleanup).')]
-final class CaptchaCommand extends BasePipelineCommand
+final class CaptchaCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
     {

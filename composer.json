@@ -24,6 +24,8 @@
     "symfony/lock": "^7.0"
   },
   "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "squizlabs/php_codesniffer": "^3.13",
     "phpunit/phpunit": "^10.0"
   },
   "autoload": {
@@ -40,23 +42,41 @@
     }
   },
   "scripts": {
-      "dev": [
+    "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev src/cli/py/dev/dev.py --"
-      ],
+      "php bin/cli python dev --phases build src/cli/py/dev/dev.py --"
+    ],
     "dev:build": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev src/cli/py/dev/dev.py -- --build"
+      "php bin/cli python dev --phases build src/cli/py/dev/dev.py -- --build"
     ],
     "cv:build": "php bin/cli build dev cv",
     "cv:upload": "php bin/cli build dev upload",
-    "token:rotate": "php bin/cli token rotate",
+    "token:rotate": "php bin/cli token dev rotate",
     "captcha:cleanup": "php bin/cli captcha dev",
-    "config:get": "php bin/cli config get dev",
-    "config:compile": "php bin/cli config compile dev",
-    "config:lint": "php bin/cli config lint dev",
-    "config:show": "php bin/cli config show dev",
-    "test": "phpunit",
+    "config:get": "php bin/cli config dev get",
+    "config:compile": "php bin/cli config dev compile",
+    "config:lint": "php bin/cli config dev lint",
+    "config:show": "php bin/cli config dev show",
+    "lint": [
+      "@lint:php",
+      "@lint:python",
+      "@lint:shell"
+    ],
+    "lint:php": [
+      "@lint:phpcs",
+      "@lint:phpstan"
+    ],
+    "lint:phpcs": "phpcs",
+    "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
+    "lint:python": ".venv/bin/python tools/lint-python.py",
+    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/*.sh",
+    "test": [
+      "@test:php",
+      "@test:python"
+    ],
+    "test:php": "phpunit",
+    "test:python": ".venv/bin/python -m unittest discover -b -s tests/py -p 'test_*.py'",
     "css:build": "npm run build:css",
     "build": "php bin/cli build dev",
     "build:dev": "php bin/cli build dev",
@@ -66,15 +86,15 @@
     "setup:preview": "php bin/cli setup preview",
     "ci:dev": [
       "Composer\\Config::disableProcessTimeout",
-      "docker compose -f docker-compose.ci.yml up --remove-orphans --build ci-dev"
+      "php bin/cli ci dev"
     ],
     "ci:preview": [
       "Composer\\Config::disableProcessTimeout",
-      "bash scripts/run-ci-preview.sh"
+      "php bin/cli ci preview"
     ],
     "ci:preview:debug": [
       "Composer\\Config::disableProcessTimeout",
-      "DEBUG=1 bash scripts/run-ci-preview.sh"
+      "DEBUG=1 php bin/cli ci preview"
     ],
     "deploy:preview": [
       "php bin/cli build preview"

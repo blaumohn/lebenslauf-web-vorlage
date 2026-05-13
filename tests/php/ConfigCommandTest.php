@@ -5,108 +5,65 @@ declare(strict_types=1);
 use App\Cli\Application;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Yaml\Yaml;
 
 final class ConfigCommandTest extends TestCase
 {
-    public function testGetReturnsDeployValueFromConfiguredSource(): void
+    public function testGetReturnsDeployValueFromManifestDefault(): void
     {
         $tester = $this->tester();
-
         $exitCode = $tester->execute([
-            'action'       => 'get',
             'pipeline'     => 'preview',
-            'arg1'         => 'FTP_PORT',
+            'action'       => 'get',
+            'arg1'         => 'SFTP_PORT',
             '--phase'      => 'deploy',
-            '--overrides'  => '{"preview":{"deploy":{"ftp":{"FTP_HOST":"h","FTP_USER":"u","FTP_PASS":"p","SSH_KNOWN_HOST_LINE":"p"}}}}',
+            '--overrides'  => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
         ]);
-
         self::assertSame(0, $exitCode);
-        self::assertSame('21', trim($tester->getDisplay()));
+        self::assertSame('22', trim($tester->getDisplay()));
     }
 
-    public function testGetReturnsRuntimeSecretFromCliOverride(): void
+    public function testGetReturnsCliOverrideForDeploySecret(): void
     {
-        $manifestPath = $this->manifestPath();
-        $originalManifest = file_get_contents($manifestPath);
-        self::assertNotFalse($originalManifest);
-        $manifest = Yaml::parse($originalManifest);
-        self::assertIsArray($manifest);
-
-        try {
-            $manifest['pipelines'] ??= [];
-            $manifest['pipelines']['preview'] ??= [];
-            $manifest['pipelines']['preview']['runtime'] ??= [];
-            $manifest['pipelines']['preview']['runtime']['smtp'] = ['SMTP_PASS'];
-            $this->writeManifest($manifestPath, $manifest);
-
-            $tester = $this->tester();
-            $exitCode = $tester->execute([
-                'action'      => 'get',
-                'pipeline'    => 'preview',
-                'arg1'        => 'SMTP_PASS',
-                '--phase'     => 'runtime',
-                '--overrides' => '{"preview":{"runtime":{"smtp":{"SMTP_PASS":"preview-secret"}}}}',
-            ]);
-
-            self::assertSame(0, $exitCode);
-            self::assertSame('preview-secret', trim($tester->getDisplay()));
-        } finally {
-            file_put_contents($manifestPath, $originalManifest);
-        }
+        $tester = $this->tester();
+        $exitCode = $tester->execute([
+            'pipeline'     => 'preview',
+            'action'       => 'get',
+            'arg1'         => 'SFTP_HOST',
+            '--phase'      => 'deploy',
+            '--overrides'  => '{"SFTP_HOST":"override-host","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
+        ]);
+        self::assertSame(0, $exitCode);
+        self::assertSame('override-host', trim($tester->getDisplay()));
     }
 
     public function testGetFailsWithoutPhaseOption(): void
     {
         $tester = $this->tester();
-
         $exitCode = $tester->execute([
-            'action'   => 'get',
             'pipeline' => 'preview',
-            'arg1'     => 'SMTP_PASS',
+            'action'   => 'get',
+            'arg1'     => 'SFTP_HOST',
         ]);
-
         self::assertSame(1, $exitCode);
-        self::assertStringContainsString(
-            '--phase fehlt. Beispiel: --phase runtime',
-            $tester->getDisplay()
-        );
+        self::assertStringContainsString('--phase fehlt. Beispiel: --phase runtime', $tester->getDisplay());
     }
 
     public function testLintChecksRequestedDeployPhase(): void
     {
         $tester = $this->tester();
-
         $exitCode = $tester->execute([
-            'action'      => 'lint',
             'pipeline'    => 'preview',
+            'action'      => 'lint',
             '--phase'     => 'deploy',
-            '--overrides' => '{"preview":{"deploy":{"ftp":{"FTP_HOST":"h","FTP_USER":"u","FTP_PASS":"p","SSH_KNOWN_HOST_LINE":"p"}}}}',
+            '--overrides' => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
         ]);
-
         self::assertSame(0, $exitCode);
-        self::assertStringContainsString(
-            'Config OK. Pipeline-Phase: preview/deploy',
-            $tester->getDisplay()
-        );
+        self::assertStringContainsString('Config OK. Pipeline-Phase: preview/deploy', $tester->getDisplay());
     }
 
     private function tester(): CommandTester
     {
         $command = (new Application())->find('config');
         return new CommandTester($command);
-    }
-
-    private function manifestPath(): string
-    {
-        return dirname(__DIR__, 2) . '/src/resources/config/config.manifest.yaml';
-    }
-
-    private function writeManifest(string $path, array $manifest): void
-    {
-        $payload = Yaml::dump($manifest, 8, 2);
-        if (file_put_contents($path, $payload) === false) {
-            throw new \RuntimeException('Failed to write manifest.');
-        }
     }
 }
