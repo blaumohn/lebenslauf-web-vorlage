@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+import uuid
 
 COMPOSE_FILE = "docker-compose.ci.yml"
 CI_SERVICE_PREVIEW = "ci-preview"
@@ -67,22 +69,35 @@ def start_helpers() -> None:
 
 def run_tests() -> None:
     for test_case in PREVIEW_TEST_CASES:
+        env = preview_test_env(test_case)
         compose(
             "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}", CI_SERVICE_PREVIEW,
+            env=env,
             label=f"Testfall: {test_case}",
         )
+
+
+def preview_test_env(test_case: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env["GITHUB_RUN_ID"] = build_ci_run_id(test_case)
+    return env
+
+
+def build_ci_run_id(test_case: str) -> str:
+    return f"ci-{test_case}-{uuid.uuid4().hex}"
 
 
 def down_stack() -> None:
     compose("down", "--remove-orphans", check=False)
 
 
-def compose(*args, check=True, label: str = "") -> subprocess.CompletedProcess:
-    return run(["docker", "compose", "-f", COMPOSE_FILE, *args], check=check, label=label)
+def compose(*args, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
+    cmd = ["docker", "compose", "-f", COMPOSE_FILE, *args]
+    return run(cmd, check=check, label=label, env=env)
 
 
-def run(cmd, check=True, label: str = "") -> subprocess.CompletedProcess:
-    result = subprocess.run(cmd)
+def run(cmd, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
+    result = subprocess.run(cmd, env=env)
     if check and result.returncode != 0:
         context = label if label else " ".join(cmd)
         raise RuntimeError(f"[ci] Fehlgeschlagen: {context}")

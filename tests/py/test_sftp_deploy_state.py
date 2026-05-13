@@ -19,11 +19,11 @@ class SftpDeployStateTest(unittest.TestCase):
         self.assertEqual(DeployState.parse(content), state)
         parser = configparser.ConfigParser()
         parser.read_string(content)
-        self.assertEqual(parser["state"]["tree"], "b")
+        self.assertEqual(parser["state"]["app"], "b")
         self.assertEqual(parser["state"]["vendor"], "a")
 
     def test_invalid_deploy_state_returns_none(self):
-        self.assertIsNone(DeployState.parse("[state]\ntree=x\nvendor=a\n"))
+        self.assertIsNone(DeployState.parse("[state]\napp=x\nvendor=a\n"))
         self.assertIsNone(DeployState.parse("[]"))
         self.assertIsNone(DeployState.parse(""))
 

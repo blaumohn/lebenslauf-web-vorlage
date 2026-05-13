@@ -31,27 +31,15 @@ final class AdminDeployTest extends TestCase
 
     public function testPreparedDeployStateRoundtrip(): void
     {
-        $file = $this->dir . '/prepared.ini';
-        file_put_contents($file, "[prepared]\ntree=b\nvendor=a\n");
+        $state = PreparedDeployState::fromParams('b', 'a');
 
-        $state = PreparedDeployState::fromFile($file);
-
-        $this->assertSame("[state]\ntree=b\nvendor=a\n", $state->toIni());
+        $this->assertSame("[state]\napp=b\nvendor=a\n", $state->toIni());
     }
 
     public function testPreparedDeployStateRejectsInvalidSlot(): void
     {
-        $file = $this->dir . '/bad.ini';
-        file_put_contents($file, "[prepared]\ntree=c\nvendor=a\n");
-
         $this->expectException(RuntimeException::class);
-        PreparedDeployState::fromFile($file);
-    }
-
-    public function testPreparedDeployStateMissingFileThrows(): void
-    {
-        $this->expectException(RuntimeException::class);
-        PreparedDeployState::fromFile($this->dir . '/missing.ini');
+        PreparedDeployState::fromParams('c', 'a');
     }
 
     // ── DeploySwitcher ───────────────────────────────────────────────────────
@@ -63,26 +51,25 @@ final class AdminDeployTest extends TestCase
         $lockRunner = new RuntimeLockRunner($this->dir);
         $switcher = new DeploySwitcher($writer, $lockRunner, $this->dir);
 
-        $file = $this->dir . '/prepared.ini';
-        file_put_contents($file, "[prepared]\ntree=b\nvendor=a\n");
-        $state = PreparedDeployState::fromFile($file);
-
+        $state = PreparedDeployState::fromParams('b', 'a');
         $switcher->switchTo($state);
 
         $this->assertFileExists($stateFile);
-        $this->assertSame("[state]\ntree=b\nvendor=a\n", file_get_contents($stateFile));
+        $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($stateFile));
     }
 
     // ── AdminTask ────────────────────────────────────────────────────────────
 
     public function testAdminTaskParsesFile(): void
     {
-        $file = $this->writeTempIni("[task]\ntype=deploy_switch\nprepared_state=var/admin/deploy-prepared/ref.ini\n");
+        $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
 
         $task = AdminTask::fromFile($file);
 
         $this->assertSame('deploy_switch', $task->type());
-        $this->assertSame('var/admin/deploy-prepared/ref.ini', $task->get('prepared_state'));
+        $this->assertSame('b', $task->get('app'));
+        $this->assertSame('a', $task->get('vendor'));
+        $this->assertSame('42', $task->get('run_id'));
     }
 
     public function testAdminTaskRejectsMissingType(): void
@@ -104,16 +91,32 @@ final class AdminDeployTest extends TestCase
 
     public function testDeploySwitchTaskHandlerPerformsSwitch(): void
     {
-        $prepDir = $this->dir . '/var/admin/deploy-prepared';
-        mkdir($prepDir, 0775, true);
-        file_put_contents($prepDir . '/ref.ini', "[prepared]\ntree=b\nvendor=a\n");
-
-        $taskFile = $this->writeTempIni("[task]\ntype=deploy_switch\nprepared_state=var/admin/deploy-prepared/ref.ini\n");
+        $this->writeRunMarkers('b', 'a', '42');
+        $taskFile = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
         $task = AdminTask::fromFile($taskFile);
 
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
 
-        $this->assertSame("[state]\ntree=b\nvendor=a\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+    }
+
+    public function testDeploySwitchTaskHandlerRejectsRunIdMismatch(): void
+    {
+        $this->writeRunMarkers('b', 'a', '99');
+        $taskFile = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
+        $task = AdminTask::fromFile($taskFile);
+
+        $this->expectException(RuntimeException::class);
+        $this->buildDeploySwitchHandler()->handle($task, $this->dir);
+    }
+
+    public function testDeploySwitchTaskHandlerRejectsMissingRunId(): void
+    {
+        $taskFile = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\n");
+        $task = AdminTask::fromFile($taskFile);
+
+        $this->expectException(RuntimeException::class);
+        $this->buildDeploySwitchHandler()->handle($task, $this->dir);
     }
 
     // ── AdminTaskRunner ──────────────────────────────────────────────────────
@@ -126,13 +129,11 @@ final class AdminDeployTest extends TestCase
 
     public function testAdminTaskRunnerProcessesAndDeletesTask(): void
     {
+        $this->writeRunMarkers('b', 'a', '42');
         $taskDir = $this->dir . '/var/admin/tasks';
-        $prepDir = $this->dir . '/var/admin/deploy-prepared';
         mkdir($taskDir, 0775, true);
-        mkdir($prepDir, 0775, true);
-        file_put_contents($prepDir . '/ref.ini', "[prepared]\ntree=b\nvendor=a\n");
         $taskFile = $taskDir . '/20260505T000000Z-deploy-switch.ini';
-        file_put_contents($taskFile, "[task]\ntype=deploy_switch\nprepared_state=var/admin/deploy-prepared/ref.ini\n");
+        file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
 
         $runner = new AdminTaskRunner([$this->buildDeploySwitchHandler()], $this->dir);
         $count = $runner->runPending();
@@ -162,6 +163,15 @@ final class AdminDeployTest extends TestCase
         $lockRunner = new RuntimeLockRunner($this->dir);
         $switcher = new DeploySwitcher($writer, $lockRunner, $this->dir);
         return new DeploySwitchTaskHandler($switcher);
+    }
+
+    private function writeRunMarkers(string $app, string $vendor, string $runId): void
+    {
+        foreach ([$app, "vendor-{$vendor}"] as $slot) {
+            $dir = $this->dir . '/' . $slot;
+            mkdir($dir, 0775, true);
+            file_put_contents($dir . '/.deploy-run', $runId);
+        }
     }
 
     private function writeTempIni(string $content): string
