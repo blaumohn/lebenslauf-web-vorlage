@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Admin;
+namespace App\Http\Task;
 
-final class AdminTask
+final class Task
 {
     private function __construct(
         private readonly string $type,
@@ -13,16 +13,16 @@ final class AdminTask
     public static function fromFile(string $filePath): self
     {
         if (!is_file($filePath)) {
-            throw new \RuntimeException("Admin-Task nicht gefunden: {$filePath}");
+            throw new \RuntimeException("Task nicht gefunden: {$filePath}");
         }
         $parsed = parse_ini_file($filePath, true);
         if (!is_array($parsed)) {
-            throw new \RuntimeException("Admin-Task nicht lesbar: {$filePath}");
+            throw new \RuntimeException("Task nicht lesbar: {$filePath}");
         }
         $section = $parsed['task'] ?? [];
         $type = (string) ($section['type'] ?? '');
         if ($type === '') {
-            throw new \RuntimeException("Admin-Task fehlt type: {$filePath}");
+            throw new \RuntimeException("Task fehlt type: {$filePath}");
         }
         return new self($type, $section, $filePath);
     }

@@ -1,13 +1,15 @@
 import argparse
+import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-from cli.py.admin.task import AdminTask
+from cli.py.task.task import Task
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 
-ADMIN_TASK_DIR = "var/admin/tasks"
-ADMIN_TRIGGER_PATH = "/admin/run"
+TASK_DIR = "var/tasks"
+TASK_TRIGGER_PATH = "/tasks/dispatch"
 
 TASK_SCHEMAS = {
     "cv_token_rotation": {"profile": "default", "count": "1"},
@@ -15,11 +17,11 @@ TASK_SCHEMAS = {
 }
 
 
-class AdminDispatch:
+class TaskDispatch:
     def __init__(self, cfg: PipelineCfg):
         self._deploy = cfg
 
-    def submit(self, task: AdminTask) -> None:
+    def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
             enqueue_with_client(client, task)
         self._http_trigger()
@@ -28,15 +30,36 @@ class AdminDispatch:
         root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
         if not root_url:
             return
-        url = root_url + ADMIN_TRIGGER_PATH
+        url = root_url + TASK_TRIGGER_PATH
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[dispatch] HTTP-Auslöser: {url} → {resp.status}", flush=True)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                print(f"[dispatch] HTTP-Auslöser: {url} → {resp.status}", flush=True)
+        except urllib.error.HTTPError as exc:
+            body = _truncate(exc.read().decode(errors="replace"))
+            print(
+                f"[dispatch] HTTP-Auslöser fehlgeschlagen: {url}\n"
+                f"  Status: {exc.code}\n"
+                f"  Body: {body}",
+                file=sys.stderr, flush=True,
+            )
+            raise
+        except urllib.error.URLError as exc:
+            print(
+                f"[dispatch] HTTP-Auslöser nicht erreichbar: {url}\n"
+                f"  Fehler: {exc.reason}",
+                file=sys.stderr, flush=True,
+            )
+            raise
 
 
-def enqueue_with_client(client, task: AdminTask) -> None:
-    rel_path = f"{ADMIN_TASK_DIR}/{task.filename()}"
-    client.ensure_dir(ADMIN_TASK_DIR)
+def _truncate(text: str, limit: int = 300) -> str:
+    return text[:limit] + "..." if len(text) > limit else text
+
+
+def enqueue_with_client(client, task: Task) -> None:
+    rel_path = f"{TASK_DIR}/{task.filename()}"
+    client.ensure_dir(TASK_DIR)
     client.put_text(rel_path, task.to_ini())
     print(f"[dispatch] Aufgabe via SFTP geschrieben: {rel_path}", flush=True)
 
@@ -44,8 +67,8 @@ def enqueue_with_client(client, task: AdminTask) -> None:
 def main() -> None:
     args = parse_args()
     cfg = PipelineCfg("deploy")
-    task = AdminTask(args.task_type, _build_params(args))
-    AdminDispatch(cfg).submit(task)
+    task = Task(args.task_type, _build_params(args))
+    TaskDispatch(cfg).submit(task)
 
 
 def _build_params(args: argparse.Namespace) -> dict:
@@ -57,7 +80,7 @@ def _build_params(args: argparse.Namespace) -> dict:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Admin-Task anmelden")
+    parser = argparse.ArgumentParser(description="Task anmelden")
     parser.add_argument("task_type", choices=list(TASK_SCHEMAS))
     parser.add_argument("--profile", help="Token-Profil (cv_token_rotation)")
     parser.add_argument("--count", type=int, help="Anzahl Token (cv_token_rotation)")

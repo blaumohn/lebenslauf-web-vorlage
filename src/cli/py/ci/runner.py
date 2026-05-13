@@ -49,6 +49,7 @@ def run_preview() -> int:
         return 0
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
+        dump_diagnostics()
         return 1
     finally:
         down_stack()
@@ -85,6 +86,12 @@ def preview_test_env(test_case: str) -> dict[str, str]:
 
 def build_ci_run_id(test_case: str) -> str:
     return f"ci-{test_case}-{uuid.uuid4().hex}"
+
+
+def dump_diagnostics() -> None:
+    for service in ("preview-web", "ci-preview", "sftp-server", "mailpit"):
+        compose("logs", "--no-color", "--tail=200", service, check=False, label=f"Logs: {service}")
+    compose("ps", check=False, label="Stack-Status")
 
 
 def down_stack() -> None:

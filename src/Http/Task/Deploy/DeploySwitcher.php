@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Admin\Deploy;
+namespace App\Http\Task\Deploy;
 
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;

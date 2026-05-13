@@ -56,7 +56,7 @@ class SftpDeployTest(unittest.TestCase):
         deploy.client = FakeClient()
         target = SlotState("b", "a")
 
-        with patch.object(module, "AdminDispatch", FakeDispatch):
+        with patch.object(module, "TaskDispatch", FakeDispatch):
             deploy.dispatch_switch(target)
 
         self.assertEqual(deploy.client.texts["b/.deploy-run"], "run-42")

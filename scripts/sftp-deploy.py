@@ -2,8 +2,8 @@ import stat
 import time
 from pathlib import Path
 
-from cli.py.admin.dispatch import AdminDispatch
-from cli.py.admin.task import AdminTask
+from cli.py.task.dispatch import TaskDispatch
+from cli.py.task.task import Task
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState
 from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
@@ -74,12 +74,12 @@ class SftpDeploy:
 
     def dispatch_switch(self, target):
         self.write_run_markers(target)
-        task = AdminTask("deploy_switch", {
+        task = Task("deploy_switch", {
             "app": target.app,
             "vendor": target.vendor,
             "run_id": self.run_id,
         })
-        AdminDispatch(self.cfg).submit(task)
+        TaskDispatch(self.cfg).submit(task)
         self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
 
     def write_run_markers(self, target):

@@ -2,7 +2,7 @@
 
 namespace App\Http;
 
-use App\Http\Actions\AdminTaskAction;
+use App\Http\Actions\TaskAction;
 use App\Http\Actions\CaptchaPngAction;
 use App\Http\Actions\ContactFormAction;
 use App\Http\Actions\ContactSubmitAction;
@@ -25,7 +25,7 @@ final class Routes
         $app->get('/captcha.png', new CaptchaPngAction($context))
             ->setName('captcha.png');
 
-        $app->get('/admin/run', new AdminTaskAction($context))
-            ->setName('admin.run');
+        $app->get('/tasks/dispatch', new TaskAction($context))
+            ->setName('task.dispatch');
     }
 }

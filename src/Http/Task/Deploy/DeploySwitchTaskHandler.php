@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Admin\Deploy;
+namespace App\Http\Task\Deploy;
 
-use App\Http\Admin\AdminTask;
-use App\Http\Admin\AdminTaskHandler;
+use App\Http\Task\Task;
+use App\Http\Task\TaskHandler;
+use App\Http\Task\TaskResult;
 
-final class DeploySwitchTaskHandler implements AdminTaskHandler
+final class DeploySwitchTaskHandler implements TaskHandler
 {
     public function __construct(
         private readonly DeploySwitcher $switcher,
@@ -16,7 +17,7 @@ final class DeploySwitchTaskHandler implements AdminTaskHandler
         return $type === 'deploy_switch';
     }
 
-    public function handle(AdminTask $task, string $entryPath): void
+    public function handle(Task $task, string $entryPath): TaskResult
     {
         $app    = $task->get('app');
         $vendor = $task->get('vendor');
@@ -27,6 +28,7 @@ final class DeploySwitchTaskHandler implements AdminTaskHandler
         $this->verifyRunMarkers($entryPath, $app, $vendor, $runId);
         $state = PreparedDeployState::fromParams($app, $vendor);
         $this->switcher->switchTo($state);
+        return TaskResult::ok("app={$app} vendor={$vendor} run_id={$runId}");
     }
 
     private function verifyRunMarkers(string $entryPath, string $app, string $vendor, string $runId): void
