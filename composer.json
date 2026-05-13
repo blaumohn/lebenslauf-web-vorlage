@@ -71,8 +71,7 @@
     "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
     "lint:python": ".venv/bin/python tools/lint-python.py",
     "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/*.sh",
-    "test": "phpunit",
-    "test:all": [
+    "test": [
       "@test:php",
       "@test:python"
     ],

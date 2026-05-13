@@ -13,7 +13,8 @@ run_pipeline() {
 
   cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
   cli build "$PIPELINE" ${is_dev:+cv}
-  [[ -x vendor/bin/phpunit ]] && php vendor/bin/phpunit
+  composer test
+  #[[ -x vendor/bin/phpunit ]] && php vendor/bin/phpunit
 
   if [[ $is_dev ]]; then
     docroot="public"
