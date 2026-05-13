@@ -12,42 +12,8 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
-    environment: preview
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          tools: composer:v2
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Reset Preview
-        if: inputs.command == 'reset-preview'
-        shell: bash
-        env:
-          PIPELINE: ${{ vars.PIPELINE }}
-          LAST_DEPLOY_COMMIT: ""
-        run: |
-          bin/cd << EOF
-          smtp:
-            SMTP_HOST: "${{ secrets.SMTP_HOST }}"
-            SMTP_USER: "${{ secrets.SMTP_USER }}"
-            SMTP_PASS: "${{ secrets.SMTP_PASS }}"
-            SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL }}"
-          mail:
-            MAIL_TO_EMAIL: "${{ secrets.MAIL_TO_EMAIL }}"
-          sftp:
-            SFTP_HOST: "${{ secrets.SFTP_HOST }}"
-            SFTP_USER: "${{ secrets.SFTP_USER }}"
-            SFTP_PASS: "${{ secrets.SFTP_PASS }}"
-            SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE }}"
-          EOF
+    if: inputs.command == 'reset-preview'
+    uses: ./.github/workflows/preview-cd.yml
+    with:
+      last-deploy-commit: ""
+    secrets: inherit
