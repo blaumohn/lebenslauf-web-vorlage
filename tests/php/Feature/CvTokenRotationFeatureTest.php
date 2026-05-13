@@ -6,7 +6,7 @@ use Slim\Psr7\Factory\ServerRequestFactory;
 
 final class CvTokenRotationFeatureTest extends FeatureTestCase
 {
-    public function testTokenRotationViaAdminAndPrivateCvAccess(): void
+    public function testTokenRotationViaTaskDispatchAndPrivateCvAccess(): void
     {
         $app = $this->app();
         $profile = 'smoke';
@@ -23,7 +23,7 @@ final class CvTokenRotationFeatureTest extends FeatureTestCase
         $this->placeTask($profile, 1);
 
         ob_start();
-        $app->handle((new ServerRequestFactory())->createServerRequest('GET', '/admin/run'));
+        $app->handle((new ServerRequestFactory())->createServerRequest('GET', '/tasks/dispatch'));
         $mailOutput = (string) ob_get_clean();
 
         $token = $this->extractTokenFromMailOutput($mailOutput);
@@ -45,7 +45,7 @@ final class CvTokenRotationFeatureTest extends FeatureTestCase
 
     private function placeTask(string $profile, int $count): void
     {
-        $taskDir = dirname($this->root) . '/var/admin/tasks';
+        $taskDir = dirname($this->root) . '/var/tasks';
         mkdir($taskDir, 0775, true);
         file_put_contents(
             $taskDir . '/token-rotation.ini',

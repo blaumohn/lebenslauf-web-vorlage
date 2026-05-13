@@ -24,11 +24,19 @@ apply_run_user() {
     | xargs -r sed -i "s|^Group .*|Group ${APACHE_RUN_GROUP}|"
 }
 
+configure_php_errors() {
+  local ini_dir
+  ini_dir="$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
+  printf 'log_errors = On\nerror_log = /dev/stderr\n' \
+    > "${ini_dir}/99-task-errors.ini"
+}
+
 main() {
   enable_rewrite
   allow_overrides
   ensure_run_user
   apply_run_user
+  configure_php_errors
   exec apache2-foreground
 }
 

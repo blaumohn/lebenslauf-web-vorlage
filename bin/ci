@@ -125,7 +125,7 @@ trigger_admin_run() {
   local host="$1" port="$2" result
   result="$(
     curl --fail --silent --show-error \
-      "http://${host}:${port}/admin/run"
+      "http://${host}:${port}/tasks/dispatch"
   )"
   echo "[admin-trigger] ${result}"
 }

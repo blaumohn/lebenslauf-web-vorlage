@@ -36,7 +36,7 @@ final class TokenCommand extends BasePipelineCommand
         }
 
         return $this->pythonRunner()->runScript(
-            'src/cli/py/admin/dispatch.py',
+            'src/cli/py/task/dispatch.py',
             $values,
             $this->buildRotateArgs($input)
         );

@@ -3,7 +3,7 @@ import io
 from datetime import datetime, timezone
 
 
-class AdminTask:
+class Task:
     def __init__(self, task_type: str, params: dict):
         self.type = task_type
         self.params = params
