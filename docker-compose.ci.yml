@@ -40,12 +40,8 @@ services:
       - -c
       - |
         exec bash /repo/bin/ci "$${CI_TEST_CASE:?CI_TEST_CASE fehlt}" <<'YAML'
-        smtp:
-          SMTP_HOST: "mailpit"
-          SMTP_PORT: "1025"
-          SMTP_USER: "ci"
-          SMTP_PASS: "ci-pass"
-          SMTP_FROM_EMAIL: "noreply@ci.invalid"
+        app:
+          APP_ROOT_URL: "http://preview-web"
         mail:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
         sftp:
@@ -54,7 +50,12 @@ services:
           SFTP_PASS: "ci-pass"
           SFTP_SERVER_DIR: "/public"
           SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
-          APP_ROOT_URL: "http://preview-web"
+        smtp:
+          SMTP_HOST: "mailpit"
+          SMTP_PORT: "1025"
+          SMTP_USER: "ci"
+          SMTP_PASS: "ci-pass"
+          SMTP_FROM_EMAIL: "noreply@ci.invalid"
         YAML
       - --
     depends_on:

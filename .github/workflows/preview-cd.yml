@@ -37,6 +37,8 @@ jobs:
           PIPELINE: ${{ vars.PIPELINE }}
         run: |
           bin/cd << EOF
+          app:
+            APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
           smtp:
             SMTP_HOST: "${{ secrets.SMTP_HOST }}"
             SMTP_USER: "${{ secrets.SMTP_USER }}"
