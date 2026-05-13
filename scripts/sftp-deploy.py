@@ -1,15 +1,14 @@
-import os
 import stat
 import time
 from pathlib import Path
 
-from cli.py.admin.dispatch import enqueue_with_client
+from cli.py.admin.dispatch import AdminDispatch
 from cli.py.admin.task import AdminTask
-from cli.py.deploy.sftp_deploy_prepared import PreparedDeployStore
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState
 from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.util.envvar import env
 
 
 def log(message):
@@ -22,15 +21,17 @@ def format_target(cfg):
 
 def main():
     cfg = PipelineCfg("deploy")
-    include_vendor = os.environ.get("SFTP_INCLUDE_VENDOR", "true") == "true"
+    include_vendor = env("SFTP_INCLUDE_VENDOR").require_bool().to_bool()
+    run_id = env("GITHUB_RUN_ID").require_nonempty().value()
     log(f"Verbinde zu {format_target(cfg)}")
-    SftpDeploy(cfg, include_vendor).start()
+    SftpDeploy(cfg, include_vendor, run_id).start()
 
 
 class SftpDeploy:
-    def __init__(self, cfg, include_vendor, logger=log):
+    def __init__(self, cfg, include_vendor, run_id, logger=log):
         self.cfg = cfg
         self.include_vendor = include_vendor
+        self.run_id = run_id
         self.log = logger
         self.client = None
 
@@ -51,8 +52,8 @@ class SftpDeploy:
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
         target = plan.target
-        self.log(f"Erstdeploy: Baum {target.tree}, Vendor {target.vendor}")
-        self.upload_app_tree(target.tree)
+        self.log(f"Erstdeploy: Baum {target.app}, Vendor {target.vendor}")
+        self.upload_app_tree(target.app)
         if self.include_vendor:
             self.upload_vendor_dir(target.vendor)
         self.upload_static_entry_files()
@@ -63,19 +64,27 @@ class SftpDeploy:
         plan = DeploymentPlan.swap(state, self.include_vendor)
         active = plan.active
         target = plan.target
-        self.log(f"Baum: {active.tree}→{target.tree}, Vendor: {active.vendor}→{target.vendor}")
-        self.upload_app_tree(target.tree)
+        self.log(f"Baum: {active.app}→{target.app}, Vendor: {active.vendor}→{target.vendor}")
+        self.upload_app_tree(target.app)
         if self.include_vendor:
             self.upload_vendor_dir(target.vendor)
-        self.migrate_tokens(active.tree, target.tree)
-        self.prepare_switch(target)
-        self.log(f"Deploy vorbereitet: Baum {target.tree}, Vendor {target.vendor}")
+        self.migrate_tokens(active.app, target.app)
+        self.dispatch_switch(target)
+        self.log(f"Deploy vorbereitet: Baum {target.app}, Vendor {target.vendor}")
 
-    def prepare_switch(self, target):
-        prepared_path = PreparedDeployStore.write(self.client, target)
-        task = AdminTask("deploy_switch", {"prepared_state": prepared_path})
-        enqueue_with_client(self.client, task)
-        self.log(f"Switch vorbereitet: {prepared_path}")
+    def dispatch_switch(self, target):
+        self.write_run_markers(target)
+        task = AdminTask("deploy_switch", {
+            "app": target.app,
+            "vendor": target.vendor,
+            "run_id": self.run_id,
+        })
+        AdminDispatch(self.cfg).submit(task)
+        self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
+
+    def write_run_markers(self, target):
+        for slot in (target.app, f"vendor-{target.vendor}"):
+            self.client.put_text(f"{slot}/.deploy-run", self.run_id)
 
     def publish_switch(self, target):
         self.upload_deploy_state(target)
@@ -159,11 +168,11 @@ class SftpDeploy:
 
     def upload_deploy_state(self, state):
         DeployState.write(self.client, state)
-        self.log(f"Deploy-State hochgeladen: Baum {state.tree}, Vendor {state.vendor}")
+        self.log(f"Deploy-State hochgeladen: Baum {state.app}, Vendor {state.vendor}")
 
     def cleanup(self, active, target):
-        self.client.remove_dir(active.tree)
-        self.log(f"Alter App-Baum entfernt: {active.tree}")
+        self.client.remove_dir(active.app)
+        self.log(f"Alter App-Baum entfernt: {active.app}")
         if active.vendor != target.vendor:
             self.client.remove_dir(f"vendor-{active.vendor}")
             self.log(f"Alter Vendor entfernt: vendor-{active.vendor}")

@@ -1,10 +1,12 @@
 import json
-import os
+
+from cli.py.util.envvar import env
 
 
 class PipelineCfg:
     def __init__(self, phase: str):
-        data = json.loads(os.environ["PIPELINE_CFG_JSON"])
+        raw = env("PIPELINE_CFG_JSON").require_nonempty().value()
+        data = json.loads(raw)
         if phase not in data:
             raise KeyError(f"Phase {phase!r} fehlt in PIPELINE_CFG_JSON")
         self._section = data[phase]
