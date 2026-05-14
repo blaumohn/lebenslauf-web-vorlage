@@ -7,7 +7,7 @@ use App\Http\Security\IpSaltService;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
-use PipelineConfigSpec\PipelineConfigService;
+use PipelineConfigSpec\PipelineConfig;
 use App\Http\AppBuilder;
 use App\Http\ConfigCompiled;
 use PHPUnit\Framework\TestCase;
@@ -125,7 +125,7 @@ abstract class FeatureTestCase extends TestCase
 
     private function compileConfig(): void
     {
-        $configService = new PipelineConfigService($this->root, 'src/resources/pipeline-config');
+        $configService = new PipelineConfig($this->root, 'src/resources/pipeline-config');
         $configService->compile('dev', 'runtime');
     }
 

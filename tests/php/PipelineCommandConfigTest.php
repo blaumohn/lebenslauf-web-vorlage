@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Cli\Command\BasePipelinePhaseCommand;
 use App\Cli\Command\CiCommand;
-use PipelineConfigSpec\PipelineConfigService;
+use PipelineConfigSpec\PipelineConfig;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -29,7 +29,7 @@ final class PipelineCommandConfigTest extends TestCase
     public function testBuildPhaseCliOverrideIsAccepted(): void
     {
         $rootPath = dirname(__DIR__, 2);
-        $service = new PipelineConfigService($rootPath, 'src/resources/pipeline-config');
+        $service = new PipelineConfig($rootPath, 'src/resources/pipeline-config');
 
         $report = $service->describe('dev', 'build', [
             'APP_BASE_PATH' => '/test-path',

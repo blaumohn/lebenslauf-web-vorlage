@@ -3,7 +3,7 @@
 namespace App\Cli\Command;
 
 use App\Cli\ConfigValues;
-use PipelineConfigSpec\PipelineConfigService;
+use PipelineConfigSpec\PipelineConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -73,6 +73,11 @@ abstract class BasePipelineCommand extends Command
         return $this->configService()->compile($this->pipelineName(), $phase, $targetPath, $this->overrides);
     }
 
+    protected function pipelineValidate(): void
+    {
+        $this->configService()->validate($this->pipelineName(), $this->overrides);
+    }
+
     protected function getValuesByPhase(array $phases, OutputInterface $output): ?array
     {
         $result = [];
@@ -103,9 +108,9 @@ abstract class BasePipelineCommand extends Command
         return 'src/resources/pipeline-config';
     }
 
-    private function configService(): PipelineConfigService
+    private function configService(): PipelineConfig
     {
-        return new PipelineConfigService($this->rootPath(), $this->configDir());
+        return new PipelineConfig($this->rootPath(), $this->configDir());
     }
 
     private function configValues(array $values): ConfigValues
