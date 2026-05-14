@@ -6,6 +6,10 @@ on:
       last-deploy-commit:
         required: true
         type: string
+      mode:
+        required: false
+        type: string
+        default: deploy
 
 jobs:
   deploy:
@@ -29,14 +33,15 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Preview-Pipeline ausführen und deployen
+      - name: Preview-Pipeline ausführen
         shell: bash
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}
           PIPELINE: ${{ vars.PIPELINE }}
         run: |
-          bin/cd << EOF
+          bin/cd "${{ inputs.mode }}" << EOF
           app:
             APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
           smtp:

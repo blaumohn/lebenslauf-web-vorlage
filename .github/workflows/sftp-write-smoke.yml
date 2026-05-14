@@ -1,0 +1,12 @@
+name: SFTP Write Smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  write-smoke:
+    uses: ./.github/workflows/preview-cd.yml
+    with:
+      last-deploy-commit: ""
+      mode: sftp-write-smoke
+    secrets: inherit

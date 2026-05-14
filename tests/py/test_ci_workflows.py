@@ -26,9 +26,19 @@ class CiWorkflowTest(unittest.TestCase):
         workflow = read_workflow("preview-cd.yml")
 
         self.assertIn("workflow_call:", workflow)
+        self.assertIn("mode:", workflow)
+        self.assertIn("default: deploy", workflow)
         self.assertIn("GITHUB_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}", workflow)
         self.assertIn("LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}", workflow)
-        self.assertIn("bin/cd << EOF", workflow)
+        self.assertIn('bin/cd "${{ inputs.mode }}" << EOF', workflow)
+
+    def test_sftp_write_smoke_reuses_preview_cd_with_smoke_mode(self):
+        workflow = read_workflow("sftp-write-smoke.yml")
+
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("uses: ./.github/workflows/preview-cd.yml", workflow)
+        self.assertIn("mode: sftp-write-smoke", workflow)
+        self.assertIn('last-deploy-commit: ""', workflow)
 
 
 def read_workflow(name: str) -> str:
