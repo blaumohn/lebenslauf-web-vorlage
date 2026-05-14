@@ -30,9 +30,30 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn("LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}", workflow)
         self.assertIn("bin/cd << EOF", workflow)
 
+    def test_pipeline_uses_named_output_module(self):
+        pipeline_lib = read_repo_file("scripts/pipeline_lib.sh")
+        pipeline_output = read_repo_file("scripts/pipeline_output.sh")
+
+        self.assertIn(". scripts/pipeline_output.sh", pipeline_lib)
+        self.assertIn('pipeline_run "Setup ($PIPELINE)" pipeline_setup "$is_dev"', pipeline_lib)
+        self.assertIn("pipeline_run_failed", pipeline_output)
+        self.assertIn("GITHUB_STEP_SUMMARY", pipeline_output)
+
+    def test_entrypoints_wrap_dependency_install(self):
+        ci_entrypoint = read_repo_file("bin/ci")
+        cd_entrypoint = read_repo_file("bin/cd")
+
+        self.assertIn('pipeline_run "Abhängigkeiten installieren" composer install', ci_entrypoint)
+        self.assertIn('pipeline_run "Abhängigkeiten installieren" composer install', cd_entrypoint)
+        self.assertIn("Kein Deploy: keine Änderungen seit LAST_DEPLOY_COMMIT=", cd_entrypoint)
+
 
 def read_workflow(name: str) -> str:
     return (WORKFLOW_DIR / name).read_text(encoding="utf-8")
+
+
+def read_repo_file(path: str) -> str:
+    return (REPO_ROOT / path).read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

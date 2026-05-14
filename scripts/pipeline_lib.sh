@@ -1,3 +1,5 @@
+. scripts/pipeline_output.sh
+
 run_pipeline() {
   local is_dev=
 
@@ -11,19 +13,32 @@ run_pipeline() {
     require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
   fi
 
-  cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
-  cli build "$PIPELINE" ${is_dev:+cv}
-  run_unit_and_feature_tests
+  pipeline_report_start
+  pipeline_run "Setup ($PIPELINE)" pipeline_setup "$is_dev"
+  pipeline_run "Build ($PIPELINE)" pipeline_build "$is_dev"
+  pipeline_run "Tests" run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
-    with_dev_server "public" run_http_smoke_checks
+    pipeline_run "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
     return
   fi
 
-  prepare_deploy
-  with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
-  deploy
-  post_deploy_smoke_checks
+  pipeline_run "Deploy-Artefakt" prepare_deploy
+  pipeline_run "HTTP-Smoke Artefakt" with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
+  pipeline_run "SFTP-Deploy" deploy
+  pipeline_run "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
+}
+
+pipeline_setup() {
+  local is_dev="$1"
+
+  cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
+}
+
+pipeline_build() {
+  local is_dev="$1"
+
+  cli build "$PIPELINE" ${is_dev:+cv}
 }
 
 write_pipeline_config_from_stdin() {
@@ -52,6 +67,7 @@ prepare_deploy() {
 deploy() {
   local include_vendor
   include_vendor="$(should_include_vendor)"
+  pipeline_note "Vendor-Upload: ${include_vendor}"
   sftp_upload "$include_vendor"
 }
 
