@@ -41,7 +41,7 @@ jobs:
             APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
           smtp:
             SMTP_HOST: "${{ secrets.SMTP_HOST || vars.SMTP_HOST }}"
-            SMTP_USER: "${{ secrets.SMTP_USER || vars.SMTP_HOST }}"
+            SMTP_USER: "${{ secrets.SMTP_USER || vars.SMTP_USER }}"
             SMTP_PASS: "${{ secrets.SMTP_PASS }}"
             SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL || vars.SMTP_FROM_EMAIL }}"
           mail:
@@ -50,5 +50,6 @@ jobs:
             SFTP_HOST: "${{ secrets.SFTP_HOST || vars.SFTP_HOST }}"
             SFTP_USER: "${{ secrets.SFTP_USER || vars.SFTP_USER }}"
             SFTP_PASS: "${{ secrets.SFTP_PASS }}"
+            SFTP_SERVER_DIR: "${{ secrets.SFTP_SERVER_DIR || vars.SFTP_SERVER_DIR }}"
             SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE || vars.SSH_KNOWN_HOST_LINE }}"
           EOF
