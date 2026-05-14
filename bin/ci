@@ -31,7 +31,7 @@ main() {
   ci_build_id="$(write_ci_build_id "$test_case")"
 
   run_pipeline
-  run_preview_checks "$test_case" "$ci_build_id"
+  run_post_deploy_checks "$test_case" "$ci_build_id"
 }
 
 setup_deploy_test_case() {
@@ -44,29 +44,21 @@ setup_deploy_test_case() {
   esac
 }
 
-run_preview_checks() {
+run_post_deploy_checks() {
   local test_case="$1" ci_build_id="$2"
   if [[ "$PIPELINE" != "preview" ]]; then
     return
   fi
-  trigger_preview_admin_run
   run_preview_test_case_checks "$test_case" "$ci_build_id"
-  http_smoke_checks "preview-web" "80"
   run_smtp_smoke
   run_contact_smoke
 }
 
-trigger_preview_admin_run() {
-  if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
-    return
-  fi
-  trigger_admin_run "preview-web" "80"
-}
-
 run_preview_test_case_checks() {
-  local test_case="$1" ci_build_id="$2"
+  local test_case="$1" ci_build_id="$2" root_url
   if [[ "$test_case" == "test-push-deploy" ]]; then
-    smoke_http_page_contains "preview-web" "80" "/ci-diff-test.html" "ci-diff-test"
+    root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+    smoke_http_page_contains "${root_url%/}/ci-diff-test.html" "ci-diff-test"
     check_vendor_not_uploaded "$ci_build_id"
   fi
   if [[ "$test_case" == "test-composer-lock-changed" ]]; then
@@ -119,15 +111,6 @@ write_ci_build_id() {
     printf '%s' "$id" | tee vendor/.ci-build-id
     ;;
   esac
-}
-
-trigger_admin_run() {
-  local host="$1" port="$2" result
-  result="$(
-    curl --fail --silent --show-error \
-      "http://${host}:${port}/tasks/dispatch"
-  )"
-  echo "[admin-trigger] ${result}"
 }
 
 sftp_read_vendor_build_id() {

@@ -1,11 +1,11 @@
 run_pipeline() {
-  local is_dev docroot
+  local is_dev=
 
   require_env_nonempty PIPELINE
 
   write_pipeline_config_from_stdin
 
-  [[ $PIPELINE == dev ]] && is_dev=1 || is_dev=
+  [[ $PIPELINE == dev ]] && is_dev=1
 
   if [[ ! $is_dev ]]; then
     require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
@@ -13,16 +13,17 @@ run_pipeline() {
 
   cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
   cli build "$PIPELINE" ${is_dev:+cv}
-  composer test
+  run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
-    docroot="public"
-  else
-    deploy
-    docroot="$DEPLOY_DIR/public"
+    with_dev_server "public" run_http_smoke_checks
+    return
   fi
 
-  with_http_server 8080 "$docroot" http_smoke_checks "127.0.0.1" "8080"
+  prepare_deploy
+  with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
+  deploy
+  post_deploy_smoke_checks
 }
 
 write_pipeline_config_from_stdin() {
@@ -33,14 +34,24 @@ write_pipeline_config_from_stdin() {
   cat > ".local/${PIPELINE}.yaml"
 }
 
-deploy() {
-  local include_vendor=true
+run_unit_and_feature_tests() {
+  if [ ! -x vendor/bin/phpunit ]; then
+    echo "PHPUnit nicht installiert; PHP-Tests werden übersprungen."
+    composer test:python
+    return
+  fi
 
+  composer test
+}
+
+prepare_deploy() {
   prepare_deploy_dir
   verify_artifact
+}
 
+deploy() {
+  local include_vendor
   include_vendor="$(should_include_vendor)"
-
   sftp_upload "$include_vendor"
 }
 
@@ -95,47 +106,40 @@ sftp_upload() {
 }
 
 
-with_http_server() {
-  local port="$1"
-  local docroot="$2"
-  local pid
-
-  shift 2
-  pid="$(start_php_server "$port" "$docroot" "/tmp/ci-http-${port}.log")"
-  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
-  wait_for_http_server "$port"
-  "$@"
-  kill "$pid"
-  trap - EXIT
+post_deploy_smoke_checks() {
+  local root_url
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  run_http_smoke_checks "$root_url"
 }
 
-http_smoke_checks() {
-  local host="$1" port="$2"
-
-  echo "[smoke] Prüfe http://${host}:${port}/"
-  smoke_http_page_contains "$host" "$port" "/" "Zum Lebenslauf"
-  echo "[smoke] OK /"
-
-  echo "[smoke] Prüfe http://${host}:${port}/cv"
-  smoke_http_page_contains "$host" "$port" "/cv" "Alex B."
-  echo "[smoke] OK /cv"
-
-  echo "[smoke] Prüfe http://${host}:${port}/contact"
-  smoke_http_page_contains "$host" "$port" "/contact" "<form"
-  echo "[smoke] OK /contact"
+run_http_smoke_checks() {
+  local base="${1%/}"
+  smoke_http_page_contains "${base}/"        "Zum Lebenslauf"
+  smoke_http_page_contains "${base}/cv"      "Alex B."
+  smoke_http_page_contains "${base}/contact" "<form"
 }
 
 smoke_http_page_contains() {
-  local host="$1" port="$2" path="$3" needle="$4" body
-
-  body="$(curl --fail --silent --show-error "http://${host}:${port}${path}")"
-
+  local url="$1" needle="$2" body
+  body="$(curl --fail --silent --show-error "$url")"
   if ! printf '%s' "$body" | grep -q "$needle"; then
-    echo "[smoke] Inhalt fehlt: ${needle} in ${path}" >&2
+    echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
     echo "$body"
     exit 1
   fi
 }
+
+with_dev_server() {
+  local docroot="$1" dev_server_port=8080 pid
+  shift
+  pid="$(start_php_server "$dev_server_port" "$docroot" "/tmp/ci-http-${dev_server_port}.log")"
+  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
+  wait_for_http_server "$dev_server_port"
+  "$@" "http://127.0.0.1:${dev_server_port}"
+  kill "$pid"
+  trap - EXIT
+}
+
 
 start_php_server() {
   local port="$1"

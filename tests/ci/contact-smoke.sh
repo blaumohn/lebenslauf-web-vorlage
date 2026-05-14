@@ -42,7 +42,7 @@ contact_smoke_cleanup() {
 
 assert_contact_mail_content() {
   local expected_to subject to
-  expected_to="$(cli python "$PIPELINE" --phases runtime tests/ci/read-mail-to.py)"
+  expected_to="$(cli config "$PIPELINE" get MAIL_TO_EMAIL --phase runtime)"
   IFS=$'\t' read -r subject to < <(mailpit_latest_message_subject_and_to)
 
   [[ "$subject" == *"/Contact]"* ]] \
