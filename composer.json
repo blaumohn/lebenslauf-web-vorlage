@@ -76,7 +76,7 @@
       "@test:python"
     ],
     "test:php": "phpunit",
-    "test:python": ".venv/bin/python -m unittest discover -v -b -s tests/py -p 'test_*.py'",
+    "test:python": ".venv/bin/python -m pytest tests/py",
     "css:build": "npm run build:css",
     "build": "php bin/cli build dev",
     "build:dev": "php bin/cli build dev",
