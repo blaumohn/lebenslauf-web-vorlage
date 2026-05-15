@@ -1,3 +1,4 @@
+import errno
 import os
 import stat
 import tempfile
@@ -31,6 +32,15 @@ class SftpClient:
                 return f.read().decode()
         except IOError:
             return ""
+
+    def file_exists(self, rel_path):
+        try:
+            self.sftp.stat(self._abs(rel_path))
+            return True
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                return False
+            raise
 
     def put_bytes(self, rel_path, data):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:

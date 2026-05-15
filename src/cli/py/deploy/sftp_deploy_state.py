@@ -43,8 +43,9 @@ class DeploymentPlan:
         return cls(None, SlotState.initial())
 
     @classmethod
-    def swap(cls, active, include_vendor):
+    def swap(cls, active, composer_lock_changed, vendor_slot_valid):
         app = other_slot(active.app)
+        include_vendor = composer_lock_changed or not vendor_slot_valid
         vendor = other_slot(active.vendor) if include_vendor else active.vendor
         return cls(active, SlotState(app, vendor))
 

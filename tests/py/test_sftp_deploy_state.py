@@ -34,11 +34,18 @@ class SftpDeployStateTest(unittest.TestCase):
     def test_deployment_plan_swaps_tree_and_optional_vendor(self):
         active = SlotState("a", "b")
 
-        with_vendor = DeploymentPlan.swap(active, True)
-        without_vendor = DeploymentPlan.swap(active, False)
+        with_vendor = DeploymentPlan.swap(active, True, True)
+        without_vendor = DeploymentPlan.swap(active, False, True)
 
         self.assertEqual(with_vendor.target, SlotState("b", "a"))
         self.assertEqual(without_vendor.target, SlotState("b", "b"))
+
+    def test_deployment_plan_uploads_vendor_when_slot_invalid(self):
+        active = SlotState("a", "b")
+
+        plan = DeploymentPlan.swap(active, False, False)
+
+        self.assertEqual(plan.target, SlotState("b", "a"))
 
     def test_static_entry_resources_exist(self):
         router = resource_path("index.php").read_text(encoding="utf-8")

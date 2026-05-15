@@ -60,16 +60,20 @@ class SftpDeploy:
         self.log("Erstdeploy abgeschlossen")
 
     def deploy_swap(self, state):
-        plan = DeploymentPlan.swap(state, self.composer_lock_changed)
+        vendor_slot_valid = self._vendor_slot_valid(state.vendor)
+        plan = DeploymentPlan.swap(state, self.composer_lock_changed, vendor_slot_valid)
         active = plan.active
         target = plan.target
         self.log(f"Baum: {active.app}→{target.app}, Vendor: {active.vendor}→{target.vendor}")
         self.upload_app_tree(target.app)
-        if self.composer_lock_changed:
+        if target.vendor != active.vendor:
             self.upload_vendor_dir(target.vendor)
         self.migrate_tokens(active.app, target.app)
         self.dispatch_switch(target)
         self.log(f"Deploy vorbereitet: Baum {target.app}, Vendor {target.vendor}")
+
+    def _vendor_slot_valid(self, vendor_slot):
+        return self.client.file_exists(f"vendor-{vendor_slot}/.deploy-run")
 
     def dispatch_switch(self, target):
         self.write_run_markers(target)
