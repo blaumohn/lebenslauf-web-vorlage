@@ -1,8 +1,8 @@
 import argparse
 import sys
-import urllib.error
-import urllib.request
-from pathlib import Path
+
+import requests
+import requests.exceptions
 
 from cli.py.task.task import Task
 from cli.py.deploy.sftp_lib import SftpClient
@@ -22,7 +22,7 @@ def _default_log(message):
 
 
 class TaskDispatch:
-    def __init__(self, cfg: PipelineCfg, logger=_default_log):
+    def __init__(self, cfg, logger=_default_log):
         self._deploy = cfg
         self._log = logger
 
@@ -41,27 +41,42 @@ class TaskDispatch:
         root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
         if not root_url:
             return
-        url = root_url + TASK_TRIGGER_PATH
-        req = urllib.request.Request(url, method="GET")
+        url = _with_scheme(root_url) + TASK_TRIGGER_PATH
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                self._log(f"HTTP-Auslöser: {url} → {resp.status}")
-        except urllib.error.HTTPError as exc:
-            body = _truncate(exc.read().decode(errors="replace"))
-            print(
-                f"[dispatch] HTTP-Auslöser fehlgeschlagen: {url}\n"
-                f"  Status: {exc.code}\n"
-                f"  Body: {body}",
-                file=sys.stderr, flush=True,
-            )
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            self._log(f"HTTP-Auslöser: {url} → {resp.status_code}")
+        except requests.exceptions.HTTPError as exc:
+            _log_http_error(url, exc)
             raise
-        except urllib.error.URLError as exc:
-            print(
-                f"[dispatch] HTTP-Auslöser nicht erreichbar: {url}\n"
-                f"  Fehler: {exc.reason}",
-                file=sys.stderr, flush=True,
-            )
+        except requests.exceptions.RequestException as exc:
+            _log_request_error(url, exc)
             raise
+
+
+def _with_scheme(url: str) -> str:
+    if url.startswith(("http://", "https://")):
+        return url
+    return "https://" + url
+
+
+def _log_http_error(url: str, exc: requests.exceptions.HTTPError) -> None:
+    status = exc.response.status_code if exc.response is not None else "?"
+    body = _truncate(exc.response.text if exc.response is not None else "")
+    print(
+        f"[dispatch] HTTP-Auslöser fehlgeschlagen: {url}\n"
+        f"  Status: {status}\n"
+        f"  Body: {body}",
+        file=sys.stderr, flush=True,
+    )
+
+
+def _log_request_error(url: str, exc: requests.exceptions.RequestException) -> None:
+    print(
+        f"[dispatch] HTTP-Auslöser nicht erreichbar: {url}\n"
+        f"  Fehler: {exc}",
+        file=sys.stderr, flush=True,
+    )
 
 
 def _truncate(text: str, limit: int = 300) -> str:
@@ -89,7 +104,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", help="Token-Profil (cv_token_rotation)")
     parser.add_argument("--count", type=int, help="Anzahl Token (cv_token_rotation)")
     parser.add_argument("--app", help="App-Slot (deploy_switch)")
-    parser.add_argument("--run-id", dest="run_id", help="Deploy-Lauf-ID (deploy_switch)")
+    parser.add_argument("--run-id", dest="run_id", help="Lauf-ID (deploy_switch)")
     parser.add_argument("--vendor", help="Vendor-Slot (deploy_switch)")
     return parser.parse_args()
 

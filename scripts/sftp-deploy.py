@@ -1,7 +1,8 @@
 import stat
 import time
-import urllib.error
 from pathlib import Path
+
+import requests.exceptions
 
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
@@ -95,9 +96,9 @@ class SftpDeploy:
         try:
             TaskDispatch(self.cfg, logger=self.log).submit(task)
             self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
-        except urllib.error.HTTPError:
+        except requests.exceptions.HTTPError:
             raise
-        except urllib.error.URLError:
+        except requests.exceptions.RequestException:
             self.log("App nicht erreichbar — Switch direkt via SFTP")
             self.upload_deploy_state(target)
 

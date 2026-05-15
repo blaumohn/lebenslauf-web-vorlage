@@ -2,3 +2,4 @@ watchdog>=3.0,<4
 ruff>=0.4,<1
 pylint>=3.2,<4
 paramiko>=3.0,<4
+requests>=2.32,<3
