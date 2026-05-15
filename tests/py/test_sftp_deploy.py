@@ -1,12 +1,12 @@
 import importlib.util
-import io
 import stat
 import sys
 import types
 import unittest
-import urllib.error
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import requests.exceptions
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -82,7 +82,7 @@ class FakeDispatchUnreachable:
         pass
 
     def submit(self, _task):
-        raise urllib.error.URLError("Connection refused")
+        raise requests.exceptions.ConnectionError("Connection refused")
 
 
 class FakeDispatchHttpError:
@@ -90,7 +90,7 @@ class FakeDispatchHttpError:
         pass
 
     def submit(self, _task):
-        raise urllib.error.HTTPError("url", 500, "Server Error", {}, io.BytesIO(b""))
+        raise requests.exceptions.HTTPError(response=None)
 
 
 def make_stubbed_deploy(module, run_id, composer_lock_changed, vendor_slot_valid=True):
@@ -156,7 +156,7 @@ class SftpDeployTest(unittest.TestCase):
         target = SlotState("b", "a")
 
         with patch.object(module, "TaskDispatch", FakeDispatchHttpError):
-            with self.assertRaises(urllib.error.HTTPError):
+            with self.assertRaises(requests.exceptions.HTTPError):
                 deploy.dispatch_switch(target)
 
 
