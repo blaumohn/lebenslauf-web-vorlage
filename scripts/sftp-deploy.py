@@ -21,17 +21,17 @@ def format_target(cfg):
 
 def main():
     cfg = PipelineCfg("deploy")
-    include_vendor = env("SFTP_INCLUDE_VENDOR").require_bool().to_bool()
-    run_id = env("GITHUB_RUN_ID").require_nonempty().value()
+    run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
+    composer_lock_changed = env("COMPOSER_LOCK_CHANGED").require_bool().to_bool()
     log(f"Verbinde zu {format_target(cfg)}")
-    SftpDeploy(cfg, include_vendor, run_id).start()
+    SftpDeploy(cfg, run_id, composer_lock_changed).start()
 
 
 class SftpDeploy:
-    def __init__(self, cfg, include_vendor, run_id, logger=log):
+    def __init__(self, cfg, run_id, composer_lock_changed, logger=log):
         self.cfg = cfg
-        self.include_vendor = include_vendor
         self.run_id = run_id
+        self.composer_lock_changed = composer_lock_changed
         self.log = logger
         self.client = None
 
@@ -54,19 +54,18 @@ class SftpDeploy:
         target = plan.target
         self.log(f"Erstdeploy: Baum {target.app}, Vendor {target.vendor}")
         self.upload_app_tree(target.app)
-        if self.include_vendor:
-            self.upload_vendor_dir(target.vendor)
+        self.upload_vendor_dir(target.vendor)
         self.upload_static_entry_files()
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
     def deploy_swap(self, state):
-        plan = DeploymentPlan.swap(state, self.include_vendor)
+        plan = DeploymentPlan.swap(state, self.composer_lock_changed)
         active = plan.active
         target = plan.target
         self.log(f"Baum: {active.app}→{target.app}, Vendor: {active.vendor}→{target.vendor}")
         self.upload_app_tree(target.app)
-        if self.include_vendor:
+        if self.composer_lock_changed:
             self.upload_vendor_dir(target.vendor)
         self.migrate_tokens(active.app, target.app)
         self.dispatch_switch(target)

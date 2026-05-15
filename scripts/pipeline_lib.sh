@@ -14,19 +14,19 @@ run_pipeline() {
   fi
 
   pipeline_report_start
-  pipeline_run "Setup ($PIPELINE)" pipeline_setup "$is_dev"
-  pipeline_run "Build ($PIPELINE)" pipeline_build "$is_dev"
-  pipeline_run "Tests" run_unit_and_feature_tests
+  run_step "Setup ($PIPELINE)" pipeline_setup "$is_dev"
+  run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
+  run_step "Tests" run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
-    pipeline_run "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
+    run_step "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
     return
   fi
 
-  pipeline_run "Deploy-Artefakt" prepare_deploy
-  pipeline_run "HTTP-Smoke Artefakt" with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
-  pipeline_run "SFTP-Deploy" deploy
-  pipeline_run "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
+  run_step "Deploy-Artefakt" prepare_deploy
+  run_step "HTTP-Smoke Artefakt" with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
+  run_step "SFTP-Deploy" deploy
+  run_step "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
 }
 
 pipeline_setup() {
@@ -64,13 +64,6 @@ prepare_deploy() {
   verify_artifact
 }
 
-deploy() {
-  local include_vendor
-  include_vendor="$(should_include_vendor)"
-  pipeline_note "Vendor-Upload: ${include_vendor}"
-  sftp_upload "$include_vendor"
-}
-
 prepare_deploy_dir() {
   rm -rf "$DEPLOY_DIR"
   mkdir -p "$DEPLOY_DIR/var/cache"
@@ -99,11 +92,14 @@ verify_artifact() {
   test -f "$DEPLOY_DIR/var/.htaccess"
 }
 
-no_changes_since_deploy() {
-  [[ -n "${LAST_DEPLOY_COMMIT:-}" ]] && git diff --quiet "$LAST_DEPLOY_COMMIT" HEAD
+deploy() {
+  local lock_changed
+  lock_changed="$(composer_lock_changed)"
+  ci_note "composer.lock geändert: ${lock_changed}"
+  sftp_upload "$lock_changed"
 }
 
-should_include_vendor() {
+composer_lock_changed() {
   local diff_files
 
   if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
@@ -117,10 +113,9 @@ should_include_vendor() {
 }
 
 sftp_upload() {
-  local include_vendor="$1"
-  SFTP_INCLUDE_VENDOR="$include_vendor" cli python "$PIPELINE" --phases deploy scripts/sftp-deploy.py
+  local lock_changed="$1"
+  COMPOSER_LOCK_CHANGED="$lock_changed" cli python "$PIPELINE" --phases deploy scripts/sftp-deploy.py
 }
-
 
 post_deploy_smoke_checks() {
   local root_url

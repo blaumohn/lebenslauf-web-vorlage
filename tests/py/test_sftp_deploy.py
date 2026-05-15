@@ -46,13 +46,24 @@ class FakeDispatch:
         self.submitted.append(task)
 
 
+def make_stubbed_deploy(module, run_id, composer_lock_changed):
+    deploy = module.SftpDeploy({}, run_id, composer_lock_changed, logger=lambda _: None)
+    deploy.client = FakeClient()
+    deploy.upload_app_tree = lambda _tree: None
+    deploy.upload_static_entry_files = lambda: None
+    deploy.publish_switch = lambda _target: None
+    deploy.migrate_tokens = lambda _a, _b: None
+    deploy.dispatch_switch = lambda _target: None
+    return deploy
+
+
 class SftpDeployTest(unittest.TestCase):
     def setUp(self):
         FakeDispatch.submitted = []
 
     def test_dispatch_switch_writes_run_markers_and_task(self):
         module = load_sftp_deploy_module()
-        deploy = module.SftpDeploy({}, False, "run-42", logger=lambda _message: None)
+        deploy = module.SftpDeploy({}, "run-42", False, logger=lambda _message: None)
         deploy.client = FakeClient()
         target = SlotState("b", "a")
 
@@ -68,6 +79,38 @@ class SftpDeployTest(unittest.TestCase):
         self.assertEqual(task.params["app"], "b")
         self.assertEqual(task.params["vendor"], "a")
         self.assertEqual(task.params["run_id"], "run-42")
+
+
+class SftpDeployPathTest(unittest.TestCase):
+    def test_deploy_fresh_always_uploads_vendor(self):
+        module = load_sftp_deploy_module()
+        deploy = make_stubbed_deploy(module, "run-1", False)
+        vendor_uploads = []
+        deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
+
+        deploy.deploy_fresh()
+
+        self.assertEqual(len(vendor_uploads), 1)
+
+    def test_deploy_swap_uploads_vendor_when_lock_changed(self):
+        module = load_sftp_deploy_module()
+        deploy = make_stubbed_deploy(module, "run-1", True)
+        vendor_uploads = []
+        deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
+
+        deploy.deploy_swap(SlotState("a", "a"))
+
+        self.assertEqual(len(vendor_uploads), 1)
+
+    def test_deploy_swap_skips_vendor_when_lock_unchanged(self):
+        module = load_sftp_deploy_module()
+        deploy = make_stubbed_deploy(module, "run-1", False)
+        vendor_uploads = []
+        deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
+
+        deploy.deploy_swap(SlotState("a", "a"))
+
+        self.assertEqual(len(vendor_uploads), 0)
 
 
 if __name__ == "__main__":
