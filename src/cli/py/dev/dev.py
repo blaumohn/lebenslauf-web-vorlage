@@ -1,6 +1,9 @@
 import argparse
+import logging
 import os
 import sys
+
+logger = logging.getLogger(__name__)
 
 ROOT_PATH = os.getcwd()
 DEV_PIPELINE = "dev"
@@ -14,6 +17,7 @@ from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         args = parse_args()
         root_path = resolve_root_path()
@@ -33,7 +37,7 @@ def main():
         exit_code = supervisor.run(file_watcher)
         sys.exit(exit_code)
     except RuntimeError as exc:
-        print(str(exc), file=sys.stderr)
+        logger.error(str(exc))
         sys.exit(1)
 
 
@@ -80,7 +84,7 @@ def start_php_server(root_path, supervisor):
 
 def start_css_watch(supervisor):
     for index, cmd in enumerate(css.COMMANDS, start=1):
-        print("CSS-Watch gestartet:", " ".join(cmd), flush=True)
+        logger.info("CSS-Watch gestartet: %s", " ".join(cmd))
         supervisor.start(f"css-{index}", cmd)
 
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import sys
@@ -6,6 +7,8 @@ import uuid
 COMPOSE_FILE = "docker-compose.ci.yml"
 CI_SERVICE_PREVIEW = "ci-preview"
 USAGE = "Usage: runner.py <pipeline>"
+logger = logging.getLogger(__name__)
+
 PREVIEW_TEST_CASES = (
     "test-admin-deploy",
     "test-push-deploy",
@@ -14,9 +17,10 @@ PREVIEW_TEST_CASES = (
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     pipeline = resolve_pipeline(sys.argv[1:])
     if pipeline is None:
-        print(USAGE, file=sys.stderr)
+        logger.error(USAGE)
         return 1
     if pipeline == "dev":
         return run_dev()
@@ -48,7 +52,7 @@ def run_preview() -> int:
         run_tests()
         return 0
     except RuntimeError as exc:
-        print(str(exc), file=sys.stderr)
+        logger.error(str(exc))
         dump_diagnostics()
         return 1
     finally:

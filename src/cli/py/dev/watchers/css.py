@@ -1,6 +1,9 @@
+import logging
 import os
 import shutil
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 def resolve_postcss_cmd():
     local = os.path.join(os.getcwd(), "node_modules", ".bin", "postcss")
@@ -34,7 +37,7 @@ COMMANDS = [
 def start():
     processes = []
     for cmd in COMMANDS:
-        print("css watch started:", " ".join(cmd), flush=True)
+        logger.info("css watch started: %s", " ".join(cmd))
         processes.append(subprocess.Popen(cmd))
     return processes
 

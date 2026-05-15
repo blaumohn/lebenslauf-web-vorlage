@@ -1,5 +1,5 @@
 import argparse
-import sys
+import logging
 
 import requests
 import requests.exceptions
@@ -16,15 +16,12 @@ TASK_SCHEMAS = {
     "deploy_switch": {"app": "", "vendor": "", "run_id": ""},
 }
 
-
-def _default_log(message):
-    print(f"[dispatch] {message}", flush=True)
+logger = logging.getLogger(__name__)
 
 
 class TaskDispatch:
-    def __init__(self, cfg, logger=_default_log):
+    def __init__(self, cfg):
         self._deploy = cfg
-        self._log = logger
 
     def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
@@ -35,7 +32,7 @@ class TaskDispatch:
         rel_path = f"{TASK_DIR}/{task.filename()}"
         client.ensure_dir(TASK_DIR)
         client.put_text(rel_path, task.to_ini())
-        self._log(f"Aufgabe via SFTP geschrieben: {rel_path}")
+        logger.info("Aufgabe via SFTP geschrieben: %s", rel_path)
 
     def _http_trigger(self) -> None:
         root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
@@ -45,12 +42,14 @@ class TaskDispatch:
         try:
             resp = requests.get(url, timeout=10)
             resp.raise_for_status()
-            self._log(f"HTTP-Auslöser: {url} → {resp.status_code}")
+            logger.info("HTTP-Auslöser: %s → %s", url, resp.status_code)
         except requests.exceptions.HTTPError as exc:
-            _log_http_error(url, exc)
+            status = exc.response.status_code if exc.response is not None else "?"
+            body = _truncate(exc.response.text if exc.response is not None else "")
+            logger.error("HTTP-Auslöser fehlgeschlagen: %s\n  Status: %s\n  Body: %s", url, status, body)
             raise
         except requests.exceptions.RequestException as exc:
-            _log_request_error(url, exc)
+            logger.error("HTTP-Auslöser nicht erreichbar: %s\n  Fehler: %s", url, exc)
             raise
 
 
@@ -60,30 +59,12 @@ def _with_scheme(url: str) -> str:
     return "https://" + url
 
 
-def _log_http_error(url: str, exc: requests.exceptions.HTTPError) -> None:
-    status = exc.response.status_code if exc.response is not None else "?"
-    body = _truncate(exc.response.text if exc.response is not None else "")
-    print(
-        f"[dispatch] HTTP-Auslöser fehlgeschlagen: {url}\n"
-        f"  Status: {status}\n"
-        f"  Body: {body}",
-        file=sys.stderr, flush=True,
-    )
-
-
-def _log_request_error(url: str, exc: requests.exceptions.RequestException) -> None:
-    print(
-        f"[dispatch] HTTP-Auslöser nicht erreichbar: {url}\n"
-        f"  Fehler: {exc}",
-        file=sys.stderr, flush=True,
-    )
-
-
 def _truncate(text: str, limit: int = 300) -> str:
     return text[:limit] + "..." if len(text) > limit else text
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parse_args()
     cfg = PipelineCfg("deploy")
     task = Task(args.task_type, _build_params(args))
