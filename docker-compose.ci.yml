@@ -34,7 +34,7 @@ services:
       <<: *ci-env
       PIPELINE: preview
       DEBUG: "${DEBUG:-0}"
-      GITHUB_RUN_ID: "${GITHUB_RUN_ID:-}"
+      PIPELINE_RUN_ID: "${PIPELINE_RUN_ID:-}"
     command:
       - bash
       - -c

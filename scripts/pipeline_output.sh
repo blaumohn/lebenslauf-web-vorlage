@@ -15,39 +15,39 @@ pipeline_report_start() {
   } >> "$GITHUB_STEP_SUMMARY"
 }
 
-pipeline_run() {
+run_step() {
   PIPELINE_STEP_LABEL="$1"
   shift
 
   pipeline_report_start
   pipeline_group_start "$PIPELINE_STEP_LABEL"
   PIPELINE_STEP_STARTED_AT="$(date +%s)"
-  trap 'pipeline_run_failed "$?"' ERR
+  trap 'run_step_failed "$?"' ERR
 
   "$@"
 
   trap - ERR
-  pipeline_run_completed
+  run_step_completed
 }
 
-pipeline_run_failed() {
+run_step_failed() {
   local status="$1"
   local duration
 
   trap - ERR
   duration="$(pipeline_step_duration)"
   pipeline_group_end
-  pipeline_note "Fehler: ${PIPELINE_STEP_LABEL} (${duration}s, Exit-Code ${status})"
+  ci_note "Fehler: ${PIPELINE_STEP_LABEL} (${duration}s, Exit-Code ${status})"
   pipeline_report_row "$PIPELINE_STEP_LABEL" "Fehler" "$duration"
   exit "$status"
 }
 
-pipeline_run_completed() {
+run_step_completed() {
   local duration
 
   duration="$(pipeline_step_duration)"
   pipeline_group_end
-  pipeline_note "OK: ${PIPELINE_STEP_LABEL} (${duration}s)"
+  ci_note "OK: ${PIPELINE_STEP_LABEL} (${duration}s)"
   pipeline_report_row "$PIPELINE_STEP_LABEL" "OK" "$duration"
 }
 
@@ -58,14 +58,14 @@ pipeline_step_duration() {
   printf '%s\n' "$((finished_at - PIPELINE_STEP_STARTED_AT))"
 }
 
-pipeline_note() {
-  printf '[pipeline] %s\n' "$*"
+ci_note() {
+  printf '[ci] %s\n' "$*"
 }
 
 pipeline_group_start() {
   local label="$1"
 
-  pipeline_note "Start: $label"
+  ci_note "Start: $label"
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     printf '::group::%s\n' "$label"
   fi

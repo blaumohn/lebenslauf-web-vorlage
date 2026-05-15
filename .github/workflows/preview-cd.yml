@@ -32,7 +32,7 @@ jobs:
       - name: Preview-Pipeline ausführen und deployen
         shell: bash
         env:
-          GITHUB_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}
           PIPELINE: ${{ vars.PIPELINE }}
         run: |

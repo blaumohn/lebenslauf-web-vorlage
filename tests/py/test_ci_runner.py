@@ -29,8 +29,8 @@ class CiRunnerTest(unittest.TestCase):
         first = runner.preview_test_env("test-push-deploy")
         second = runner.preview_test_env("test-push-deploy")
 
-        self.assertIn("GITHUB_RUN_ID", first)
-        self.assertNotEqual(first["GITHUB_RUN_ID"], second["GITHUB_RUN_ID"])
+        self.assertIn("PIPELINE_RUN_ID", first)
+        self.assertNotEqual(first["PIPELINE_RUN_ID"], second["PIPELINE_RUN_ID"])
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 require_env_nonempty PIPELINE CI_WORK_BASE
 
+[ "$PIPELINE" != dev ] && require_env_nonempty PIPELINE_RUN_ID
+
 COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
 
 main() {
@@ -28,7 +30,7 @@ main() {
     DEPLOY_DIR="var/deploy"
   fi
 
-  pipeline_run "Abhängigkeiten installieren" composer install "${COMPOSER_INSTALL_ARGS[@]}"
+  run_step "Abhängigkeiten installieren" composer install "${COMPOSER_INSTALL_ARGS[@]}"
   ci_build_id="$(write_ci_build_id "$test_case")"
 
   run_pipeline

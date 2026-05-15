@@ -80,7 +80,7 @@ def run_tests() -> None:
 
 def preview_test_env(test_case: str) -> dict[str, str]:
     env = os.environ.copy()
-    env["GITHUB_RUN_ID"] = build_ci_run_id(test_case)
+    env["PIPELINE_RUN_ID"] = build_ci_run_id(test_case)
     return env
 
 
