@@ -16,12 +16,13 @@ TASK_SCHEMAS = {
     "deploy_switch": {"app": "", "vendor": "", "run_id": ""},
 }
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class TaskDispatch:
-    def __init__(self, cfg):
+    def __init__(self, cfg, logger=None):
         self._deploy = cfg
+        self._log = logger if logger is not None else _logger.info
 
     def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
@@ -32,7 +33,7 @@ class TaskDispatch:
         rel_path = f"{TASK_DIR}/{task.filename()}"
         client.ensure_dir(TASK_DIR)
         client.put_text(rel_path, task.to_ini())
-        logger.info("Aufgabe via SFTP geschrieben: %s", rel_path)
+        self._log(f"Aufgabe via SFTP geschrieben: {rel_path}")
 
     def _http_trigger(self) -> None:
         root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
@@ -42,14 +43,14 @@ class TaskDispatch:
         try:
             resp = requests.get(url, timeout=10)
             resp.raise_for_status()
-            logger.info("HTTP-Auslöser: %s → %s", url, resp.status_code)
+            self._log(f"HTTP-Auslöser: {url} → {resp.status_code}")
         except requests.exceptions.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
             body = _truncate(exc.response.text if exc.response is not None else "")
-            logger.error("HTTP-Auslöser fehlgeschlagen: %s\n  Status: %s\n  Body: %s", url, status, body)
+            _logger.error("HTTP-Auslöser fehlgeschlagen: %s\n  Status: %s\n  Body: %s", url, status, body)
             raise
         except requests.exceptions.RequestException as exc:
-            logger.error("HTTP-Auslöser nicht erreichbar: %s\n  Fehler: %s", url, exc)
+            _logger.error("HTTP-Auslöser nicht erreichbar: %s\n  Fehler: %s", url, exc)
             raise
 
 

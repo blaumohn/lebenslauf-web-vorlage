@@ -13,6 +13,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 sys.modules.setdefault("paramiko", types.SimpleNamespace(RejectPolicy=object, SSHClient=object))
 
 from cli.py.task import dispatch  # noqa: E402
+from cli.py.task.task import Task  # noqa: E402
 
 
 def fake_ok_response(status_code=200):
@@ -108,6 +109,54 @@ class HttpTriggerTest(unittest.TestCase):
 
     def test_adds_https_to_host_with_path(self):
         self.assertEqual(dispatch._with_scheme("example.com/sub"), "https://example.com/sub")
+
+
+class EnqueueTest(unittest.TestCase):
+    def _make_task(self):
+        return Task("deploy_switch", {"app": "a", "vendor": "b", "run_id": "42"})
+
+    def test_creates_file_in_task_dir(self):
+        client = MagicMock()
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
+        path_arg = client.put_text.call_args.args[0]
+        self.assertTrue(path_arg.startswith("var/tasks/"), path_arg)
+        self.assertTrue(path_arg.endswith("-deploy_switch.ini"), path_arg)
+
+    def test_ensures_task_dir_exists(self):
+        client = MagicMock()
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
+        client.ensure_dir.assert_called_once_with("var/tasks")
+
+    def test_writes_valid_ini_content(self):
+        client = MagicMock()
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
+        content = client.put_text.call_args.args[1]
+        self.assertIn("[task]", content)
+        self.assertIn("type = deploy_switch", content)
+        self.assertIn("app = a", content)
+
+    def test_calls_logger_with_file_path(self):
+        client = MagicMock()
+        logged = []
+        dispatch.TaskDispatch({}, logger=logged.append)._enqueue(client, self._make_task())
+        self.assertTrue(any("var/tasks" in m for m in logged), logged)
+
+
+class LoggerTest(unittest.TestCase):
+    def test_accepts_logger_callable_without_error(self):
+        dispatch.TaskDispatch({}, logger=lambda msg: None)
+
+    def test_logger_called_on_http_success(self):
+        logged = []
+        cfg = {"APP_ROOT_URL": "http://example.com/"}
+        with patch.object(dispatch.requests, "get", return_value=fake_ok_response()):
+            dispatch.TaskDispatch(cfg, logger=logged.append)._http_trigger()
+        self.assertTrue(any("HTTP-Auslöser" in m for m in logged), logged)
+
+    def test_no_logger_does_not_raise(self):
+        cfg = {"APP_ROOT_URL": "http://example.com/"}
+        with patch.object(dispatch.requests, "get", return_value=fake_ok_response()):
+            dispatch.TaskDispatch(cfg)._http_trigger()
 
 
 class TruncateTest(unittest.TestCase):
