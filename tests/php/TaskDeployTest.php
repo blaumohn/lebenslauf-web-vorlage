@@ -151,9 +151,9 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/20260505T000000Z-deploy-switch.ini';
         file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
 
-        ob_start();
-        $count = (new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService()))->runPending();
-        ob_end_clean();
+        [$count] = $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -169,9 +169,9 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/20260505T000000Z-cv-token-rotation.ini';
         file_put_contents($taskFile, "[task]\ntype=cv_token_rotation\nprofile={$profile}\ncount=1\n");
 
-        ob_start();
-        $count = (new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService()))->runPending();
-        ob_end_clean();
+        [$count] = $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -185,9 +185,9 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/unknown.ini';
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
-        ob_start();
-        $count = (new TaskRunner([], $this->dir, $this->buildMailService()))->runPending();
-        $mailOutput = (string) ob_get_clean();
+        [$count, $mailOutput] = $this->runRunnerCapturingOutput(
+            new TaskRunner([], $this->dir, $this->buildMailService()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -203,7 +203,7 @@ final class TaskDeployTest extends TestCase
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
         $runner = new TaskRunner([], $this->dir, new MailService(new ConfigCompiled($this->dir)));
-        $count = $runner->runPending();
+        [$count] = $this->runRunnerCapturingOutput($runner);
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -232,6 +232,28 @@ final class TaskDeployTest extends TestCase
         return new MailService(new ConfigCompiled($this->dir));
     }
 
+    /**
+     * @return array{0:int,1:string}
+     */
+    private function runRunnerCapturingOutput(TaskRunner $runner): array
+    {
+        $previousLog = (string) ini_get('error_log');
+        ini_set('error_log', $this->dir . '/task-error.log');
+        ob_start();
+        $bufferLevel = ob_get_level();
+
+        try {
+            $count = $runner->runPending();
+            $output = (string) ob_get_clean();
+            return [$count, $output];
+        } finally {
+            if (ob_get_level() >= $bufferLevel) {
+                ob_end_clean();
+            }
+            ini_set('error_log', $previousLog);
+        }
+    }
+
     private function writeRunMarkers(string $app, string $vendor, string $runId): void
     {
         foreach ([$app, "vendor-{$vendor}"] as $slot) {
@@ -250,12 +272,20 @@ final class TaskDeployTest extends TestCase
 
     private function writeConfig(): void
     {
-        $this->writeConfigPayload(['MAIL_STDOUT' => '1', 'SMTP_FROM_NAME' => 'Test', 'MAIL_TO_EMAIL' => 'a@example.invalid']);
+        $this->writeConfigPayload([
+            'MAIL_STDOUT' => '1',
+            'SMTP_FROM_NAME' => 'Test',
+            'MAIL_TO_EMAIL' => 'a@example.invalid',
+        ]);
     }
 
     private function writeInvalidMailConfig(): void
     {
-        $this->writeConfigPayload(['MAIL_STDOUT' => '1', 'SMTP_FROM_NAME' => 'Test', 'MAIL_TO_EMAIL' => 'kein-gueltiges-email']);
+        $this->writeConfigPayload([
+            'MAIL_STDOUT' => '1',
+            'SMTP_FROM_NAME' => 'Test',
+            'MAIL_TO_EMAIL' => 'kein-gueltiges-email',
+        ]);
     }
 
     private function writeConfigPayload(array $values): void
