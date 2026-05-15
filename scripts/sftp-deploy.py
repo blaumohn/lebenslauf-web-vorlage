@@ -1,5 +1,6 @@
 import stat
 import time
+import urllib.error
 from pathlib import Path
 
 from cli.py.task.dispatch import TaskDispatch
@@ -56,6 +57,7 @@ class SftpDeploy:
         self.upload_app_tree(target.app)
         self.upload_vendor_dir(target.vendor)
         self.upload_static_entry_files()
+        self.write_run_markers(target)
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
@@ -65,12 +67,20 @@ class SftpDeploy:
         active = plan.active
         target = plan.target
         self.log(f"Baum: {active.app}→{target.app}, Vendor: {active.vendor}→{target.vendor}")
+        self._log_vendor_decision(target, active)
         self.upload_app_tree(target.app)
         if target.vendor != active.vendor:
             self.upload_vendor_dir(target.vendor)
         self.migrate_tokens(active.app, target.app)
         self.dispatch_switch(target)
         self.log(f"Deploy vorbereitet: Baum {target.app}, Vendor {target.vendor}")
+
+    def _log_vendor_decision(self, target, active):
+        if target.vendor != active.vendor:
+            reason = "composer.lock geändert" if self.composer_lock_changed else "Slot-Sentinel fehlt"
+            self.log(f"Vendor neu hochladen ({reason}): vendor-{target.vendor}")
+        else:
+            self.log(f"Vendor unverändert: vendor-{target.vendor}")
 
     def _vendor_slot_valid(self, vendor_slot):
         return self.client.file_exists(f"vendor-{vendor_slot}/.deploy-run")
@@ -82,8 +92,14 @@ class SftpDeploy:
             "vendor": target.vendor,
             "run_id": self.run_id,
         })
-        TaskDispatch(self.cfg).submit(task)
-        self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
+        try:
+            TaskDispatch(self.cfg, logger=self.log).submit(task)
+            self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
+        except urllib.error.HTTPError:
+            raise
+        except urllib.error.URLError:
+            self.log("App nicht erreichbar — Switch direkt via SFTP")
+            self.upload_deploy_state(target)
 
     def write_run_markers(self, target):
         for slot in (target.app, f"vendor-{target.vendor}"):

@@ -17,14 +17,25 @@ TASK_SCHEMAS = {
 }
 
 
+def _default_log(message):
+    print(f"[dispatch] {message}", flush=True)
+
+
 class TaskDispatch:
-    def __init__(self, cfg: PipelineCfg):
+    def __init__(self, cfg: PipelineCfg, logger=_default_log):
         self._deploy = cfg
+        self._log = logger
 
     def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
-            enqueue_with_client(client, task)
+            self._enqueue(client, task)
         self._http_trigger()
+
+    def _enqueue(self, client, task: Task) -> None:
+        rel_path = f"{TASK_DIR}/{task.filename()}"
+        client.ensure_dir(TASK_DIR)
+        client.put_text(rel_path, task.to_ini())
+        self._log(f"Aufgabe via SFTP geschrieben: {rel_path}")
 
     def _http_trigger(self) -> None:
         root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
@@ -34,7 +45,7 @@ class TaskDispatch:
         req = urllib.request.Request(url, method="GET")
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
-                print(f"[dispatch] HTTP-Auslöser: {url} → {resp.status}", flush=True)
+                self._log(f"HTTP-Auslöser: {url} → {resp.status}")
         except urllib.error.HTTPError as exc:
             body = _truncate(exc.read().decode(errors="replace"))
             print(
@@ -55,13 +66,6 @@ class TaskDispatch:
 
 def _truncate(text: str, limit: int = 300) -> str:
     return text[:limit] + "..." if len(text) > limit else text
-
-
-def enqueue_with_client(client, task: Task) -> None:
-    rel_path = f"{TASK_DIR}/{task.filename()}"
-    client.ensure_dir(TASK_DIR)
-    client.put_text(rel_path, task.to_ini())
-    print(f"[dispatch] Aufgabe via SFTP geschrieben: {rel_path}", flush=True)
 
 
 def main() -> None:

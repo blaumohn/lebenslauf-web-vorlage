@@ -95,7 +95,6 @@ verify_artifact() {
 deploy() {
   local lock_changed
   lock_changed="$(composer_lock_changed)"
-  ci_note "composer.lock geändert: ${lock_changed}"
   sftp_upload "$lock_changed"
 }
 
