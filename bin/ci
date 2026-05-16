@@ -71,12 +71,11 @@ run_preview_test_case_checks() {
 }
 
 run_smtp_smoke() {
-  cli python "$PIPELINE" --phases runtime tests/ci/smtp-smoke.py
+  cli python "$PIPELINE" --phase runtime tests/ci/smtp-smoke.py
 }
 
 run_contact_smoke() {
-  . tests/ci/contact-smoke.sh
-  contact_smoke
+  cli python "$PIPELINE" --phase deploy --phase runtime tests/ci/contact_smoke.py
 }
 
 test_no_diff_deploy() {
@@ -117,7 +116,7 @@ write_ci_build_id() {
 }
 
 sftp_read_vendor_build_id() {
-  cli python "$PIPELINE" --phases deploy scripts/sftp-read-vendor-build-id.py
+  cli python "$PIPELINE" --phase deploy scripts/sftp-read-vendor-build-id.py
 }
 
 check_vendor_not_uploaded() {

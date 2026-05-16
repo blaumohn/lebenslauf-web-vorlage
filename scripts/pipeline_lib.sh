@@ -113,13 +113,14 @@ composer_lock_changed() {
 
 sftp_upload() {
   local lock_changed="$1"
-  COMPOSER_LOCK_CHANGED="$lock_changed" cli python "$PIPELINE" --phases deploy scripts/sftp-deploy.py
+  COMPOSER_LOCK_CHANGED="$lock_changed" cli python "$PIPELINE" --phase deploy scripts/sftp-deploy.py
 }
 
 post_deploy_smoke_checks() {
   local root_url
   root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
   run_http_smoke_checks "$root_url"
+  run_htaccess_smoke_checks "$root_url"
 }
 
 run_http_smoke_checks() {
@@ -129,12 +130,27 @@ run_http_smoke_checks() {
   smoke_http_page_contains "${base}/contact" "<form"
 }
 
+run_htaccess_smoke_checks() {
+  local base="${1%/}"
+  smoke_http_status "${base}/a/"        403
+  smoke_http_status "${base}/vendor-a/" 403
+}
+
 smoke_http_page_contains() {
   local url="$1" needle="$2" body
   body="$(curl --fail --silent --show-error "$url")"
   if ! printf '%s' "$body" | grep -q "$needle"; then
     echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
     echo "$body"
+    exit 1
+  fi
+}
+
+smoke_http_status() {
+  local url="$1" expected="$2" actual
+  actual="$(curl --silent --output /dev/null --write-out '%{http_code}' "$url")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "[smoke] HTTP-Status falsch: erwartet=${expected}, erhalten=${actual}, URL=${url}" >&2
     exit 1
   fi
 }

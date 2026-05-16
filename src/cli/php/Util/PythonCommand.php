@@ -21,7 +21,7 @@ final class PythonCommand extends BasePipelineCommand
         parent::configure();
         $this->addArgument('script', InputArgument::REQUIRED, 'Relativer Pfad zum Skript.')
             ->addArgument('args', InputArgument::IS_ARRAY, 'Argumente für das Skript')
-            ->addOption('phases', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Pipeline-Phasen (z. B. --phases runtime --phases build)');
+            ->addOption('phase', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Pipeline-Phasen (z. B. --phase runtime --phase build)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -31,9 +31,9 @@ final class PythonCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $phases = $input->getOption('phases');
+        $phases = $input->getOption('phase');
         if (!is_array($phases) || $phases === []) {
-            $output->writeln('<error>--phases fehlt. Beispiel: --phases runtime</error>');
+            $output->writeln('<error>--phase fehlt. Beispiel: --phase runtime</error>');
             return Command::FAILURE;
         }
 
