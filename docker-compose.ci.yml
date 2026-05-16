@@ -104,6 +104,7 @@ services:
     volumes:
       - "preview_deploy:/var/www/html"
       - "./scripts/config-apache.sh:/scripts/config-apache.sh:ro"
+      - "./tests/ci/ca.crt:/usr/local/share/ca-certificates/ci-mailpit-ca.crt:ro"
 
 volumes:
   composer_home_dev:

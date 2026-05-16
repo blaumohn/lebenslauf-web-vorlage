@@ -31,9 +31,17 @@ configure_php_errors() {
     > "${ini_dir}/99-task-errors.ini"
 }
 
+install_ci_ca_certificate() {
+  if [ ! -f /usr/local/share/ca-certificates/ci-mailpit-ca.crt ]; then
+    return
+  fi
+  update-ca-certificates
+}
+
 main() {
   enable_rewrite
   allow_overrides
+  install_ci_ca_certificate
   ensure_run_user
   apply_run_user
   configure_php_errors
