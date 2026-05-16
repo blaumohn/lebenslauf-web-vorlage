@@ -19,6 +19,15 @@ variable-groups:
       meta:
         desc: "Anzahl vertrauenswürdiger Proxy-Ebenen (0 = kein Proxy)"
         example: "1"
+    APP_LOG_CHANNEL:
+      meta:
+        desc: "Log-Ausgabekanal (file | stderr | stack)"
+        notes: >-
+          file: nur Datei (Standard, für Shared-Hosting).
+          stderr: nur stderr (PHP-Dev-Server).
+          stack: Datei und stderr (Docker-Container, Apache-stderr
+          erscheint als Container-stdout).
+        example: "file"
 
   lebenslauf:
     LEBENSLAUF_DATEN_PFAD:
@@ -185,6 +194,7 @@ phases:
     app:
       - APP_BASE_PATH
       - TRUST_PROXY
+      - APP_LOG_CHANNEL
     lebenslauf:
       - LEBENSLAUF_LANG_DEFAULT
       - LEBENSLAUF_LANGS

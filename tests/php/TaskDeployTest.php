@@ -17,6 +17,7 @@ use App\Http\Task\Task;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use App\Http\Task\TaskRunner;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 final class TaskDeployTest extends TestCase
 {
@@ -139,7 +140,7 @@ final class TaskDeployTest extends TestCase
 
     public function testTaskRunnerIdleOnNoTasks(): void
     {
-        $runner = new TaskRunner([], $this->dir, $this->buildMailService());
+        $runner = new TaskRunner([], $this->dir, $this->buildMailService(), new NullLogger());
         $this->assertSame(0, $runner->runPending());
     }
 
@@ -152,7 +153,7 @@ final class TaskDeployTest extends TestCase
         file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
 
         [$count] = $this->runRunnerCapturingOutput(
-            new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService()),
+            new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService(), new NullLogger()),
         );
 
         $this->assertSame(1, $count);
@@ -170,7 +171,7 @@ final class TaskDeployTest extends TestCase
         file_put_contents($taskFile, "[task]\ntype=cv_token_rotation\nprofile={$profile}\ncount=1\n");
 
         [$count] = $this->runRunnerCapturingOutput(
-            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService()),
+            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger()),
         );
 
         $this->assertSame(1, $count);
@@ -186,7 +187,7 @@ final class TaskDeployTest extends TestCase
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
         [$count, $mailOutput] = $this->runRunnerCapturingOutput(
-            new TaskRunner([], $this->dir, $this->buildMailService()),
+            new TaskRunner([], $this->dir, $this->buildMailService(), new NullLogger()),
         );
 
         $this->assertSame(1, $count);
@@ -202,7 +203,7 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/unknown.ini';
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
-        $runner = new TaskRunner([], $this->dir, new MailService(new ConfigCompiled($this->dir)));
+        $runner = new TaskRunner([], $this->dir, new MailService(new ConfigCompiled($this->dir)), new NullLogger());
         [$count] = $this->runRunnerCapturingOutput($runner);
 
         $this->assertSame(1, $count);

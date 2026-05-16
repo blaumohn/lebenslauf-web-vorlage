@@ -96,6 +96,14 @@ final class ConfigCompiled
         return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
     }
 
+    public function logDir(): string
+    {
+        if ($this->pipeline() === 'dev') {
+            return $this->rootPath . '/var/log';
+        }
+        return $this->entryPath() . '/log';
+    }
+
     public function basePath(): string
     {
         $value = trim((string) $this->get('APP_BASE_PATH'));

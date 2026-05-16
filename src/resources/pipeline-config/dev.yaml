@@ -1,6 +1,7 @@
 app:
   APP_BASE_PATH: "/"
   TRUST_PROXY: 0
+  APP_LOG_CHANNEL: stderr
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: .local/lebenslauf

@@ -54,6 +54,32 @@ final class ConfigCompiledTest extends TestCase
         new ConfigCompiled($root);
     }
 
+    public function testLogDirIsInsideRootForDevPipeline(): void
+    {
+        $root = $this->createRoot();
+        $this->writeConfig($root, [
+            'pipeline_phase' => ['pipeline' => 'dev', 'phase' => 'runtime'],
+            'values' => [],
+        ]);
+
+        $config = new ConfigCompiled($root);
+
+        self::assertSame($root . '/var/log', $config->logDir());
+    }
+
+    public function testLogDirIsAtEntryLevelForNonDevPipeline(): void
+    {
+        $root = $this->createRoot();
+        $this->writeConfig($root, [
+            'pipeline_phase' => ['pipeline' => 'preview', 'phase' => 'runtime'],
+            'values' => [],
+        ]);
+
+        $config = new ConfigCompiled($root);
+
+        self::assertSame(dirname($root) . '/log', $config->logDir());
+    }
+
     private function createRoot(): string
     {
         $root = sys_get_temp_dir() . '/config-compiled-' . bin2hex(random_bytes(6));

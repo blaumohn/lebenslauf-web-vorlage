@@ -1,6 +1,7 @@
 app:
   APP_BASE_PATH: "/"
   TRUST_PROXY: 1
+  APP_LOG_CHANNEL: stack
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: src/resources/fixtures/lebenslauf

@@ -18,11 +18,13 @@ use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 final class AppContext
 {
     public ConfigCompiled $config;
+    public LoggerInterface $logger;
     public Environment $twig;
     public CvStorage $cvStorage;
     public TokenService $tokenService;
@@ -42,6 +44,7 @@ final class AppContext
 
         $context = new self();
         $context->config = $config;
+        $context->logger = AppLogger::create($config->logDir(), $config->get('APP_LOG_CHANNEL', 'file'));
         $context->twig = TwigFactory::create($rootPath . '/src/resources/templates');
         TwigFactory::configure($context->twig, $config->basePath());
         $context->cvStorage = new CvStorage($storage, $rootPath . '/var/cache/html');
@@ -59,7 +62,7 @@ final class AppContext
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
         $context->taskRunner = self::buildTaskRunner(
-            $writer, $lockRunner, $config, $context->mailService, $context->cvStorage, $context->tokenService
+            $writer, $lockRunner, $config, $context->mailService, $context->cvStorage, $context->tokenService, $context->logger
         );
 
         return $context;
@@ -72,6 +75,7 @@ final class AppContext
         MailService $mailService,
         CvStorage $cvStorage,
         TokenService $tokenService,
+        LoggerInterface $logger,
     ): TaskRunner {
         $entryPath = $config->entryPath();
         $switcher = new DeploySwitcher($writer, $lockRunner, $entryPath);
@@ -80,7 +84,7 @@ final class AppContext
             new DeploySwitchTaskHandler($switcher),
             new CvTokenRotationTaskHandler($rotateHandler),
         ];
-        return new TaskRunner($handlers, $entryPath, $mailService);
+        return new TaskRunner($handlers, $entryPath, $mailService, $logger);
     }
 
     private static function buildIpSaltService(

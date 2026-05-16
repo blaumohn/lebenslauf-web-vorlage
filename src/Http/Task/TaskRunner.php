@@ -4,6 +4,7 @@ namespace App\Http\Task;
 
 use App\Http\Mail\MailMessage;
 use App\Http\Mail\MailService;
+use Psr\Log\LoggerInterface;
 
 final class TaskRunner
 {
@@ -14,6 +15,7 @@ final class TaskRunner
         private readonly array $handlers,
         private readonly string $entryPath,
         private readonly MailService $mailService,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function runPending(): int
@@ -52,7 +54,7 @@ final class TaskRunner
             $task = Task::fromFile($filePath);
             return $this->resolveHandler($task->type())->handle($task, $this->entryPath);
         } catch (\Throwable $e) {
-            error_log("[task] Fehler bei {$taskName}: {$e->getMessage()}");
+            $this->logger->error("Task fehlgeschlagen: {$taskName}", ['exception' => $e]);
             return TaskResult::fail($e->getMessage());
         }
     }
@@ -62,7 +64,7 @@ final class TaskRunner
         try {
             $this->notifyResult($result, $taskName);
         } catch (\Throwable $e) {
-            error_log("[task] Mailversand fehlgeschlagen ({$taskName}): {$e->getMessage()}");
+            $this->logger->error("Mailversand fehlgeschlagen: {$taskName}", ['exception' => $e]);
         }
     }
 

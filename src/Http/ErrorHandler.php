@@ -25,6 +25,13 @@ final class ErrorHandler
         bool $logErrors,
         bool $logErrorDetails
     ): ResponseInterface {
+        if ($logErrors) {
+            $this->context->logger->error($exception->getMessage(), [
+                'url'       => (string) $request->getUri(),
+                'exception' => $exception,
+            ]);
+        }
+
         $message = 'Ein unerwarteter Fehler ist aufgetreten.';
 
         if ($exception instanceof StorageException) {
