@@ -29,6 +29,14 @@ class SlotState:
     def initial(cls):
         return cls("a", "a")
 
+    @property
+    def app_dir(self):
+        return f"app-{self.app}"
+
+    @property
+    def vendor_dir(self):
+        return f"vendor-{self.vendor}"
+
     def as_tuple(self):
         return (self.app, self.vendor)
 

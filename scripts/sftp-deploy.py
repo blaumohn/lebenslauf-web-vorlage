@@ -4,12 +4,12 @@ from pathlib import Path
 
 import requests.exceptions
 
-from cli.py.task.dispatch import TaskDispatch
-from cli.py.task.task import Task
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState
 from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.task.dispatch import TaskDispatch
+from cli.py.task.task import Task
 from cli.py.util.envvar import env
 
 
@@ -18,13 +18,18 @@ def log(message):
 
 
 def format_target(cfg):
-    return f"{cfg['SFTP_HOST']}:{cfg['SFTP_PORT']}{cfg['SFTP_SERVER_DIR']}"
+    return (
+        f"{cfg['SFTP_HOST']}:{cfg['SFTP_PORT']}"
+        f"{cfg['SFTP_SERVER_DIR']}"
+    )
 
 
 def main():
     cfg = PipelineCfg("deploy")
     run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
-    composer_lock_changed = env("COMPOSER_LOCK_CHANGED").require_bool().to_bool()
+    composer_lock_changed = (
+        env("COMPOSER_LOCK_CHANGED").require_bool().to_bool()
+    )
     log(f"Verbinde zu {format_target(cfg)}")
     SftpDeploy(cfg, run_id, composer_lock_changed).start()
 
@@ -54,37 +59,58 @@ class SftpDeploy:
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
         target = plan.target
-        self.log(f"Erstdeploy: Baum {target.app}, Vendor {target.vendor}")
-        self.upload_app_tree(target.app)
-        self.upload_vendor_dir(target.vendor)
+        self.log(
+            f"Erstdeploy: Slot {target.app_dir}, "
+            f"Vendor {target.vendor_dir}"
+        )
+        self.upload_app_tree(target.app_dir)
+        self.upload_vendor_dir(target.vendor_dir)
         self.upload_static_entry_files()
         self.write_run_markers(target)
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
     def deploy_swap(self, state):
-        vendor_slot_valid = self._vendor_slot_valid(state.vendor)
-        plan = DeploymentPlan.swap(state, self.composer_lock_changed, vendor_slot_valid)
+        vendor_slot_valid = self._vendor_slot_valid(state.vendor_dir)
+        plan = DeploymentPlan.swap(
+            state,
+            self.composer_lock_changed,
+            vendor_slot_valid,
+        )
         active = plan.active
         target = plan.target
-        self.log(f"Baum: {active.app}→{target.app}, Vendor: {active.vendor}→{target.vendor}")
+        self.log(
+            f"Slot: {active.app_dir}→{target.app_dir}, "
+            f"Vendor: {active.vendor_dir}→{target.vendor_dir}"
+        )
         self._log_vendor_decision(target, active)
-        self.upload_app_tree(target.app)
+        self.upload_app_tree(target.app_dir)
         if target.vendor != active.vendor:
-            self.upload_vendor_dir(target.vendor)
-        self.migrate_tokens(active.app, target.app)
+            self.upload_vendor_dir(target.vendor_dir)
+        self.migrate_tokens(active.app_dir, target.app_dir)
         self.dispatch_switch(target)
-        self.log(f"Deploy vorbereitet: Baum {target.app}, Vendor {target.vendor}")
+        self.log(
+            f"Deploy vorbereitet: Slot {target.app_dir}, "
+            f"Vendor {target.vendor_dir}"
+        )
 
     def _log_vendor_decision(self, target, active):
         if target.vendor != active.vendor:
-            reason = "composer.lock geändert" if self.composer_lock_changed else "Slot-Sentinel fehlt"
-            self.log(f"Vendor neu hochladen ({reason}): vendor-{target.vendor}")
+            reason = self._vendor_upload_reason()
+            self.log(
+                f"Vendor neu hochladen ({reason}): "
+                f"{target.vendor_dir}"
+            )
         else:
-            self.log(f"Vendor unverändert: vendor-{target.vendor}")
+            self.log(f"Vendor unverändert: {target.vendor_dir}")
 
-    def _vendor_slot_valid(self, vendor_slot):
-        return self.client.file_exists(f"vendor-{vendor_slot}/.deploy-run")
+    def _vendor_upload_reason(self):
+        if self.composer_lock_changed:
+            return "composer.lock geändert"
+        return "Slot-Sentinel fehlt"
+
+    def _vendor_slot_valid(self, vendor_dir):
+        return self.client.file_exists(f"{vendor_dir}/.deploy-run")
 
     def dispatch_switch(self, target):
         self.write_run_markers(target)
@@ -95,7 +121,10 @@ class SftpDeploy:
         })
         try:
             TaskDispatch(self.cfg, logger=self.log).submit(task)
-            self.log(f"Switch ausgelöst: App {target.app}, Vendor {target.vendor}, Run {self.run_id}")
+            self.log(
+                f"Switch ausgelöst: Slot {target.app_dir}, "
+                f"Vendor {target.vendor_dir}, Run {self.run_id}"
+            )
         except requests.exceptions.HTTPError:
             raise
         except requests.exceptions.RequestException:
@@ -103,51 +132,63 @@ class SftpDeploy:
             self.upload_deploy_state(target)
 
     def write_run_markers(self, target):
-        for slot in (target.app, f"vendor-{target.vendor}"):
-            self.client.put_text(f"{slot}/.deploy-run", self.run_id)
+        for slot_dir in (target.app_dir, target.vendor_dir):
+            self.client.put_text(f"{slot_dir}/.deploy-run", self.run_id)
 
     def publish_switch(self, target):
         self.upload_deploy_state(target)
 
     def upload_static_entry_files(self):
-        self.client.put_file(resource_path(".htaccess"), ".htaccess")
-        self.client.put_file(resource_path("index.php"), "index.php")
+        webroot = self.cfg["SFTP_WEBROOT"]
+        self.client.ensure_dir(webroot)
+        self.client.put_file(
+            resource_path("webroot/.htaccess"),
+            f"{webroot}/.htaccess",
+        )
+        self.client.put_file(
+            resource_path("webroot/deploy-state.php"),
+            f"{webroot}/deploy-state.php",
+        )
+        self.client.put_file(
+            resource_path("webroot/index.php"),
+            f"{webroot}/index.php",
+        )
         self.log("Statische Entry-Dateien hochgeladen")
 
-    def upload_app_tree(self, tree):
+    def upload_app_tree(self, app_dir):
         stats = new_stats()
         started_at = time.monotonic()
-        self.log(f"Upload App-Baum: {tree}")
-        self.client.ensure_dir(tree)
+        self.log(f"Upload App-Slot: {app_dir}")
+        self.client.ensure_dir(app_dir)
         for item in sorted(Path("var/deploy").iterdir()):
-            self.upload_app_item(item, tree, stats)
-        self.log_upload_app_tree(tree, stats, started_at)
+            self.upload_app_item(item, app_dir, stats)
+        self.log_upload_app_tree(app_dir, stats, started_at)
 
-    def upload_app_item(self, item, tree, stats):
+    def upload_app_item(self, item, app_dir, stats):
         if item.name == "vendor":
             return
-        rel_remote = tree + "/" + item.name
+        rel_remote = app_dir + "/" + item.name
         if item.is_dir():
             self.upload_dir(item, rel_remote, stats)
             return
         self.upload_file(item, rel_remote, stats)
 
-    def log_upload_app_tree(self, _tree, stats, started_at):
+    def log_upload_app_tree(self, app_dir, stats, started_at):
         duration = time.monotonic() - started_at
         self.log(
-            f"App-Baum hochgeladen: {stats['files']} Dateien, "
+            f"App-Slot hochgeladen ({app_dir}): "
+            f"{stats['files']} Dateien, "
             f"{stats['directories']} Verzeichnisse, "
             f"{stats['bytes']} Bytes, {duration:.2f}s"
         )
 
-    def upload_vendor_dir(self, vendor_slot):
+    def upload_vendor_dir(self, vendor_dir):
         stats = new_stats()
-        rel_dir = "vendor-" + vendor_slot
         started_at = time.monotonic()
-        self.log(f"Upload Vendor: {rel_dir}")
-        self.client.ensure_dir(rel_dir)
+        self.log(f"Upload Vendor: {vendor_dir}")
+        self.client.ensure_dir(vendor_dir)
         for item in sorted(Path("var/deploy/vendor").iterdir()):
-            rel_remote = rel_dir + "/" + item.name
+            rel_remote = vendor_dir + "/" + item.name
             if item.is_dir():
                 self.upload_dir(item, rel_remote, stats)
             else:
@@ -161,9 +202,9 @@ class SftpDeploy:
             f"{stats['bytes']} Bytes, {duration:.2f}s"
         )
 
-    def migrate_tokens(self, active_tree, inactive_tree):
-        src = f"{active_tree}/var/state/tokens"
-        dst = f"{inactive_tree}/var/state/tokens"
+    def migrate_tokens(self, active_dir, inactive_dir):
+        src = f"{active_dir}/var/state/tokens"
+        dst = f"{inactive_dir}/var/state/tokens"
         try:
             entries = self.client.listdir_attr(src)
         except OSError:
@@ -188,14 +229,17 @@ class SftpDeploy:
 
     def upload_deploy_state(self, state):
         DeployState.write(self.client, state)
-        self.log(f"Deploy-State hochgeladen: Baum {state.app}, Vendor {state.vendor}")
+        self.log(
+            f"Deploy-State hochgeladen: Slot {state.app_dir}, "
+            f"Vendor {state.vendor_dir}"
+        )
 
     def cleanup(self, active, target):
-        self.client.remove_dir(active.app)
-        self.log(f"Alter App-Baum entfernt: {active.app}")
+        self.client.remove_dir(active.app_dir)
+        self.log(f"Alter App-Slot entfernt: {active.app_dir}")
         if active.vendor != target.vendor:
-            self.client.remove_dir(f"vendor-{active.vendor}")
-            self.log(f"Alter Vendor entfernt: vendor-{active.vendor}")
+            self.client.remove_dir(active.vendor_dir)
+            self.log(f"Alter Vendor entfernt: {active.vendor_dir}")
 
     def upload_dir(self, local_path, rel_remote, stats):
         created = self.client.mkdir_p(rel_remote)

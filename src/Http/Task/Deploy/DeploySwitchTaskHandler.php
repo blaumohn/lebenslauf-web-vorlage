@@ -10,7 +10,8 @@ final class DeploySwitchTaskHandler implements TaskHandler
 {
     public function __construct(
         private readonly DeploySwitcher $switcher,
-    ) {}
+    ) {
+    }
 
     public function canHandle(string $type): bool
     {
@@ -19,25 +20,16 @@ final class DeploySwitchTaskHandler implements TaskHandler
 
     public function handle(Task $task, string $entryPath): TaskResult
     {
-        $app    = $task->get('app');
-        $vendor = $task->get('vendor');
-        $runId  = $task->get('run_id');
-        if ($app === '' || $vendor === '' || $runId === '') {
-            throw new \RuntimeException("deploy_switch fehlt app, vendor oder run_id");
-        }
-        $this->verifyRunMarkers($entryPath, $app, $vendor, $runId);
-        $state = PreparedDeployState::fromParams($app, $vendor);
-        $this->switcher->switchTo($state);
-        return TaskResult::ok("app={$app} vendor={$vendor} run_id={$runId}");
+        $target = DeployState::fromTask($task);
+        $target->validatePreparedSlots($entryPath);
+        $this->switcher->switchTo($target);
+        return TaskResult::ok($this->formatResult($target));
     }
 
-    private function verifyRunMarkers(string $entryPath, string $app, string $vendor, string $runId): void
+    private function formatResult(DeployState $state): string
     {
-        foreach ([$app, "vendor-{$vendor}"] as $slot) {
-            $marker = trim((string) file_get_contents("{$entryPath}/{$slot}/.deploy-run"));
-            if ($marker !== $runId) {
-                throw new \RuntimeException("run_id stimmt nicht überein: {$slot}");
-            }
-        }
+        return "app={$state->appLabel()} "
+            . "vendor={$state->vendorLabel()} "
+            . "run_id={$state->deployId()}";
     }
 }
