@@ -90,6 +90,13 @@ verify_artifact() {
   test -f "$DEPLOY_DIR/var/.htaccess"
 }
 
+no_changes_since_deploy() {
+  [[ -z "${LAST_DEPLOY_COMMIT:-}" ]] && return 1
+  local diff
+  diff="$(git diff --name-only "$LAST_DEPLOY_COMMIT" HEAD)"
+  [[ -z "$diff" ]]
+}
+
 deploy() {
   local lock_changed
   lock_changed="$(composer_lock_changed)"

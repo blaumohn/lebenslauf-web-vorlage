@@ -105,6 +105,15 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn(install_step, cd_entrypoint)
         self.assertIn(no_deploy, cd_entrypoint)
 
+    def test_cd_skips_deploy_if_no_changes(self):
+        pipeline_lib = read_repo_file("scripts/pipeline_lib.sh")
+        cd_entrypoint = read_repo_file("bin/cd")
+
+        self.assertIn("no_changes_since_deploy()", pipeline_lib)
+        self.assertIn("if no_changes_since_deploy;", cd_entrypoint)
+        self.assertIn('[[ -z "${LAST_DEPLOY_COMMIT:-}" ]]', pipeline_lib)
+        self.assertIn("git diff --name-only", pipeline_lib)
+
 
 def read_workflow(name: str) -> str:
     return (WORKFLOW_DIR / name).read_text(encoding="utf-8")
