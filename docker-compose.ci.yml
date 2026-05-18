@@ -48,7 +48,8 @@ services:
           SFTP_HOST: "sftp-server"
           SFTP_USER: "preview-ci"
           SFTP_PASS: "ci-pass"
-          SFTP_SERVER_DIR: "/public"
+          SFTP_SERVER_DIR: "/deploy"
+          SFTP_WEBROOT: "public"
           SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
         smtp:
           SMTP_HOST: "mailpit"
@@ -59,9 +60,12 @@ services:
         YAML
       - --
     depends_on:
-      - sftp-server
-      - preview-web
-      - mailpit
+      sftp-server:
+        condition: service_healthy
+      preview-web:
+        condition: service_started
+      mailpit:
+        condition: service_started
 
   mailpit:
     image: axllent/mailpit:latest
@@ -78,12 +82,14 @@ services:
   sftp-server:
     image: atmoz/sftp:alpine
     entrypoint: sh
+    environment:
+      CI_SFTP_DIR: "${CI_SFTP_DIR:-deploy}"
     command:
       - -c
       - |
         cp /tmp/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key &&
         chmod 600 /etc/ssh/ssh_host_ed25519_key &&
-        exec /entrypoint preview-ci:ci-pass:1000::public
+        exec /entrypoint preview-ci:ci-pass:1000::$${CI_SFTP_DIR}
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
       interval: 1s
@@ -91,7 +97,7 @@ services:
       retries: 30
       start_period: 2s
     volumes:
-      - "preview_deploy:/home/preview-ci/public"
+      - "preview_deploy:/home/preview-ci/${CI_SFTP_DIR:-deploy}"
       - "./tests/ci/sftp_host_ed25519_key:/tmp/ssh_host_ed25519_key:ro"
       - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
@@ -100,6 +106,7 @@ services:
     environment:
       APACHE_RUN_USER: "preview-ci"
       APACHE_RUN_GROUP: "preview-ci"
+      APACHE_WEBROOT: "public"
     command: bash /scripts/config-apache.sh
     volumes:
       - "preview_deploy:/var/www/html"

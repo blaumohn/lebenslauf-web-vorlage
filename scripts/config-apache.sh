@@ -38,9 +38,19 @@ install_ci_ca_certificate() {
   update-ca-certificates
 }
 
+set_document_root() {
+  local webroot="${APACHE_WEBROOT:-}"
+  if [[ -z "$webroot" ]]; then
+    return
+  fi
+  sed -i "s|DocumentRoot /var/www/html$|DocumentRoot /var/www/html/${webroot}|" \
+    /etc/apache2/sites-enabled/000-default.conf
+}
+
 main() {
   enable_rewrite
   allow_overrides
+  set_document_root
   install_ci_ca_certificate
   ensure_run_user
   apply_run_user

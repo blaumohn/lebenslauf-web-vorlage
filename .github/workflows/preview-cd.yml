@@ -52,5 +52,6 @@ jobs:
             SFTP_USER: "${{ secrets.SFTP_USER || vars.SFTP_USER }}"
             SFTP_PASS: "${{ secrets.SFTP_PASS }}"
             SFTP_SERVER_DIR: "${{ secrets.SFTP_SERVER_DIR || vars.SFTP_SERVER_DIR }}"
+            SFTP_WEBROOT: "${{ secrets.SFTP_WEBROOT || vars.SFTP_WEBROOT }}"
             SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE || vars.SSH_KNOWN_HOST_LINE }}"
           EOF
