@@ -10,7 +10,8 @@ enable=
     too-many-return-statements,
     too-many-nested-blocks,
     too-many-locals,
-    invalid-name
+    invalid-name,
+    line-too-long
 
 [DESIGN]
 max-branches=8
@@ -28,6 +29,9 @@ attr-rgx=[a-z_][a-z0-9_]{1,40}$
 class-rgx=[A-Z_][a-zA-Z0-9]+$
 const-rgx=([A-Z_][A-Z0-9_]*|__[a-z_]+__)$
 module-rgx=[a-z_][a-z0-9_]*$
+
+[FORMAT]
+max-line-length=72
 
 [REPORTS]
 reports=no

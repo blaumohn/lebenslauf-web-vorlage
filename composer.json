@@ -1,6 +1,6 @@
 {
   "name": "local/lebenslauf-vorlage",
-  "description": "Shared-hosting-friendly CV site (PHP + Twig) with file-based state.",
+  "description": "Shared-hosting-friendly CV site.",
   "type": "project",
   "repositories": [
     {
@@ -62,7 +62,9 @@
     "lint": [
       "@lint:php",
       "@lint:python",
-      "@lint:shell"
+      "@lint:shell",
+      "@lint:structured",
+      "@lint:line-length"
     ],
     "lint:php": [
       "@lint:phpcs",
@@ -72,6 +74,8 @@
     "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
     "lint:python": ".venv/bin/python tools/lint-python.py",
     "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh",
+    "lint:structured": "python3 tools/lint-structured-files.py",
+    "lint:line-length": ".venv/bin/python tools/lint-line-length.py",
     "test": [
       "@test:php",
       "@test:python"
