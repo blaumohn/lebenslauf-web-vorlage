@@ -12,7 +12,7 @@ import requests.exceptions
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from cli.py.deploy.sftp_deploy_state import DeployState, SlotState  # noqa: E402
+from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 
 
 ACTIVE_STATE_INI = "[state]\napp = a\nvendor = a\n\n"
@@ -37,6 +37,7 @@ def fake_paramiko_module():
 class FakeClient:
     def __init__(self, vendor_slot_valid=True, state_ini=""):
         self.texts = {}
+        self.files = []
         self.vendor_slot_valid = vendor_slot_valid
         self._state_ini = state_ini
 
@@ -45,6 +46,9 @@ class FakeClient:
 
     def put_text(self, path, content):
         self.texts[path] = content
+
+    def put_file(self, local_path, path):
+        self.files.append((str(local_path), path))
 
     def file_exists(self, _path):
         return self.vendor_slot_valid
@@ -128,7 +132,7 @@ class SftpDeployTest(unittest.TestCase):
         with patch.object(module, "TaskDispatch", FakeDispatch):
             deploy.dispatch_switch(target)
 
-        self.assertEqual(deploy.client.texts["b/.deploy-run"], "run-42")
+        self.assertEqual(deploy.client.texts["app-b/.deploy-run"], "run-42")
         self.assertEqual(deploy.client.texts["vendor-a/.deploy-run"], "run-42")
         self.assertEqual(len(FakeDispatch.submitted), 1)
 
@@ -158,6 +162,27 @@ class SftpDeployTest(unittest.TestCase):
         with patch.object(module, "TaskDispatch", FakeDispatchHttpError):
             with self.assertRaises(requests.exceptions.HTTPError):
                 deploy.dispatch_switch(target)
+
+    def test_upload_static_entry_files_uploads_runtime_state(self):
+        module = load_sftp_deploy_module()
+        deploy = module.SftpDeploy(
+            {"SFTP_WEBROOT": "public"},
+            "run-1",
+            False,
+        )
+        deploy.client = FakeClient()
+
+        deploy.upload_static_entry_files()
+
+        paths = [path for _local, path in deploy.client.files]
+        self.assertEqual(
+            paths,
+            [
+                "public/.htaccess",
+                "public/deploy-state.php",
+                "public/index.php",
+            ],
+        )
 
 
 class SftpDeployPathTest(unittest.TestCase):
@@ -213,7 +238,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
         deploy.deploy()
 
         self.assertIn(".deploy-state.ini", deploy.client.texts)
-        self.assertIn("a/.deploy-run", deploy.client.texts)
+        self.assertIn("app-a/.deploy-run", deploy.client.texts)
         self.assertIn("vendor-a/.deploy-run", deploy.client.texts)
         self.assertEqual(len(vendor_uploads), 1)
 

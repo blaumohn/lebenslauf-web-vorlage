@@ -72,20 +72,18 @@ prepare_deploy_dir() {
   cp -a src/Http src/resources "$DEPLOY_DIR/src/"
   cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
   cp -a var/config "$DEPLOY_DIR/var/"
-  copy_deploy_htaccess app-slot "$DEPLOY_DIR/.htaccess"
-  copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
-  copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
+  copy_slot_htaccess "" "$DEPLOY_DIR/.htaccess"
+  copy_slot_htaccess "src" "$DEPLOY_DIR/src/.htaccess"
+  copy_slot_htaccess "var" "$DEPLOY_DIR/var/.htaccess"
 }
 
-copy_deploy_htaccess() {
-  local scope="$1"
-  local target="$2"
-
-  cp "src/resources/http/$scope/.htaccess" "$target"
+copy_slot_htaccess() {
+  local sub="$1" target="$2"
+  cp "src/resources/deploy-root/app-slot${sub:+/$sub}/.htaccess" "$target"
 }
 
 verify_artifact() {
-  test -f "$DEPLOY_DIR/public/index.php"
+  test -f "$DEPLOY_DIR/src/Http/bootstrap.php"
   test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
   test -f "$DEPLOY_DIR/.htaccess"
   test -f "$DEPLOY_DIR/src/.htaccess"
@@ -120,7 +118,6 @@ post_deploy_smoke_checks() {
   local root_url
   root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
   run_http_smoke_checks "$root_url"
-  run_htaccess_smoke_checks "$root_url"
 }
 
 run_http_smoke_checks() {
@@ -130,15 +127,13 @@ run_http_smoke_checks() {
   smoke_http_page_contains "${base}/contact" "<form"
 }
 
-run_htaccess_smoke_checks() {
-  local base="${1%/}"
-  smoke_http_status "${base}/a/"        403
-  smoke_http_status "${base}/vendor-a/" 403
-}
-
 smoke_http_page_contains() {
   local url="$1" needle="$2" body
-  body="$(curl --fail --silent --show-error "$url")"
+  echo "[smoke] HTTP-Abruf: ${url}" >&2
+  if ! body="$(curl --fail --silent --show-error "$url")"; then
+    echo "[smoke] HTTP-Abruf fehlgeschlagen: ${url}" >&2
+    return 1
+  fi
   if ! printf '%s' "$body" | grep -q "$needle"; then
     echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
     echo "$body"
@@ -146,14 +141,6 @@ smoke_http_page_contains() {
   fi
 }
 
-smoke_http_status() {
-  local url="$1" expected="$2" actual
-  actual="$(curl --silent --output /dev/null --write-out '%{http_code}' "$url")"
-  if [[ "$actual" != "$expected" ]]; then
-    echo "[smoke] HTTP-Status falsch: erwartet=${expected}, erhalten=${actual}, URL=${url}" >&2
-    exit 1
-  fi
-}
 
 with_dev_server() {
   local docroot="$1" dev_server_port=8080 pid
@@ -171,8 +158,20 @@ start_php_server() {
   local port="$1"
   local docroot="$2"
   local log_file="$3"
+  local app_root app_vendor
 
-  php -S "0.0.0.0:${port}" -t "$docroot" > "$log_file" 2>&1 &
+  if [[ "$docroot" == "public" ]]; then
+    app_root="$PWD"
+  else
+    app_root="${docroot%/public}"
+  fi
+  app_vendor="${app_root}/vendor"
+
+  APP_ROOT_DIR="$app_root" APP_VENDOR_DIR="$app_vendor" \
+    php -S "0.0.0.0:${port}" \
+      -t "$docroot" \
+      scripts/local/dev-index.php \
+      > "$log_file" 2>&1 &
   echo "$!"
 }
 

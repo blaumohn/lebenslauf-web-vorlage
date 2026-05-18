@@ -10,6 +10,7 @@ use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
+use App\Http\Task\Deploy\DeployState;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
 use App\Http\Task\Deploy\DeploySwitcher;
 use App\Http\Task\Deploy\PreparedDeployState;
@@ -52,6 +53,39 @@ final class TaskDeployTest extends TestCase
         PreparedDeployState::fromParams('c', 'a');
     }
 
+    public function testDeployStateResolvesRunMarkerPaths(): void
+    {
+        $state = DeployState::fromParams('run-42', 'b', 'a');
+
+        $this->assertSame('b', $state->appLabel());
+        $this->assertSame('a', $state->vendorLabel());
+        $this->assertSame('app-b/.deploy-run', $state->appRunMarkerPath());
+        $this->assertSame('vendor-a/.deploy-run', $state->vendorRunMarkerPath());
+        $this->assertSame("[state]\napp=b\nvendor=a\n", $state->toIni());
+    }
+
+    public function testDeployStateRejectsMissingDeployId(): void
+    {
+        $this->expectException(RuntimeException::class);
+        DeployState::fromParams('', 'b', 'a');
+    }
+
+    public function testDeployStateRejectsInvalidSlotLabel(): void
+    {
+        $this->expectException(RuntimeException::class);
+        DeployState::fromParams('run-42', 'x', 'a');
+    }
+
+    public function testDeployStateValidatesPreparedSlots(): void
+    {
+        $this->writeRunMarkers('b', 'a', 'run-42');
+        $state = DeployState::fromParams('run-42', 'b', 'a');
+
+        $state->validatePreparedSlots($this->dir);
+
+        $this->assertSame('run-42', $state->deployId());
+    }
+
     // ── DeploySwitcher ───────────────────────────────────────────────────────
 
     public function testDeploySwitcherWritesStateFile(): void
@@ -59,7 +93,7 @@ final class TaskDeployTest extends TestCase
         $stateFile = $this->dir . '/.deploy-state.ini';
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
 
-        $switcher->switchTo(PreparedDeployState::fromParams('b', 'a'));
+        $switcher->switchTo(DeployState::fromParams('42', 'b', 'a'));
 
         $this->assertFileExists($stateFile);
         $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($stateFile));
@@ -119,6 +153,16 @@ final class TaskDeployTest extends TestCase
         $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($this->dir . '/.deploy-state.ini'));
     }
 
+    public function testDeploySwitchTaskHandlerRejectsLegacyAppMarkerPath(): void
+    {
+        $this->writeLegacyAppMarker('b', '42');
+        $this->writeVendorMarker('a', '42');
+        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n"));
+
+        $this->expectException(RuntimeException::class);
+        $this->buildDeploySwitchHandler()->handle($task, $this->dir);
+    }
+
     public function testDeploySwitchTaskHandlerRejectsRunIdMismatch(): void
     {
         $this->writeRunMarkers('b', 'a', '99');
@@ -159,6 +203,7 @@ final class TaskDeployTest extends TestCase
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
         $this->assertFileExists($this->dir . '/.deploy-state.ini');
+        $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($this->dir . '/.deploy-state.ini'));
     }
 
     public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void
@@ -257,11 +302,30 @@ final class TaskDeployTest extends TestCase
 
     private function writeRunMarkers(string $app, string $vendor, string $runId): void
     {
-        foreach ([$app, "vendor-{$vendor}"] as $slot) {
-            $dir = $this->dir . '/' . $slot;
-            mkdir($dir, 0775, true);
-            file_put_contents($dir . '/.deploy-run', $runId);
-        }
+        $this->writeAppMarker($app, $runId);
+        $this->writeVendorMarker($vendor, $runId);
+    }
+
+    private function writeAppMarker(string $app, string $runId): void
+    {
+        $this->writeRunMarker("app-{$app}", $runId);
+    }
+
+    private function writeLegacyAppMarker(string $app, string $runId): void
+    {
+        $this->writeRunMarker($app, $runId);
+    }
+
+    private function writeVendorMarker(string $vendor, string $runId): void
+    {
+        $this->writeRunMarker("vendor-{$vendor}", $runId);
+    }
+
+    private function writeRunMarker(string $slot, string $runId): void
+    {
+        $dir = $this->dir . '/' . $slot;
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/.deploy-run', $runId);
     }
 
     private function writeTempIni(string $content): string

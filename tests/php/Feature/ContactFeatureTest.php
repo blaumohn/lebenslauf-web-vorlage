@@ -10,12 +10,21 @@ final class ContactFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
 
-        $request = (new ServerRequestFactory())->createServerRequest('GET', '/contact');
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/contact');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
         $body = (string) $response->getBody();
         $this->assertStringContainsString('/captcha.png?id=', $body);
+        $captchaId = $this->extractCaptchaId($body);
+        $statePath = $this->captchaStatePath($captchaId);
+
+        $this->assertFileExists($statePath);
+        $this->assertStringContainsString(
+            'solution_text',
+            (string) file_get_contents($statePath)
+        );
     }
 
     public function testContactFormKeepsValuesOnError(): void
@@ -27,8 +36,9 @@ final class ContactFeatureTest extends FeatureTestCase
         $ipHash = $this->ipHashFor($ip);
         $challenge = $service->createChallenge($ipHash);
 
+        $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', ['REMOTE_ADDR' => $ip])
+            ->createServerRequest('POST', '/contact', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -41,20 +51,27 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $this->assertSame(403, $response->getStatusCode());
         $body = (string) $response->getBody();
-        $this->assertStringContainsString('value="Max Mustermann"', $body);
-        $this->assertStringContainsString('value="max@example.com"', $body);
+        $this->assertStringContainsString(
+            'value="Max Mustermann"',
+            $body
+        );
+        $this->assertStringContainsString(
+            'value="max@example.com"',
+            $body
+        );
         $this->assertStringContainsString('Test Nachricht', $body);
     }
 
-    public function testContactFormShowsDeployHintWhenSessionGone(): void
+    public function testDeployHintWhenContactSessionIsGone(): void
     {
         $app = $this->app();
         $ip = '203.0.113.12';
 
         $captchaId = bin2hex(random_bytes(16)) . '_' . time();
 
+        $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', ['REMOTE_ADDR' => $ip])
+            ->createServerRequest('POST', '/contact', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -79,8 +96,9 @@ final class ContactFeatureTest extends FeatureTestCase
         $ipHash = $this->ipHashFor($ip);
         $challenge = $service->createChallenge($ipHash);
 
+        $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', ['REMOTE_ADDR' => $ip])
+            ->createServerRequest('POST', '/contact', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -94,5 +112,21 @@ final class ContactFeatureTest extends FeatureTestCase
         $this->assertSame(200, $response->getStatusCode());
         $body = (string) $response->getBody();
         $this->assertStringContainsString('Danke', $body);
+    }
+
+    private function extractCaptchaId(string $body): string
+    {
+        $matches = [];
+        $pattern = '/name="captcha_id" value="([^"]+)"/';
+        $this->assertSame(1, preg_match($pattern, $body, $matches));
+        return $matches[1];
+    }
+
+    private function captchaStatePath(string $captchaId): string
+    {
+        return $this->root
+            . '/var/tmp/captcha/'
+            . $captchaId
+            . '.json';
     }
 }

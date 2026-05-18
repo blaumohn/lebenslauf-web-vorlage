@@ -72,9 +72,13 @@ class ContactSmoke:
         return state.app
 
     def read_captcha_solution(self, sftp, app_slot: str, captcha_id: str) -> str:
-        raw = sftp.read_file(f"{app_slot}/var/tmp/captcha/{captcha_id}.json")
+        path = f"app-{app_slot}/var/tmp/captcha/{captcha_id}.json"
+        raw = sftp.read_file(path)
         if not raw:
-            raise RuntimeError(f"[contact-smoke] Captcha-State fehlt: {captcha_id}")
+            raise RuntimeError(
+                "[contact-smoke] Captcha-State fehlt: "
+                f"{captcha_id} ({path})"
+            )
         data = json.loads(raw)
         solution = str(data.get("solution_text", ""))
         if not solution:

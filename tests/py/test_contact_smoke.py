@@ -9,11 +9,17 @@ from unittest.mock import MagicMock, patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTACT_SMOKE_PATH = REPO_ROOT / "tests" / "ci" / "contact_smoke.py"
 sys.path.insert(0, str(REPO_ROOT / "src"))
-sys.modules.setdefault("paramiko", types.SimpleNamespace(RejectPolicy=object, SSHClient=object))
+sys.modules.setdefault(
+    "paramiko",
+    types.SimpleNamespace(RejectPolicy=object, SSHClient=object),
+)
 
 
 def load_contact_smoke_module():
-    spec = importlib.util.spec_from_file_location("contact_smoke", CONTACT_SMOKE_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "contact_smoke",
+        CONTACT_SMOKE_PATH,
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -37,7 +43,10 @@ class ContactSmokeTest(unittest.TestCase):
     def test_extracts_hidden_captcha_id(self):
         html = '<input type="hidden" name="captcha_id" value="abc_123">'
 
-        self.assertEqual(contact_smoke.extract_captcha_id(html), "abc_123")
+        self.assertEqual(
+            contact_smoke.extract_captcha_id(html),
+            "abc_123",
+        )
 
     def test_rejects_missing_hidden_captcha_id(self):
         html = '<img src="/captcha.png?id=fallback_123" alt="">'
@@ -47,7 +56,9 @@ class ContactSmokeTest(unittest.TestCase):
     def test_reads_captcha_solution_via_sftp(self):
         captcha_id = "abc_123"
         files = {
-            "a/var/tmp/captcha/abc_123.json": json.dumps({"solution_text": "ABC123"}),
+            "app-a/var/tmp/captcha/abc_123.json": json.dumps(
+                {"solution_text": "ABC123"}
+            ),
         }
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://preview-web"},
@@ -58,10 +69,26 @@ class ContactSmokeTest(unittest.TestCase):
         solution = smoke.read_captcha_solution(sftp, "a", captcha_id)
 
         self.assertEqual(solution, "ABC123")
-        self.assertEqual(sftp.read_paths, ["a/var/tmp/captcha/abc_123.json"])
+        self.assertEqual(
+            sftp.read_paths,
+            ["app-a/var/tmp/captcha/abc_123.json"],
+        )
+
+    def test_missing_captcha_state_names_expected_sftp_path(self):
+        smoke = contact_smoke.ContactSmoke(
+            {"APP_ROOT_URL": "http://preview-web"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+        )
+        sftp = FakeSftpClient({})
+
+        expected = "app-a/var/tmp/captcha"
+
+        with self.assertRaisesRegex(RuntimeError, expected):
+            smoke.read_captcha_solution(sftp, "a", "missing_123")
 
     def test_reads_app_slot_from_state(self):
-        sftp = FakeSftpClient({".deploy-state.ini": "[state]\napp=b\nvendor=a\n"})
+        files = {".deploy-state.ini": "[state]\napp=b\nvendor=a\n"}
+        sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://preview-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
@@ -70,13 +97,16 @@ class ContactSmokeTest(unittest.TestCase):
         self.assertEqual(smoke.read_active_app_slot(sftp), "b")
 
     def test_rejects_invalid_deploy_state(self):
-        sftp = FakeSftpClient({".deploy-state.ini": "[state]\napp=x\nvendor=a\n"})
+        files = {".deploy-state.ini": "[state]\napp=x\nvendor=a\n"}
+        sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://preview-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
 
-        with self.assertRaisesRegex(RuntimeError, "Aktiver App-Slot fehlt"):
+        expected = "Aktiver App-Slot fehlt"
+
+        with self.assertRaisesRegex(RuntimeError, expected):
             smoke.read_active_app_slot(sftp)
 
     def test_submits_form_to_deployed_contact_url(self):
@@ -86,7 +116,11 @@ class ContactSmokeTest(unittest.TestCase):
         )
         response = MagicMock(status_code=200)
 
-        with patch.object(contact_smoke.requests, "post", return_value=response) as post:
+        with patch.object(
+            contact_smoke.requests,
+            "post",
+            return_value=response,
+        ) as post:
             smoke.submit_contact_form("abc_123", "ABC123")
 
         url = post.call_args.args[0]
