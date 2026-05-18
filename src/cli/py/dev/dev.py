@@ -3,17 +3,17 @@ import logging
 import os
 import sys
 
+from cli.py.dev.process_supervisor import ProcessSupervisor
+from cli.py.dev.watchers import css
+from cli.py.dev.watchers.file_watcher import FileWatcher
+from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
+from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.util.run_helpers import run
+
 logger = logging.getLogger(__name__)
 
 ROOT_PATH = os.getcwd()
 DEV_PIPELINE = "dev"
-
-from cli.py.dev.process_supervisor import ProcessSupervisor
-from cli.py.pipeline_cfg import PipelineCfg
-from cli.py.util.run_helpers import run
-from cli.py.dev.watchers import css
-from cli.py.dev.watchers.file_watcher import FileWatcher
-from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
 
 
 def main():
@@ -42,8 +42,14 @@ def main():
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Dev-Server mit Watchern starten.")
-    parser.add_argument("--build", action="store_true", help="CV-Build vor dem Start ausfuehren.")
+    parser = argparse.ArgumentParser(
+        description="Dev-Server mit Watchern starten."
+    )
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="CV-Build vor dem Start ausfuehren.",
+    )
     return parser.parse_args()
 
 
@@ -78,7 +84,14 @@ def setup_watchers(supervisor, root_path):
 
 
 def start_php_server(root_path, supervisor):
-    cmd = ["php", "-S", "127.0.0.1:8080", "-t", "public"]
+    cmd = [
+        "php",
+        "-S",
+        "127.0.0.1:8080",
+        "-t",
+        "public",
+        "scripts/local/dev-index.php",
+    ]
     return supervisor.start("php-server", cmd, cwd=root_path)
 
 
@@ -91,7 +104,10 @@ def start_css_watch(supervisor):
 def resolve_yaml_inputs(root_path, cfg: PipelineCfg):
     yaml_path = cfg.get("LEBENSLAUF_YAML_PFAD")
     yaml_dir = cfg.get("LEBENSLAUF_DATEN_PFAD")
-    return resolve_path(root_path, yaml_path), resolve_path(root_path, yaml_dir)
+    return (
+        resolve_path(root_path, yaml_path),
+        resolve_path(root_path, yaml_dir),
+    )
 
 
 def resolve_path(root_path, value):
