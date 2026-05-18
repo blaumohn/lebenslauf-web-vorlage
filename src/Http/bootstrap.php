@@ -1,9 +1,18 @@
 <?php
 
-use App\Http\ConfigCompiled;
 use App\Http\AppBuilder;
+use App\Http\BootstrapRuntime;
+use App\Http\ConfigCompiled;
 
-$rootPath = dirname(__DIR__, 2);
+require __DIR__ . '/BootstrapRuntime.php';
+
+$rootPath = BootstrapRuntime::rootPath();
+$vendorDir = BootstrapRuntime::vendorPath($rootPath);
+
+require $vendorDir . '/autoload.php';
+BootstrapRuntime::registerAppHttpAutoload($rootPath . '/src/Http');
+BootstrapRuntime::registerShutdownTrap($rootPath);
+
 $config = new ConfigCompiled($rootPath);
-
-return AppBuilder::build($config);
+$app = AppBuilder::build($config);
+$app->run();
