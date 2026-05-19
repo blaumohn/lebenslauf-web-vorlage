@@ -30,7 +30,7 @@ final class TokenCommand extends BasePipelineCommand
         }
 
         $phases = $this->pipelineHasPhase('deploy') ? ['deploy'] : [];
-        $values = $phases !== [] ? $this->buildPhaseValues($phases, $output) : [];
+        $values = $phases !== [] ? $this->getValuesByPhase($phases, $output) : [];
         if ($values === null) {
             return Command::FAILURE;
         }
@@ -44,7 +44,7 @@ final class TokenCommand extends BasePipelineCommand
 
     private function buildRotateArgs(InputInterface $input): array
     {
-        $args = [];
+        $args = ['cv_token_rotation'];
         $profile = trim((string) $input->getArgument('profile'));
         if ($profile !== '') {
             $args[] = '--profile';

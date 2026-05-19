@@ -11,6 +11,18 @@ x-ci-env: &ci-env
   CI_WORK_BASE: /tmp
 
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
+x-local-repo-volume: &local-repo-volume ".:/repo"
+
+x-preview-env: &preview-env
+  <<: *ci-env
+  PIPELINE: preview
+  DEBUG: "$DEBUG"
+  PIPELINE_RUN_ID: "$PIPELINE_RUN_ID"
+
+x-preview-runner: &preview-runner
+  <<: *ci-base
+  environment:
+    <<: *preview-env
 
 services:
   ci-dev:
@@ -25,21 +37,16 @@ services:
     command: bash /repo/bin/ci
 
   ci-preview:
-    <<: *ci-base
+    <<: *preview-runner
     volumes:
       - *ci-repo-volume
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
-    environment:
-      <<: *ci-env
-      PIPELINE: preview
-      DEBUG: "${DEBUG:-0}"
-      PIPELINE_RUN_ID: "${PIPELINE_RUN_ID:-}"
     command:
       - bash
       - -c
       - |
-        exec bash /repo/bin/ci "$${CI_TEST_CASE:?CI_TEST_CASE fehlt}" <<'YAML'
+        exec bash /repo/bin/ci "$${CI_TEST_CASE}" <<'YAML'
         app:
           APP_ROOT_URL: "http://preview-web"
         mail:
@@ -66,6 +73,17 @@ services:
         condition: service_started
       mailpit:
         condition: service_started
+
+  deploy-local:
+    <<: *preview-runner
+    volumes:
+      - *local-repo-volume
+      - "composer_home_preview:/home/ci/.composer"
+      - "npm_cache_preview:/home/ci/.npm"
+    environment:
+      <<: *preview-env
+      LAST_DEPLOY_COMMIT: "$LAST_DEPLOY_COMMIT"
+    command: bash /repo/bin/cd
 
   mailpit:
     image: axllent/mailpit:latest

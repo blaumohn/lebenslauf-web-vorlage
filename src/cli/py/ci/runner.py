@@ -1,10 +1,8 @@
 import logging
-import os
-import subprocess
 import sys
-import uuid
 
-COMPOSE_FILE = "docker-compose.ci.yml"
+from cli.py.util.compose_runner import build_run_id, compose, run, runner_env
+
 CI_SERVICE_PREVIEW = "ci-preview"
 USAGE = "Usage: runner.py <pipeline>"
 logger = logging.getLogger(__name__)
@@ -37,11 +35,15 @@ def resolve_pipeline(args) -> str | None:
 
 
 def run_dev() -> int:
-    cmd = [
-        "docker", "compose", "-f", COMPOSE_FILE,
-        "up", "--remove-orphans", "--build", "--exit-code-from", "ci-dev", "ci-dev",
-    ]
-    return subprocess.run(cmd).returncode
+    return compose(
+        "up",
+        "--remove-orphans",
+        "--build",
+        "--exit-code-from",
+        "ci-dev",
+        "ci-dev",
+        check=False,
+    ).returncode
 
 
 def run_preview() -> int:
@@ -83,13 +85,11 @@ def run_tests() -> None:
 
 
 def preview_test_env(test_case: str) -> dict[str, str]:
-    env = os.environ.copy()
-    env["PIPELINE_RUN_ID"] = build_ci_run_id(test_case)
-    return env
+    return runner_env(f"ci-{test_case}")
 
 
 def build_ci_run_id(test_case: str) -> str:
-    return f"ci-{test_case}-{uuid.uuid4().hex}"
+    return build_run_id(f"ci-{test_case}")
 
 
 def dump_diagnostics() -> None:
@@ -100,19 +100,6 @@ def dump_diagnostics() -> None:
 
 def down_stack() -> None:
     compose("down", "--remove-orphans", check=False)
-
-
-def compose(*args, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
-    cmd = ["docker", "compose", "-f", COMPOSE_FILE, *args]
-    return run(cmd, check=check, label=label, env=env)
-
-
-def run(cmd, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
-    result = subprocess.run(cmd, env=env)
-    if check and result.returncode != 0:
-        context = label if label else " ".join(cmd)
-        raise RuntimeError(f"[ci] Fehlgeschlagen: {context}")
-    return result
 
 
 if __name__ == "__main__":

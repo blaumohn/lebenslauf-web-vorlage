@@ -1,0 +1,28 @@
+import os
+import subprocess
+import uuid
+
+COMPOSE_FILE = "docker-compose.ci.yml"
+
+
+def build_run_id(prefix: str) -> str:
+    return f"{prefix}-{uuid.uuid4().hex}"
+
+
+def runner_env(prefix: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env["PIPELINE_RUN_ID"] = build_run_id(prefix)
+    return env
+
+
+def compose(*args, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
+    cmd = ["docker", "compose", "-f", COMPOSE_FILE, *args]
+    return run(cmd, check=check, label=label, env=env)
+
+
+def run(cmd, check=True, label: str = "", env=None) -> subprocess.CompletedProcess:
+    result = subprocess.run(cmd, env=env)
+    if check and result.returncode != 0:
+        context = label if label else " ".join(cmd)
+        raise RuntimeError(f"[runner] Fehlgeschlagen: {context}")
+    return result
