@@ -4,7 +4,13 @@ import shlex
 import stat
 from pathlib import Path
 
-from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.sftp_lib import SftpClient, SftpOperationError
+
+ATTEMPT_STATUS_TEXT = {
+    "ok": "ok",
+    "unsupported": "nicht unterstützt",
+    "failed": "fehlgeschlagen",
+}
 
 
 class SftpShell(cmd.Cmd):
@@ -22,6 +28,10 @@ class SftpShell(cmd.Cmd):
     def onecmd(self, line: str) -> bool:
         try:
             return bool(super().onecmd(line))
+        except SftpOperationError as error:
+            self.write_attempts(error.attempts)
+            self.write_error(error)
+            return False
         except (OSError, ValueError) as error:
             self.write_error(error)
             return False
@@ -33,7 +43,10 @@ class SftpShell(cmd.Cmd):
     def do_ls(self, arg: str) -> None:
         """ls [pfad] - Remote-Verzeichnis auflisten."""
         path = self.resolve_path(arg or ".")
-        entries = sorted(self.client.listdir_attr(path), key=lambda entry: entry.filename)
+        entries = sorted(
+            self.client.listdir_attr(path),
+            key=lambda entry: entry.filename,
+        )
         for entry in entries:
             self.write_line(format_entry(entry))
 
@@ -71,15 +84,53 @@ class SftpShell(cmd.Cmd):
 
     def do_mkdir(self, arg: str) -> None:
         """mkdir <pfad> - Remote-Verzeichnis anlegen."""
-        self.client.mkdir_p(self.required_path(arg))
+        self.write_result(self.client.mkdir(self.required_path(arg)))
+
+    def do_mkdirp(self, arg: str) -> None:
+        """mkdirp <pfad> - Remote-Verzeichnis rekursiv anlegen."""
+        self.client.ensure_dir(self.required_path(arg))
+        self.write_line("sftp.mkdir: rekursiv angelegt oder vorhanden")
 
     def do_rm(self, arg: str) -> None:
         """rm <pfad> - Remote-Datei entfernen."""
         self.client.remove_file(self.required_path(arg))
+        self.write_line("sftp.remove: ok")
 
     def do_rmdir(self, arg: str) -> None:
-        """rmdir <pfad> - Remote-Verzeichnis rekursiv entfernen."""
-        self.client.remove_dir(self.required_path(arg))
+        """rmdir <pfad> - Leeres Remote-Verzeichnis entfernen."""
+        self.write_result(self.client.rmdir(self.required_path(arg)))
+
+    def do_clear(self, arg: str) -> None:
+        """clear <pfad> - Remote-Verzeichnis leeren."""
+        result = self.client.clear_dir(self.required_path(arg))
+        self.write_result(result)
+        self.write_line(f"clear: {result.value} Einträge entfernt")
+
+    def do_rename(self, arg: str) -> None:
+        """rename <alt> <neu> - Remote-Pfad umbenennen."""
+        source, target = self.remote_remote_args(arg)
+        self.write_result(self.client.rename(source, target))
+
+    def do_stat(self, arg: str) -> None:
+        """stat <pfad> - Remote-Metadaten anzeigen."""
+        path = self.required_path(arg)
+        self.write_lines(format_stat(path, self.client.stat(path)))
+
+    def do_df(self, arg: str) -> None:
+        """df [pfad] - Dateisysteminfo anzeigen, falls unterstützt."""
+        path = self.resolve_path(arg or ".")
+        result = self.client.disk_usage(path)
+        self.write_result(result)
+        if result.value is not None:
+            self.write_lines(format_df(result.value))
+
+    def do_status(self, _arg: str) -> None:
+        """status - Ziel und Verbindungszustand anzeigen."""
+        self.write_lines(format_status(self.client, self.cwd))
+
+    def do_version(self, _arg: str) -> None:
+        """version - SSH-/SFTP-Versionsinformationen anzeigen."""
+        self.write_lines(format_version(self.client))
 
     def do_exit(self, _arg: str) -> bool:
         """REPL beenden."""
@@ -106,11 +157,28 @@ class SftpShell(cmd.Cmd):
             raise ValueError("erwartet: <lokal> [remote]")
         return parts[0], optional_arg(parts, 1)
 
+    def remote_remote_args(self, arg: str) -> tuple[str, str]:
+        parts = split_args(arg)
+        if len(parts) != 2:
+            raise ValueError("erwartet: <alt> <neu>")
+        return self.resolve_path(parts[0]), self.resolve_path(parts[1])
+
     def resolve_path(self, path: str) -> str:
         return normalize_path(path, self.cwd)
 
     def write_line(self, text: str) -> None:
         print(text, file=self.stdout)
+
+    def write_lines(self, lines: list[str]) -> None:
+        for line in lines:
+            self.write_line(line)
+
+    def write_result(self, result) -> None:
+        self.write_attempts(result.attempts)
+
+    def write_attempts(self, attempts) -> None:
+        lines = [format_attempt(attempt) for attempt in attempts]
+        self.write_lines(lines)
 
     def write_error(self, error: Exception) -> None:
         print(f"Fehler: {error}", file=self.stdout)
@@ -125,7 +193,10 @@ def optional_arg(parts: list[str], index: int) -> str | None:
 
 
 def normalize_path(path: str, cwd: str) -> str:
-    raw_path = path if path.startswith("/") else posixpath.join("/", cwd, path)
+    if path.startswith("/"):
+        raw_path = path
+    else:
+        raw_path = posixpath.join("/", cwd, path)
     normalized = posixpath.normpath(raw_path)
     if normalized == "/":
         return ""
@@ -139,3 +210,75 @@ def display_path(path: str) -> str:
 def format_entry(entry) -> str:
     suffix = "/" if stat.S_ISDIR(entry.st_mode) else ""
     return f"{entry.filename}{suffix}"
+
+
+def format_attempt(attempt) -> str:
+    status = ATTEMPT_STATUS_TEXT.get(attempt.status, attempt.status)
+    line = f"{attempt.operation}: {status}"
+    if attempt.detail:
+        return f"{line} ({attempt.detail})"
+    return line
+
+
+def format_stat(path: str, entry) -> list[str]:
+    return [
+        f"path: {display_path(path)}",
+        f"size: {entry.st_size}",
+        f"mode: {oct(entry.st_mode)}",
+        f"uid: {entry.st_uid}",
+        f"gid: {entry.st_gid}",
+        f"mtime: {entry.st_mtime}",
+        f"atime: {entry.st_atime}",
+    ]
+
+
+def format_df(info) -> list[str]:
+    fields = [
+        "f_bsize",
+        "f_frsize",
+        "f_blocks",
+        "f_bfree",
+        "f_bavail",
+        "f_files",
+        "f_ffree",
+        "f_favail",
+    ]
+    return [f"{field}: {getattr(info, field)}" for field in fields]
+
+
+def format_status(client: SftpClient, cwd: str) -> list[str]:
+    cfg = client.cfg
+    transport = client._ssh.get_transport()
+    lines = [
+        f"host: {cfg['SFTP_HOST']}:{cfg['SFTP_PORT']}",
+        f"user: {cfg['SFTP_USER']}",
+        f"root: {cfg['SFTP_SERVER_DIR']}",
+        f"cwd: {display_path(cwd)}",
+    ]
+    lines.extend(format_transport_status(transport))
+    return lines
+
+
+def format_version(client: SftpClient) -> list[str]:
+    transport = client._ssh.get_transport()
+    return format_transport_status(transport)
+
+
+def format_transport_status(transport) -> list[str]:
+    if transport is None:
+        return ["transport: nicht vorhanden"]
+    return [
+        f"transport: {transport_state(transport)}",
+        f"remote_version: {optional_attr(transport, 'remote_version')}",
+        f"local_version: {optional_attr(transport, 'local_version')}",
+        f"local_cipher: {optional_attr(transport, 'local_cipher')}",
+        f"remote_cipher: {optional_attr(transport, 'remote_cipher')}",
+    ]
+
+
+def transport_state(transport) -> str:
+    return "aktiv" if transport.is_active() else "inaktiv"
+
+
+def optional_attr(obj, name: str) -> str:
+    return str(getattr(obj, name, "unbekannt"))
