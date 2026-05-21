@@ -49,6 +49,7 @@ def run_dev() -> int:
 def run_preview() -> int:
     try:
         build_image()
+        check_checksum_determinism()
         reset_preview_deploy()
         start_helpers()
         run_tests()
@@ -59,6 +60,15 @@ def run_preview() -> int:
         return 1
     finally:
         down_stack()
+
+
+def check_checksum_determinism() -> None:
+    compose(
+        "run", "--rm", "--no-deps",
+        CI_SERVICE_PREVIEW,
+        "python3", "/repo/scripts/check-vendor-determinism.py",
+        label="Checksum-Determinismus",
+    )
 
 
 def build_image() -> None:
@@ -77,11 +87,13 @@ def start_helpers() -> None:
 def run_tests() -> None:
     for test_case in PREVIEW_TEST_CASES:
         env = preview_test_env(test_case)
+        print(f"[runner] Testfall: {test_case}", flush=True)
         compose(
             "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}", CI_SERVICE_PREVIEW,
             env=env,
             label=f"Testfall: {test_case}",
         )
+        print(f"[runner] Testfall OK: {test_case}", flush=True)
 
 
 def preview_test_env(test_case: str) -> dict[str, str]:
@@ -93,9 +105,11 @@ def build_ci_run_id(test_case: str) -> str:
 
 
 def dump_diagnostics() -> None:
-    for service in ("preview-web", "ci-preview", "sftp-server", "mailpit"):
-        compose("logs", "--no-color", "--tail=200", service, check=False, label=f"Logs: {service}")
-    compose("ps", check=False, label="Stack-Status")
+    for service in ("preview-web", "sftp-server", "mailpit"):
+        print(f"\n[runner] === Logs: {service} ===", flush=True)
+        compose("logs", "--no-color", "--tail=50", service, check=False)
+    print("\n[runner] === Stack-Status ===", flush=True)
+    compose("ps", check=False)
 
 
 def down_stack() -> None:

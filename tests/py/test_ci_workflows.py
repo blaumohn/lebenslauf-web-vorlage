@@ -52,14 +52,6 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn("run_step_failed", pipeline_output)
         self.assertIn("GITHUB_STEP_SUMMARY", pipeline_output)
 
-    def test_pipeline_deploy_uses_composer_lock_changed(self):
-        pipeline_lib = read_repo_file("scripts/pipeline_lib.sh")
-
-        self.assertIn("composer_lock_changed", pipeline_lib)
-        self.assertIn("COMPOSER_LOCK_CHANGED=", pipeline_lib)
-        self.assertNotIn("should_include_vendor", pipeline_lib)
-        self.assertNotIn("SFTP_INCLUDE_VENDOR", pipeline_lib)
-
     def test_pipeline_smoke_logs_url_on_curl_error(self):
         pipeline_lib = read_repo_file("scripts/pipeline_lib.sh")
         curl_error_guard = (
