@@ -48,6 +48,7 @@ class FakeClient:
     def __init__(self):
         self.texts = {}
         self.files = []
+        self.removed_dirs = []
         self._file_contents = {}
         self._file_exists_set = set()
 
@@ -74,6 +75,9 @@ class FakeClient:
 
     def ensure_dir(self, _path):
         pass
+
+    def remove_dir(self, path):
+        self.removed_dirs.append(path)
 
     def mkdir_p(self, _path):
         return False
@@ -331,6 +335,45 @@ class UploadSentinelTest(unittest.TestCase):
                 with self.assertRaises(OSError):
                     deploy.upload_app_tree("app-b")
         self.assertNotIn("app-b/.deploy-run", deploy.client.texts)
+
+
+class PrepareSlotTest(unittest.TestCase):
+    def _make_deploy(self, module, staging_dir):
+        deploy = module.SftpDeploy({}, "run-1", logger=lambda _: None)
+        deploy.client = FakeClient()
+        deploy.STAGING_DIR = staging_dir
+        return deploy
+
+    def test_app_slot_removed_before_upload(self):
+        module = load_sftp_deploy_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy = self._make_deploy(module, Path(tmp))
+            deploy.upload_app_tree("app-b")
+        self.assertIn("app-b", deploy.client.removed_dirs)
+
+    def test_vendor_slot_removed_before_upload(self):
+        module = load_sftp_deploy_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            vendor_dir = Path(tmp) / "vendor"
+            vendor_dir.mkdir()
+            deploy = self._make_deploy(module, Path(tmp))
+            with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
+                deploy.upload_vendor_dir("vendor-b")
+        self.assertIn("vendor-b", deploy.client.removed_dirs)
+
+    def test_vendor_slot_not_removed_when_reused(self):
+        module = load_sftp_deploy_module()
+        deploy = make_stubbed_deploy(module)
+        client = FakeClient()
+        client.set_file("vendor-a/.meta", VENDOR_META)
+        deploy.client = client
+        vendor_uploads = []
+        deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
+        with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
+            deploy.deploy_swap(SlotState("a", "a"))
+        self.assertEqual(vendor_uploads, [])
+        self.assertNotIn("vendor-a", client.removed_dirs)
+        self.assertNotIn("vendor-b", client.removed_dirs)
 
 
 class SftpDeployPathTest(unittest.TestCase):

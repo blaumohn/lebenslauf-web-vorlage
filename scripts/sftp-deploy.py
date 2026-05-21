@@ -187,7 +187,7 @@ class SftpDeploy:
         stats = new_stats()
         started_at = time.monotonic()
         self.log(f"Upload App-Slot: {app_dir}")
-        self.client.ensure_dir(app_dir)
+        self._prepare_slot(app_dir)
         for item in sorted(self.STAGING_DIR.iterdir()):
             self.upload_app_item(item, app_dir, stats)
         self.client.put_text(f"{app_dir}/.deploy-run", self.run_id)
@@ -215,7 +215,7 @@ class SftpDeploy:
         stats = new_stats()
         started_at = time.monotonic()
         self.log(f"Upload Vendor: {vendor_dir}")
-        self.client.ensure_dir(vendor_dir)
+        self._prepare_slot(vendor_dir)
         for item in sorted((self.STAGING_DIR / "vendor").iterdir()):
             rel_remote = vendor_dir + "/" + item.name
             if item.is_dir():
@@ -232,6 +232,10 @@ class SftpDeploy:
             f"Vendor hochgeladen: {stats['files']} Dateien, "
             f"{stats['bytes']} Bytes, {duration:.2f}s"
         )
+
+    def _prepare_slot(self, slot_dir):
+        self.client.remove_dir(slot_dir)
+        self.client.ensure_dir(slot_dir)
 
     def migrate_tokens(self, active_dir, inactive_dir):
         src = f"{active_dir}/var/state/tokens"
