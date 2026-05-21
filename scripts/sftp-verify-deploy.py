@@ -2,6 +2,7 @@ import sys
 
 from cli.py.deploy.sftp_deploy_state import DeployState
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.vendor_sentinel import VendorSentinel
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.util.envvar import env
 
@@ -12,7 +13,10 @@ def main():
     with SftpClient(cfg) as client:
         state = DeployState.read(client)
         if state is None:
-            print("[verify] Kein Deploy-State gefunden", file=sys.stderr)
+            print(
+                "[verify] Kein Deploy-State gefunden",
+                file=sys.stderr,
+            )
             sys.exit(1)
         verify_run_id(state, run_id)
         verify_checksum(client, state)
@@ -30,11 +34,16 @@ def verify_run_id(state, expected):
 
 
 def verify_checksum(client, state):
-    meta = client.read_file(f"{state.vendor_dir}/.meta").strip()
-    if meta != state.vendor_checksum:
+    content = client.read_file(f"{state.vendor_dir}/.meta")
+    sentinel = VendorSentinel.from_text(content)
+    if sentinel.vendor_checksum != state.vendor_checksum:
+        message = (
+            f".meta={sentinel.vendor_checksum!r}, "
+            f"state={state.vendor_checksum!r}"
+        )
         print(
             f"[verify] Vendor-Checksum stimmt nicht: "
-            f".meta={meta!r}, state={state.vendor_checksum!r}",
+            f"{message}",
             file=sys.stderr,
         )
         sys.exit(1)

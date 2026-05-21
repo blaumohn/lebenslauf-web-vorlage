@@ -13,8 +13,6 @@ require_env_nonempty PIPELINE CI_WORK_BASE
 
 [ "$PIPELINE" != dev ] && require_env_nonempty PIPELINE_RUN_ID
 
-COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
-
 main() {
   local test_case="${1:-}"
   local vendor_slot_before=""
@@ -31,7 +29,7 @@ main() {
     DEPLOY_DIR="var/deploy"
   fi
 
-  run_step "Abhängigkeiten installieren" composer install "${COMPOSER_INSTALL_ARGS[@]}"
+  run_step "Abhängigkeiten installieren" composer install:ci
 
   run_pipeline
   vendor_slot_before="${VENDOR_SLOT_BEFORE:-}"
@@ -99,11 +97,21 @@ setup_push_deploy_test() {
 setup_composer_lock_test() {
   local last_deploy_commit
   last_deploy_commit="$(git rev-parse HEAD)"
-  printf '\n' >> composer.lock
+  mutate_composer_lock_for_vendor_test
   git add composer.lock
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
     commit -m "test: diff-deploy composer-lock-changed ci-test" >&2
   printf '%s\n' "$last_deploy_commit"
+}
+
+mutate_composer_lock_for_vendor_test() {
+  php -r '
+$path = "composer.lock";
+$data = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+$data["_ci_vendor_checksum_probe"] = "1";
+$json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+file_put_contents($path, $json . PHP_EOL);
+'
 }
 
 read_vendor_slot() {

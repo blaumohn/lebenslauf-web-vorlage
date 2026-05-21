@@ -84,17 +84,18 @@ class CiWorkflowTest(unittest.TestCase):
     def test_entrypoints_wrap_dependency_install(self):
         ci_entrypoint = read_repo_file("bin/ci")
         cd_entrypoint = read_repo_file("bin/cd")
-        install_step = (
-            'run_step "Abhängigkeiten installieren" '
-            "composer install"
-        )
+        ci_install_step = 'run_step "Abhängigkeiten installieren" composer install:ci'
+        cd_install_step = 'run_step "Abhängigkeiten installieren" composer install:deploy'
+        composer_json = read_repo_file("composer.json")
         no_deploy = (
             "Kein Deploy: keine Änderungen seit "
             "LAST_DEPLOY_COMMIT="
         )
 
-        self.assertIn(install_step, ci_entrypoint)
-        self.assertIn(install_step, cd_entrypoint)
+        self.assertIn(ci_install_step, ci_entrypoint)
+        self.assertIn(cd_install_step, cd_entrypoint)
+        self.assertIn('"install:ci": "composer install --optimize-autoloader --no-interaction"', composer_json)
+        self.assertIn('"install:deploy": "@install:ci --no-dev"', composer_json)
         self.assertIn(no_deploy, cd_entrypoint)
 
     def test_cd_skips_deploy_if_no_changes(self):

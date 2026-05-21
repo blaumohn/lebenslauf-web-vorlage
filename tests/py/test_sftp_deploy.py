@@ -16,8 +16,15 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 
 
-ACTIVE_STATE_INI = "[state]\napp = a\nvendor = a\n\n"
 CHECKSUM = "abc123def456abcd"
+ACTIVE_STATE_INI = (
+    "[state]\n"
+    "app = a\n"
+    "vendor = a\n"
+    "run_id = run-prev\n"
+    f"vendor_checksum = {CHECKSUM}\n\n"
+)
+VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 STATE_FILE = ".deploy-state.ini"
 
 
@@ -158,7 +165,7 @@ def make_scenario_deploy(module, state_ini=""):
     client = FakeClient()
     if state_ini:
         client.set_file(STATE_FILE, state_ini)
-        client.set_file("vendor-a/.meta", CHECKSUM)
+        client.set_file("vendor-a/.meta", VENDOR_META)
         client.set_file("app-a/.deploy-run", "run-prev")
     deploy.client = client
     deploy.upload_app_tree = lambda _: None
@@ -178,7 +185,7 @@ class DispatchSwitchTest(unittest.TestCase):
     def _make_deploy(self, module):
         deploy = module.SftpDeploy({}, "run-42", logger=lambda _: None)
         client = FakeClient()
-        client.set_file("vendor-a/.meta", CHECKSUM)
+        client.set_file("vendor-a/.meta", VENDOR_META)
         client.set_file("app-a/.deploy-run", "run-prev")
         deploy.client = client
         return deploy
@@ -227,7 +234,8 @@ class SystemInvalidReasonTest(unittest.TestCase):
     def _make_deploy(self, module, vendor_checksum_ok, app_sentinel_ok):
         deploy = module.SftpDeploy({}, "run-1", logger=lambda _: None)
         client = FakeClient()
-        stored = CHECKSUM if vendor_checksum_ok else "wrong_checksum_000"
+        checksum = CHECKSUM if vendor_checksum_ok else "wrong_checksum_000"
+        stored = f"[vendor]\nchecksum = {checksum}\n\n"
         client.set_file("vendor-a/.meta", stored)
         if app_sentinel_ok:
             client.set_file("app-a/.deploy-run", "run-prev")
@@ -280,7 +288,7 @@ class UploadSentinelTest(unittest.TestCase):
                 deploy.upload_vendor_dir("vendor-b")
         self.assertEqual(
             deploy.client.texts.get("vendor-b/.meta"),
-            CHECKSUM,
+            VENDOR_META,
         )
 
     def test_vendor_sentinel_absent_on_failure(self):
@@ -338,7 +346,7 @@ class SftpDeployPathTest(unittest.TestCase):
     def test_deploy_swap_uploads_vendor_when_sentinel_mismatch(self):
         module = load_sftp_deploy_module()
         deploy = make_stubbed_deploy(module)
-        deploy.client.set_file("vendor-a/.meta", "old_checksum")
+        deploy.client.set_file("vendor-a/.meta", "[vendor]\nchecksum = old_checksum\n\n")
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
@@ -348,7 +356,7 @@ class SftpDeployPathTest(unittest.TestCase):
     def test_deploy_swap_skips_vendor_when_sentinel_matches(self):
         module = load_sftp_deploy_module()
         deploy = make_stubbed_deploy(module)
-        deploy.client.set_file("vendor-a/.meta", CHECKSUM)
+        deploy.client.set_file("vendor-a/.meta", VENDOR_META)
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):

@@ -49,7 +49,6 @@ def run_dev() -> int:
 def run_preview() -> int:
     try:
         build_image()
-        check_checksum_determinism()
         reset_preview_deploy()
         start_helpers()
         run_tests()
@@ -60,15 +59,6 @@ def run_preview() -> int:
         return 1
     finally:
         down_stack()
-
-
-def check_checksum_determinism() -> None:
-    compose(
-        "run", "--rm", "--no-deps",
-        CI_SERVICE_PREVIEW,
-        "python3", "/repo/scripts/check-vendor-determinism.py",
-        label="Checksum-Determinismus",
-    )
 
 
 def build_image() -> None:

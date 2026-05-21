@@ -22,12 +22,19 @@ from cli.py.deploy.sftp_deploy_templates import resource_path
 
 class SftpDeployStateTest(unittest.TestCase):
     def test_deploy_state_ini_roundtrip(self):
-        state = SlotState("b", "a")
+        state = SlotState("b", "a", "run-1", "checksum-1")
         content = DeployState.format(state)
         lines = content.splitlines()
 
         self.assertEqual(DeployState.parse(content), state)
-        expected = ["[state]", "app = b", "vendor = a", ""]
+        expected = [
+            "[state]",
+            "app = b",
+            "vendor = a",
+            "run_id = run-1",
+            "vendor_checksum = checksum-1",
+            "",
+        ]
         self.assertEqual(lines, expected)
 
     def test_invalid_deploy_state_returns_none(self):
@@ -36,10 +43,18 @@ class SftpDeployStateTest(unittest.TestCase):
         self.assertIsNone(DeployState.parse(content))
         self.assertIsNone(DeployState.parse("[]"))
         self.assertIsNone(DeployState.parse(""))
+        self.assertIsNone(DeployState.parse("[state]\napp=a\nvendor=a\nrun_id=1\n"))
+        self.assertIsNone(DeployState.parse("[state]\napp=a\nvendor=a\nvendor_checksum=1\n"))
 
     def test_deploy_state_format_rejects_missing_state(self):
         with self.assertRaises(ValueError):
             DeployState.format(None)
+
+    def test_deploy_state_format_rejects_incomplete_state(self):
+        with self.assertRaises(ValueError):
+            DeployState.format(SlotState("a", "a"))
+        with self.assertRaises(ValueError):
+            DeployState.format(SlotState("a", "a", "run-1"))
 
     def test_deployment_plan_swaps_tree_and_optional_vendor(self):
         active = SlotState("a", "b")

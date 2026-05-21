@@ -1,17 +1,11 @@
 import configparser
-import io
 from dataclasses import dataclass
+
+from cli.py.util.structured_text import IniModel
 
 
 STATE_FILE = ".deploy-state.ini"
 VALID_SLOTS = ("a", "b")
-
-
-class IniConfig(configparser.ConfigParser):
-    def to_string(self):
-        out = io.StringIO()
-        self.write(out)
-        return out.getvalue()
 
 
 @dataclass(frozen=True)
@@ -59,6 +53,23 @@ class DeploymentPlan:
         return cls(active, SlotState(app, vendor))
 
 
+@dataclass(frozen=True)
+class DeployStateDocument(IniModel):
+    schema = {
+        "state": {
+            "app": str,
+            "vendor": str,
+            "run_id": str,
+            "vendor_checksum": str,
+        },
+    }
+
+    state_app: str
+    state_vendor: str
+    state_run_id: str
+    state_vendor_checksum: str
+
+
 class DeployState:
     @staticmethod
     def read(client):
@@ -70,31 +81,30 @@ class DeployState:
 
     @staticmethod
     def parse(content):
-        parser = configparser.ConfigParser()
         try:
-            parser.read_string(content)
-        except configparser.Error:
+            document = DeployStateDocument.from_text(content)
+        except (configparser.Error, KeyError):
             return None
-        if not parser.has_section("state"):
-            return None
-        app = parser["state"].get("app", "")
-        vendor = parser["state"].get("vendor", "")
-        run_id = parser["state"].get("run_id", "")
-        vendor_checksum = parser["state"].get("vendor_checksum", "")
-        return SlotState.from_values(app, vendor, run_id, vendor_checksum)
+        return SlotState.from_values(
+            document.state_app,
+            document.state_vendor,
+            document.state_run_id,
+            document.state_vendor_checksum,
+        )
 
     @staticmethod
     def format(state):
         if state is None:
             raise ValueError("Deploy-State fehlt.")
-        config = IniConfig()
-        data = {"app": state.app, "vendor": state.vendor}
-        if state.run_id:
-            data["run_id"] = state.run_id
-        if state.vendor_checksum:
-            data["vendor_checksum"] = state.vendor_checksum
-        config["state"] = data
-        return config.to_string()
+        if state.run_id == "" or state.vendor_checksum == "":
+            raise ValueError("Deploy-State unvollständig.")
+        return DeployStateDocument(
+            state.app,
+            state.vendor,
+            state.run_id,
+            state.vendor_checksum,
+        ).to_text()
+
 
 def other_slot(slot):
     return "b" if slot == "a" else "a"

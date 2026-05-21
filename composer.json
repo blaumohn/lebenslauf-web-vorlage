@@ -82,6 +82,8 @@
     ],
     "test:php": "phpunit",
     "test:python": ".venv/bin/python -m pytest tests/py",
+    "install:ci": "composer install --optimize-autoloader --no-interaction",
+    "install:deploy": "@install:ci --no-dev",
     "css:build": "npm run build:css",
     "build": "php bin/cli build dev",
     "build:dev": "php bin/cli build dev",

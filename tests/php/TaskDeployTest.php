@@ -152,7 +152,7 @@ final class TaskDeployTest extends TestCase
         $result = $this->buildDeploySwitchHandler()->handle($task, $this->dir);
 
         $this->assertTrue($result->success);
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=sentinel\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=checksum-1\n", file_get_contents($this->dir . '/.deploy-state.ini'));
     }
 
     public function testDeploySwitchTaskHandlerRejectsLegacyAppMarkerPath(): void
@@ -218,7 +218,7 @@ final class TaskDeployTest extends TestCase
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
         $this->assertFileExists($this->dir . '/.deploy-state.ini');
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=sentinel\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=checksum-1\n", file_get_contents($this->dir . '/.deploy-state.ini'));
     }
 
     public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void
@@ -319,7 +319,7 @@ final class TaskDeployTest extends TestCase
     {
         $dir = $this->dir . "/vendor-{$vendor}";
         mkdir($dir, 0775, true);
-        file_put_contents($dir . '/.meta', 'sentinel');
+        file_put_contents($dir . '/.meta', "[vendor]\nchecksum=checksum-1\n");
     }
 
     private function writeAppMarker(string $app, string $runId): void

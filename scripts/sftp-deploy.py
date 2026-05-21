@@ -1,15 +1,16 @@
-import difflib
-import hashlib
-import re
+import configparser
 import stat
 import time
 from pathlib import Path
 
-import requests.exceptions
-
-from cli.py.deploy.sftp_deploy_state import DeploymentPlan, DeployState, SlotState
+from cli.py.deploy.sftp_deploy_state import (
+    DeploymentPlan,
+    DeployState,
+    SlotState,
+)
 from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.vendor_sentinel import ComposerInputChecksum, VendorSentinel
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
@@ -27,25 +28,8 @@ def format_target(cfg):
     )
 
 
-_DIFF_MAX_LINES = 50
-
-
-def _normalize_composer_text(text: str) -> str:
-    text = re.sub(
-        r"(Composer(?:Autoloader|Static)Init)[0-9a-f]{32}",
-        r"\1***",
-        text,
-    )
-    text = re.sub(r"'[0-9a-f]{40}'", "'***'", text)
-    return text
-
-
 def vendor_checksum() -> str:
-    h = hashlib.sha256()
-    for p in sorted(Path("vendor/composer").iterdir()):
-        if p.is_file():
-            h.update(_normalize_composer_text(p.read_text(encoding="utf-8")).encode())
-    return h.hexdigest()[:16]
+    return ComposerInputChecksum.from_repo()
 
 
 def main():
@@ -100,7 +84,7 @@ class SftpDeploy:
             f"Slot: {active.app_dir}→{target.app_dir}, "
             f"Vendor: {active.vendor_dir}→{target.vendor_dir}"
         )
-        self._log_vendor_decision(target, active)
+        self._log_vendor_decision(plan)
         self.upload_app_tree(target.app_dir)
         if include_vendor:
             self.upload_vendor_dir(target.vendor_dir)
@@ -111,62 +95,39 @@ class SftpDeploy:
             f"Vendor {target.vendor_dir}"
         )
 
-    def _log_vendor_decision(self, target, active):
-        if target.vendor != active.vendor:
-            self.log(f"Vendor neu hochladen: {target.vendor_dir}")
+    def _log_vendor_decision(self, plan):
+        if plan.target.vendor != plan.active.vendor:
+            self.log(f"Vendor neu hochladen: {plan.target.vendor_dir}")
         else:
-            self.log(f"Vendor unverändert: {target.vendor_dir}")
+            self.log(f"Vendor unverändert: {plan.target.vendor_dir}")
 
     def _include_vendor(self, active) -> bool:
         stored = self._read_vendor_checksum(active)
         computed = vendor_checksum()
+        if stored is None:
+            self.log("Vendor-Sentinel fehlt oder ist ungültig")
+            return True
         if stored != computed:
             self.log(
-                f"Vendor-Checksum abweichend: "
+                f"Composer-Checksum abweichend: "
                 f"gespeichert={stored!r}, berechnet={computed!r}"
             )
-            self._log_vendor_diff(active)
+            self._log_vendor_inputs()
             return True
         return False
 
-    def _log_vendor_diff(self, active) -> None:
-        remote_prefix = f"{active.vendor_dir}/composer"
-        local_files = {
-            p.name: p
-            for p in sorted(Path("vendor/composer").iterdir())
-            if p.is_file()
-        }
-        total_lines = 0
-        for name, local_path in sorted(local_files.items()):
-            if total_lines >= _DIFF_MAX_LINES:
-                self.log(f"  [...diff abgeschnitten bei {_DIFF_MAX_LINES} Zeilen]")
-                return
-            try:
-                remote_text = self.client.read_file(f"{remote_prefix}/{name}")
-            except OSError:
-                self.log(f"  neu: vendor/composer/{name}")
-                total_lines += 1
-                continue
-            local_text = local_path.read_text(encoding="utf-8")
-            remote_norm = _normalize_composer_text(remote_text)
-            local_norm = _normalize_composer_text(local_text)
-            if remote_norm == local_norm:
-                continue
-            for line in difflib.unified_diff(
-                remote_norm.splitlines(),
-                local_norm.splitlines(),
-                fromfile=f"deployed/{name}",
-                tofile=f"current/{name}",
-                lineterm="",
-            ):
-                self.log(f"  {line}")
-                total_lines += 1
-                if total_lines >= _DIFF_MAX_LINES:
-                    self.log(f"  [...diff abgeschnitten bei {_DIFF_MAX_LINES} Zeilen]")
-                    return
+    def _log_vendor_inputs(self) -> None:
+        for name in ComposerInputChecksum.FILENAMES:
+            self.log(f"  Eingang: {name}")
 
-    def _read_vendor_checksum(self, active) -> str:
-        return self.client.read_file(f"{active.vendor_dir}/.meta").strip()
+    def _read_vendor_checksum(self, active) -> str | None:
+        try:
+            path = f"{active.vendor_dir}/.meta"
+            content = self.client.read_file(path)
+            sentinel = VendorSentinel.from_text(content)
+            return sentinel.vendor_checksum
+        except (OSError, KeyError, configparser.Error):
+            return None
 
     def dispatch_switch(self, target, active):
         reason = self._system_invalid_reason(active)
@@ -178,14 +139,17 @@ class SftpDeploy:
 
     def _system_invalid_reason(self, active):
         stored = self._read_vendor_checksum(active)
-        if stored != vendor_checksum():
+        if stored is None or stored != vendor_checksum():
             return (
                 "Warnung: Vendor-Sentinel stimmt nicht überein — "
                 "vorheriger Deploy möglicherweise unvollständig, "
                 "Switch direkt via SFTP"
             )
         if not self.client.file_exists(f"{active.app_dir}/.deploy-run"):
-            return "Warnung: App-Sentinel fehlt — Switch direkt via SFTP"
+            return (
+                "Warnung: App-Sentinel fehlt — "
+                "Switch direkt via SFTP"
+            )
         if not TaskDispatch(self.cfg, logger=self.log).http_reachable():
             return "App nicht erreichbar — Switch direkt via SFTP"
         return None
@@ -258,7 +222,8 @@ class SftpDeploy:
                 self.upload_dir(item, rel_remote, stats)
             else:
                 self.upload_file(item, rel_remote, stats)
-        self.client.put_text(f"{vendor_dir}/.meta", vendor_checksum())
+        sentinel = VendorSentinel(vendor_checksum())
+        self.client.put_text(f"{vendor_dir}/.meta", sentinel.to_text())
         self.log_upload_vendor(stats, started_at)
 
     def log_upload_vendor(self, stats, started_at):
@@ -295,7 +260,12 @@ class SftpDeploy:
 
     def upload_deploy_state(self, state: SlotState) -> None:
         checksum = vendor_checksum()
-        record = SlotState(state.app, state.vendor, self.run_id, checksum)
+        record = SlotState(
+            state.app,
+            state.vendor,
+            self.run_id,
+            checksum,
+        )
         DeployState.write(self.client, record)
         self.log(
             f"Deploy-State hochgeladen: Slot {state.app_dir}, "

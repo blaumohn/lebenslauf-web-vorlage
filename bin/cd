@@ -12,8 +12,6 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 require_env_nonempty PIPELINE
 require_env_set LAST_DEPLOY_COMMIT
 
-COMPOSER_INSTALL_ARGS=(--optimize-autoloader --no-interaction)
-
 main() {
   cd "$REPO_DIR"
   export PATH="$REPO_DIR/bin:$PATH"
@@ -29,7 +27,7 @@ main() {
     exit 0
   fi
 
-  run_step "Abhängigkeiten installieren" composer install "${COMPOSER_INSTALL_ARGS[@]}" --no-dev
+  run_step "Abhängigkeiten installieren" composer install:deploy
 
   DEPLOY_DIR="var/deploy"
   run_pipeline

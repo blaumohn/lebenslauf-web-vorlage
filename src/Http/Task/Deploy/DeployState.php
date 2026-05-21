@@ -34,7 +34,16 @@ final class DeployState
     private static function readVendorMeta(string $entryPath, string $vendorDir): string
     {
         $path = Path::join($entryPath, $vendorDir, '.meta');
-        return is_file($path) ? trim((string) file_get_contents($path)) : '';
+        if (!is_file($path)) {
+            throw new \RuntimeException("Vendor-Sentinel fehlt: {$path}");
+        }
+
+        $data = parse_ini_file($path, true);
+        $checksum = $data['vendor']['checksum'] ?? null;
+        if (!is_string($checksum) || trim($checksum) === '') {
+            throw new \RuntimeException("Vendor-Sentinel ungültig: {$path}");
+        }
+        return trim($checksum);
     }
 
     public function deployId(): string
