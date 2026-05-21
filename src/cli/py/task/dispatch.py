@@ -7,9 +7,13 @@ import requests.exceptions
 from cli.py.task.task import Task
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.util.poll import poll_until
 
 TASK_DIR = "var/tasks"
+RESULT_DIR = "var/tasks/results"
 TASK_TRIGGER_PATH = "/tasks/dispatch"
+POLL_INTERVAL_S = 2
+POLL_TIMEOUT_S = 60
 
 TASK_SCHEMAS = {
     "cv_token_rotation": {"profile": "default", "count": "1"},
@@ -24,10 +28,39 @@ class TaskDispatch:
         self._deploy = cfg
         self._log = logger if logger is not None else _logger.info
 
+    def http_reachable(self) -> bool:
+        root_url = self._deploy.get("APP_ROOT_URL", "").rstrip("/")
+        if not root_url:
+            return False
+        try:
+            requests.head(_with_scheme(root_url), timeout=5)
+            return True
+        except requests.exceptions.RequestException:
+            return False
+
     def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
             self._enqueue(client, task)
-        self._http_trigger()
+            self._http_trigger()
+            self._await_result(client, task)
+
+    def _await_result(self, client, task: Task) -> None:
+        result_path = f"{RESULT_DIR}/{task.task_id}.result"
+
+        def check_result():
+            return self._check_result(client, result_path)
+
+        poll_until(check_result, timeout_s=POLL_TIMEOUT_S, interval_s=POLL_INTERVAL_S,
+                   label=task.task_id[:8])
+        self._log(f"Task bestätigt: {task.task_id[:8]}")
+
+    def _check_result(self, client, result_path: str) -> str | None:
+        content = client.read_file(result_path).strip()
+        if content == "ok":
+            return content
+        if content:
+            raise RuntimeError(f"Task fehlgeschlagen: {content}")
+        return None
 
     def _enqueue(self, client, task: Task) -> None:
         rel_path = f"{TASK_DIR}/{task.filename()}"

@@ -44,16 +44,16 @@ class SftpDeployStateTest(unittest.TestCase):
     def test_deployment_plan_swaps_tree_and_optional_vendor(self):
         active = SlotState("a", "b")
 
-        with_vendor = DeploymentPlan.swap(active, True, True)
-        without_vendor = DeploymentPlan.swap(active, False, True)
+        with_vendor = DeploymentPlan.swap(active, include_vendor=True)
+        without_vendor = DeploymentPlan.swap(active, include_vendor=False)
 
         self.assertEqual(with_vendor.target, SlotState("b", "a"))
         self.assertEqual(without_vendor.target, SlotState("b", "b"))
 
-    def test_deployment_plan_uploads_vendor_when_slot_invalid(self):
+    def test_deployment_plan_uploads_vendor_when_include_vendor_true(self):
         active = SlotState("a", "b")
 
-        plan = DeploymentPlan.swap(active, False, False)
+        plan = DeploymentPlan.swap(active, include_vendor=True)
 
         self.assertEqual(plan.target, SlotState("b", "a"))
 

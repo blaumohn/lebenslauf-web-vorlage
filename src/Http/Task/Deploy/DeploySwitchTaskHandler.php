@@ -20,7 +20,7 @@ final class DeploySwitchTaskHandler implements TaskHandler
 
     public function handle(Task $task, string $entryPath): TaskResult
     {
-        $target = DeployState::fromTask($task);
+        $target = DeployState::fromTask($task, $entryPath);
         $target->validatePreparedSlots($entryPath);
         $this->switcher->switchTo($target);
         return TaskResult::ok($this->formatResult($target));

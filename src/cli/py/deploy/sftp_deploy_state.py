@@ -18,11 +18,13 @@ class IniConfig(configparser.ConfigParser):
 class SlotState:
     app: str
     vendor: str
+    run_id: str = ""
+    vendor_checksum: str = ""
 
     @classmethod
-    def from_values(cls, app, vendor):
+    def from_values(cls, app, vendor, run_id="", vendor_checksum=""):
         if app in VALID_SLOTS and vendor in VALID_SLOTS:
-            return cls(app, vendor)
+            return cls(app, vendor, run_id, vendor_checksum)
         return None
 
     @classmethod
@@ -51,9 +53,8 @@ class DeploymentPlan:
         return cls(None, SlotState.initial())
 
     @classmethod
-    def swap(cls, active, composer_lock_changed, vendor_slot_valid):
+    def swap(cls, active, include_vendor: bool):
         app = other_slot(active.app)
-        include_vendor = composer_lock_changed or not vendor_slot_valid
         vendor = other_slot(active.vendor) if include_vendor else active.vendor
         return cls(active, SlotState(app, vendor))
 
@@ -78,17 +79,21 @@ class DeployState:
             return None
         app = parser["state"].get("app", "")
         vendor = parser["state"].get("vendor", "")
-        return SlotState.from_values(app, vendor)
+        run_id = parser["state"].get("run_id", "")
+        vendor_checksum = parser["state"].get("vendor_checksum", "")
+        return SlotState.from_values(app, vendor, run_id, vendor_checksum)
 
     @staticmethod
     def format(state):
         if state is None:
             raise ValueError("Deploy-State fehlt.")
         config = IniConfig()
-        config["state"] = {
-            "app": state.app,
-            "vendor": state.vendor,
-        }
+        data = {"app": state.app, "vendor": state.vendor}
+        if state.run_id:
+            data["run_id"] = state.run_id
+        if state.vendor_checksum:
+            data["vendor_checksum"] = state.vendor_checksum
+        config["state"] = data
         return config.to_string()
 
 def other_slot(slot):

@@ -98,27 +98,19 @@ no_changes_since_deploy() {
 }
 
 deploy() {
-  local lock_changed
-  lock_changed="$(composer_lock_changed)"
-  sftp_upload "$lock_changed"
+  local slot_before
+  slot_before="$(read_vendor_slot_sftp)"
+  VENDOR_SLOT_BEFORE="$slot_before"
+  export VENDOR_SLOT_BEFORE
+  sftp_upload
 }
 
-composer_lock_changed() {
-  local diff_files
-
-  if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
-    echo true
-    return
-  fi
-
-  diff_files="$(git diff --name-only "$LAST_DEPLOY_COMMIT" HEAD)"
-  echo "$diff_files" | grep -qx "composer\.lock" && echo true && return
-  echo false
+read_vendor_slot_sftp() {
+  cli python "$PIPELINE" --phase deploy scripts/sftp-read-vendor-slot.py
 }
 
 sftp_upload() {
-  local lock_changed="$1"
-  COMPOSER_LOCK_CHANGED="$lock_changed" cli python "$PIPELINE" --phase deploy scripts/sftp-deploy.py
+  cli python "$PIPELINE" --phase deploy scripts/sftp-deploy.py
 }
 
 post_deploy_smoke_checks() {

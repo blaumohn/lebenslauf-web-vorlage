@@ -3,38 +3,38 @@
 namespace App\Http\Task\Deploy;
 
 use App\Http\Task\Task;
+use Symfony\Component\Filesystem\Path;
 
 final class DeployState
 {
-    public function __construct(
+    private function __construct(
         private readonly string $deployId,
-        private readonly \DeployRuntimeState $runtime,
+        private readonly DeploySlot $appSlot,
+        private readonly DeploySlot $vendorSlot,
+        private readonly string $vendorChecksum = '',
     ) {
         if ($deployId === '') {
             throw new \RuntimeException('Deploy-ID fehlt.');
         }
     }
 
-    public static function fromTask(Task $task): self
+    public static function fromTask(Task $task, string $entryPath): self
     {
-        return new self(
-            $task->get('run_id'),
-            \DeployRuntimeState::fromLabels(
-                $task->get('app'),
-                $task->get('vendor'),
-            ),
-        );
+        $app = DeploySlot::app($task->get('app'));
+        $vendor = DeploySlot::vendor($task->get('vendor'));
+        $checksum = self::readVendorMeta($entryPath, $vendor->directory());
+        return new self($task->get('run_id'), $app, $vendor, $checksum);
     }
 
-    public static function fromParams(
-        string $deployId,
-        string $app,
-        string $vendor,
-    ): self {
-        return new self(
-            $deployId,
-            \DeployRuntimeState::fromLabels($app, $vendor),
-        );
+    public static function fromParams(string $deployId, string $app, string $vendor): self
+    {
+        return new self($deployId, DeploySlot::app($app), DeploySlot::vendor($vendor));
+    }
+
+    private static function readVendorMeta(string $entryPath, string $vendorDir): string
+    {
+        $path = Path::join($entryPath, $vendorDir, '.meta');
+        return is_file($path) ? trim((string) file_get_contents($path)) : '';
     }
 
     public function deployId(): string
@@ -44,61 +44,61 @@ final class DeployState
 
     public function appLabel(): string
     {
-        return $this->runtime->appLabel();
+        return $this->appSlot->label();
     }
 
     public function vendorLabel(): string
     {
-        return $this->runtime->vendorLabel();
+        return $this->vendorSlot->label();
     }
 
     public function appRunMarkerPath(): string
     {
-        return $this->runtime->appDir() . '/.deploy-run';
-    }
-
-    public function vendorRunMarkerPath(): string
-    {
-        return $this->runtime->vendorDir() . '/.deploy-run';
+        return $this->appSlot->runMarkerPath();
     }
 
     public function validatePreparedSlots(string $entryPath): void
     {
-        $appMarker = $this->appRunMarkerPath();
-        $vendorMarker = $this->vendorRunMarkerPath();
-
-        $this->validatePreparedSlot($entryPath, $appMarker);
-        $this->validatePreparedSlot($entryPath, $vendorMarker);
+        $this->validateAppSlot($entryPath);
+        $this->validateVendorSlot($entryPath);
     }
 
     public function toIni(): string
     {
-        return $this->runtime->toIni();
+        $ini = "[state]\n"
+            . "app={$this->appSlot->label()}\n"
+            . "vendor={$this->vendorSlot->label()}\n"
+            . "run_id={$this->deployId}\n";
+        if ($this->vendorChecksum !== '') {
+            $ini .= "vendor_checksum={$this->vendorChecksum}\n";
+        }
+        return $ini;
     }
 
-    private function validatePreparedSlot(
-        string $entryPath,
-        string $markerPath,
-    ): void {
-        $marker = $this->readRunMarker($entryPath, $markerPath);
-        if ($marker === $this->deployId) {
-            return;
+    private function validateAppSlot(string $entryPath): void
+    {
+        $markerPath = $this->appRunMarkerPath();
+        $stored = $this->readSentinel(Path::join($entryPath, $markerPath), "App-Sentinel");
+        if ($stored !== $this->deployId) {
+            throw new \RuntimeException("run_id stimmt nicht überein: " . dirname($markerPath));
         }
-        $dir = dirname($markerPath);
-        throw new \RuntimeException(
-            "run_id stimmt nicht überein: {$dir}"
-        );
     }
 
-    private function readRunMarker(
-        string $entryPath,
-        string $markerPath,
-    ): string {
-        $path = $entryPath . '/' . $markerPath;
-        if (is_file($path)) {
-            return trim((string) file_get_contents($path));
+    private function validateVendorSlot(string $entryPath): void
+    {
+        $path = Path::join($entryPath, $this->vendorSlot->directory(), '.meta');
+        $this->readSentinel($path, "Vendor-Sentinel");
+    }
+
+    private function readSentinel(string $fullPath, string $label): string
+    {
+        if (!is_file($fullPath)) {
+            throw new \RuntimeException("{$label} fehlt: {$fullPath}");
         }
-        $dir = dirname($markerPath);
-        throw new \RuntimeException("run_id fehlt: {$dir}");
+        $content = trim((string) file_get_contents($fullPath));
+        if ($content === '') {
+            throw new \RuntimeException("{$label} leer: {$fullPath}");
+        }
+        return $content;
     }
 }

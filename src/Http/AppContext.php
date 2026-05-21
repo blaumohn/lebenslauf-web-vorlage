@@ -84,7 +84,7 @@ final class AppContext
             new DeploySwitchTaskHandler($switcher),
             new CvTokenRotationTaskHandler($rotateHandler),
         ];
-        return new TaskRunner($handlers, $entryPath, $mailService, $logger);
+        return new TaskRunner($handlers, $entryPath, $mailService, $logger, $writer);
     }
 
     private static function buildIpSaltService(
