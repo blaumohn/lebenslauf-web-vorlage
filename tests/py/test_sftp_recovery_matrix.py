@@ -164,16 +164,39 @@ class Szenario2Test(unittest.TestCase):
     """
     run:    switch=success, post_switch_smoke=fail
     expect: ROLLED_BACK, active_app=app-a wiederhergestellt
-    Status: offen — wird in Schritt 6 implementiert
     """
 
-    @unittest.skip("Post-Switch-Smoke und Rollback: Schritt 6")
-    def test_smoke_fehler_loest_rollback_aus(self):
-        pass
+    def setUp(self):
+        self.module = load_module()
 
-    @unittest.skip("Post-Switch-Smoke und Rollback: Schritt 6")
+    def _make_deploy(self, tmp):
+        deploy, client = make_swap_deploy(self.module)
+        deploy.STAGING_DIR = Path(tmp)
+        deploy.dispatch_switch = lambda _t, _a: None
+        return deploy, client
+
+    def test_smoke_fehler_loest_rollback_aus(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, _ = self._make_deploy(tmp)
+            with (
+                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
+                patch.object(self.module, "smoke_check", return_value=False),
+            ):
+                with self.assertRaises(RuntimeError):
+                    deploy.deploy()
+        self.assertEqual(deploy.deploy_phase.name, "ROLLED_BACK")
+
     def test_rollback_stellt_alten_state_wieder_her(self):
-        pass
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, client = self._make_deploy(tmp)
+            with (
+                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
+                patch.object(self.module, "smoke_check", return_value=False),
+            ):
+                with self.assertRaises(RuntimeError):
+                    deploy.deploy()
+        written = client.texts.get(STATE_FILE, "")
+        self.assertIn("app = a", written)
 
 
 class Szenario3Test(unittest.TestCase):

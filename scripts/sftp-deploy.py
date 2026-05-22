@@ -3,6 +3,9 @@ import stat
 import time
 from pathlib import Path
 
+import requests
+import requests.exceptions
+
 from cli.py.deploy.machine import DeployConflictError, DeployMachine, DeployPhase
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
@@ -33,6 +36,18 @@ def vendor_checksum() -> str:
     return ComposerInputChecksum.from_repo()
 
 
+def smoke_check(cfg, log) -> bool:
+    url = cfg.get("APP_ROOT_URL", "")
+    if not url:
+        log("Warnung: APP_ROOT_URL nicht konfiguriert — Smoke übersprungen")
+        return True
+    try:
+        resp = requests.get(url, timeout=10, allow_redirects=True)
+        return resp.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+
 def main():
     cfg = PipelineCfg("deploy")
     run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
@@ -58,11 +73,14 @@ class SftpDeploy:
 
     def deploy(self):
         ops = SftpDeployOps(self)
-        machine = DeployMachine()
+        machine = DeployMachine(on_transition=self._log_phase)
         machine.run(ops)
         self.deploy_phase = machine.phase
         self._log_deploy_result(machine.phase)
         self._raise_if_failed(machine.phase)
+
+    def _log_phase(self, from_phase, to_phase):
+        self.log(f"Phase: {from_phase.name} → {to_phase.name}")
 
     def _log_deploy_result(self, phase):
         if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
@@ -387,10 +405,17 @@ class SftpDeployOps:
             self._deploy.dispatch_switch(plan.target, plan.active)
 
     def smoke_ok(self):
-        return True  # Schritt 6
+        return smoke_check(self._deploy.cfg, self._deploy.log)
 
     def rollback(self):
-        pass  # Schritt 6
+        if self._state is None:
+            self._deploy.log("Rollback: kein vorheriger State vorhanden")
+            return
+        DeployState.write(self._deploy.client, self._state)
+        self._deploy.log(
+            f"Rollback: {self._state.app_dir}, "
+            f"Vendor {self._state.vendor_dir}"
+        )
 
 
 def new_stats():

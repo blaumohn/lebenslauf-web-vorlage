@@ -50,6 +50,7 @@ class DeployOps(Protocol):
 class DeployMachine:
     phase: DeployPhase = field(default=DeployPhase.STARTED)
     history: list[DeployPhase] = field(default_factory=list)
+    on_transition: Callable | None = field(default=None)
 
     def run(self, ops: DeployOps) -> None:
         self.transition(DeployPhase.STATE_LOADED, ops.load_state)
@@ -82,5 +83,7 @@ class DeployMachine:
             self._advance(DeployPhase.ROLLED_BACK)
 
     def _advance(self, target: DeployPhase) -> None:
+        if self.on_transition:
+            self.on_transition(self.phase, target)
         self.history.append(self.phase)
         self.phase = target
