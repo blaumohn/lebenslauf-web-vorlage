@@ -3,6 +3,7 @@ import stat
 import time
 from pathlib import Path
 
+from cli.py.deploy.machine import DeployConflictError, DeployMachine, DeployPhase
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
     DeployState,
@@ -56,11 +57,27 @@ class SftpDeploy:
         self.client = None
 
     def deploy(self):
-        state = DeployState.read(self.client)
-        if state is None:
-            self.deploy_fresh()
-        else:
-            self.deploy_swap(state)
+        ops = SftpDeployOps(self)
+        machine = DeployMachine()
+        machine.run(ops)
+        self.deploy_phase = machine.phase
+        self._log_deploy_result(machine.phase)
+        self._raise_if_failed(machine.phase)
+
+    def _log_deploy_result(self, phase):
+        if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
+            self.log("Manueller Eingriff erforderlich — keine Änderungen")
+        elif phase == DeployPhase.FAILED_SAFE:
+            self.log("Deploy fehlgeschlagen — aktiver Deploy unberührt")
+        elif phase == DeployPhase.VERIFIED:
+            self.log("Deploy abgeschlossen")
+
+    def _raise_if_failed(self, phase):
+        if phase == DeployPhase.VERIFIED:
+            return
+        if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
+            raise RuntimeError("Manueller Eingriff erforderlich")
+        raise RuntimeError(f"Deploy fehlgeschlagen: {phase.name}")
 
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
@@ -305,6 +322,75 @@ class SftpDeploy:
         self.client.put_file(local_path, rel_remote)
         stats["files"] += 1
         stats["bytes"] += Path(local_path).stat().st_size
+
+
+class SftpDeployOps:
+    def __init__(self, deploy):
+        self._deploy = deploy
+        self._state = None
+        self._plan = None
+
+    def load_state(self):
+        state = DeployState.read(self._deploy.client)
+        if state is None and self._both_app_slots_exist():
+            raise DeployConflictError(
+                ".deploy-state.ini fehlt, aber beide App-Slots vorhanden"
+            )
+        self._state = state
+
+    def _both_app_slots_exist(self):
+        client = self._deploy.client
+        return (
+            client.file_exists("app-a/.deploy-run")
+            and client.file_exists("app-b/.deploy-run")
+        )
+
+    def select_target(self):
+        include_vendor = self._resolve_include_vendor()
+        if self._state is None:
+            self._plan = DeploymentPlan.fresh()
+        else:
+            self._plan = DeploymentPlan.swap(self._state, include_vendor)
+
+    def _resolve_include_vendor(self):
+        if self._state is None:
+            return True
+        return self._deploy._include_vendor(self._state)
+
+    def prepare_target(self):
+        pass
+
+    def upload_app(self):
+        self._deploy.upload_app_tree(self._plan.target.app_dir)
+
+    def prepare_vendor(self):
+        plan = self._plan
+        if plan.active is None or plan.target.vendor != plan.active.vendor:
+            self._deploy.upload_vendor_dir(plan.target.vendor_dir)
+        else:
+            self._deploy._log_vendor_decision(plan)
+
+    def migrate_tokens(self):
+        if self._plan.active is None:
+            self._deploy.upload_static_entry_files()
+        else:
+            self._deploy.migrate_tokens(
+                self._plan.active.app_dir,
+                self._plan.target.app_dir,
+            )
+
+    def switch(self):
+        plan = self._plan
+        if plan.active is None:
+            self._deploy.publish_switch(plan.target)
+        else:
+            self._deploy.dispatch_switch(plan.target, plan.active)
+
+    def smoke_ok(self):
+        return True  # Schritt 6
+
+    def rollback(self):
+        pass  # Schritt 6
 
 
 def new_stats():

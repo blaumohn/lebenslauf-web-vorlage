@@ -112,7 +112,7 @@ class Szenario1aTest(unittest.TestCase):
                 patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
                 patch.object(deploy, "upload_file", side_effect=OSError("fail")),
             ):
-                with self.assertRaises(OSError):
+                with self.assertRaises(RuntimeError):
                     deploy.deploy()
         self.assertNotIn(STATE_FILE, client.texts)
 
@@ -125,7 +125,7 @@ class Szenario1aTest(unittest.TestCase):
                 patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
                 patch.object(deploy, "upload_file", side_effect=OSError("fail")),
             ):
-                with self.assertRaises(OSError):
+                with self.assertRaises(RuntimeError):
                     deploy.deploy()
         self.assertNotIn("app-b/.deploy-run", client.texts)
 
@@ -180,16 +180,30 @@ class Szenario3Test(unittest.TestCase):
     """
     start:  deploy_state=absent, app-a vorhanden, app-b vorhanden
     expect: MANUAL_INTERVENTION_REQUIRED, keine Schreibvorgänge
-    Status: offen — wird in Schritt 5 implementiert
     """
 
-    @unittest.skip("Conflict-Erkennung bei fehlendem State: Schritt 5")
-    def test_fehlender_state_beide_slots_erfordert_eingriff(self):
-        pass
+    def setUp(self):
+        self.module = load_module()
 
-    @unittest.skip("Conflict-Erkennung bei fehlendem State: Schritt 5")
+    def _make_conflict_deploy(self):
+        deploy = self.module.SftpDeploy({}, "run-1", logger=lambda _: None)
+        client = FakeClient()
+        client.set_file("app-a/.deploy-run", "run-a")
+        client.set_file("app-b/.deploy-run", "run-b")
+        deploy.client = client
+        return deploy, client
+
+    def test_fehlender_state_beide_slots_erfordert_eingriff(self):
+        deploy, _ = self._make_conflict_deploy()
+        with self.assertRaises(RuntimeError) as ctx:
+            deploy.deploy()
+        self.assertIn("Manueller Eingriff", str(ctx.exception))
+
     def test_kein_schreibvorgang_bei_manual_intervention(self):
-        pass
+        deploy, client = self._make_conflict_deploy()
+        with self.assertRaises(RuntimeError):
+            deploy.deploy()
+        self.assertNotIn(STATE_FILE, client.texts)
 
 
 if __name__ == "__main__":
