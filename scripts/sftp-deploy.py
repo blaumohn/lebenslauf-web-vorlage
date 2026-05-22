@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 import requests.exceptions
 
-from cli.py.deploy.machine import DeployConflictError, DeployMachine, DeployPhase
+from cli.py.deploy.machine import DeployMachine, DeployPhase
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
     DeployState,
@@ -14,7 +14,10 @@ from cli.py.deploy.sftp_deploy_state import (
 )
 from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
-from cli.py.deploy.vendor_sentinel import ComposerInputChecksum, VendorSentinel
+from cli.py.deploy.vendor_sentinel import (
+    ComposerInputChecksum,
+    VendorSentinel,
+)
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
@@ -39,7 +42,10 @@ def vendor_checksum() -> str:
 def smoke_check(cfg, log) -> bool:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
-        log("Warnung: APP_ROOT_URL nicht konfiguriert — Smoke übersprungen")
+        log(
+            "Warnung: APP_ROOT_URL nicht konfiguriert — "
+            "Smoke übersprungen"
+        )
         return True
     try:
         resp = requests.get(url, timeout=10, allow_redirects=True)
@@ -84,9 +90,13 @@ class SftpDeploy:
 
     def _log_deploy_result(self, phase):
         if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
-            self.log("Manueller Eingriff erforderlich — keine Änderungen")
+            self.log(
+                "Manueller Eingriff erforderlich — keine Änderungen"
+            )
         elif phase == DeployPhase.FAILED_SAFE:
-            self.log("Deploy fehlgeschlagen — aktiver Deploy unberührt")
+            self.log(
+                "Deploy fehlgeschlagen — aktiver Deploy unberührt"
+            )
         elif phase == DeployPhase.VERIFIED:
             self.log("Deploy abgeschlossen")
 
@@ -345,60 +355,46 @@ class SftpDeploy:
 class SftpDeployOps:
     def __init__(self, deploy):
         self._deploy = deploy
-        self._state = None
-        self._plan = None
 
     def load_state(self):
-        state = DeployState.read(self._deploy.client)
-        if state is None and self._both_app_slots_exist():
-            raise DeployConflictError(
-                ".deploy-state.ini fehlt, aber beide App-Slots vorhanden"
-            )
-        self._state = state
+        return DeployState.read(self._deploy.client)
 
-    def _both_app_slots_exist(self):
+    def both_app_slots_exist(self):
         client = self._deploy.client
         return (
             client.file_exists("app-a/.deploy-run")
             and client.file_exists("app-b/.deploy-run")
         )
 
-    def select_target(self):
-        include_vendor = self._resolve_include_vendor()
-        if self._state is None:
-            self._plan = DeploymentPlan.fresh()
-        else:
-            self._plan = DeploymentPlan.swap(self._state, include_vendor)
+    def should_upload_vendor(self, active):
+        return self._deploy._include_vendor(active)
 
-    def _resolve_include_vendor(self):
-        if self._state is None:
-            return True
-        return self._deploy._include_vendor(self._state)
-
-    def prepare_target(self):
+    def prepare_target(self, _plan):
         pass
 
-    def upload_app(self):
-        self._deploy.upload_app_tree(self._plan.target.app_dir)
+    def upload_app(self, plan):
+        self._deploy.upload_app_tree(plan.target.app_dir)
 
-    def prepare_vendor(self):
-        plan = self._plan
-        if plan.active is None or plan.target.vendor != plan.active.vendor:
+    def prepare_vendor(self, plan):
+        vendor_changed = (
+            plan.active is None
+            or plan.target.vendor != plan.active.vendor
+        )
+        if vendor_changed:
             self._deploy.upload_vendor_dir(plan.target.vendor_dir)
         else:
             self._deploy._log_vendor_decision(plan)
 
-    def migrate_tokens(self):
-        if self._plan.active is None:
+    def migrate_tokens(self, plan):
+        if plan.active is None:
             self._deploy.upload_static_entry_files()
         else:
             self._deploy.migrate_tokens(
-                self._plan.active.app_dir,
-                self._plan.target.app_dir,
+                plan.active.app_dir,
+                plan.target.app_dir,
             )
 
-    def switch(self):
-        plan = self._plan
+    def switch(self, plan):
         if plan.active is None:
             self._deploy.publish_switch(plan.target)
         else:
@@ -407,14 +403,16 @@ class SftpDeployOps:
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
 
-    def rollback(self):
-        if self._state is None:
-            self._deploy.log("Rollback: kein vorheriger State vorhanden")
+    def rollback(self, state):
+        if state is None:
+            self._deploy.log(
+                "Rollback: kein vorheriger State vorhanden"
+            )
             return
-        DeployState.write(self._deploy.client, self._state)
+        DeployState.write(self._deploy.client, state)
         self._deploy.log(
-            f"Rollback: {self._state.app_dir}, "
-            f"Vendor {self._state.vendor_dir}"
+            f"Rollback: {state.app_dir}, "
+            f"Vendor {state.vendor_dir}"
         )
 
 
