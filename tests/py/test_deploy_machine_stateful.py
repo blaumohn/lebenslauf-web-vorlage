@@ -73,6 +73,7 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
     def init(self):
         self.ops = ControllableOps()
         self.machine = DeployMachine()
+        self.machine.run(self.ops)
 
     @rule()
     def run_happy(self):

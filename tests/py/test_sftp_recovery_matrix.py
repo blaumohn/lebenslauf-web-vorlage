@@ -1,0 +1,196 @@
+"""
+Recovery-Matrix für den Deploy-Ablauf (J01-147).
+
+Szenarien:
+  1a. Upload schlägt fehl → State unverändert (FAILED_SAFE)
+  1b. Folgelauf nach 1a → Zielslot bereinigt, Deploy erfolgreich
+  2.  Switch ok, Smoke fehlgeschlagen → ROLLED_BACK        [Schritt 6]
+  3.  State fehlt, beide Slots vorhanden → MANUAL_REQUIRED  [Schritt 5]
+"""
+import importlib.util
+import sys
+import tempfile
+import types
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+CHECKSUM = "abc123def456abcd"
+STATE_FILE = ".deploy-state.ini"
+ACTIVE_STATE_INI = (
+    "[state]\n"
+    "app = a\n"
+    "vendor = a\n"
+    "run_id = run-prev\n"
+    f"vendor_checksum = {CHECKSUM}\n\n"
+)
+VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
+
+
+def load_module():
+    sys.modules.setdefault("paramiko", types.SimpleNamespace(
+        RejectPolicy=object, SSHClient=object,
+    ))
+    path = REPO_ROOT / "scripts" / "sftp-deploy.py"
+    spec = importlib.util.spec_from_file_location("sftp_deploy_script", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class FakeClient:
+    def __init__(self):
+        self.texts = {}
+        self.files = []
+        self.removed_dirs = []
+        self._contents = {}
+        self._exists = set()
+
+    def set_file(self, path, content):
+        self._contents[path] = content
+        self._exists.add(path)
+
+    def read_file(self, path):
+        return self._contents.get(path, "")
+
+    def file_exists(self, path):
+        return path in self._exists
+
+    def put_text(self, path, content):
+        self.texts[path] = content
+
+    def put_file(self, _local, path):
+        self.files.append(path)
+
+    def put_bytes(self, _path, _data):
+        pass
+
+    def ensure_dir(self, _path):
+        pass
+
+    def remove_dir(self, path):
+        self.removed_dirs.append(path)
+
+    def mkdir_p(self, _path):
+        return False
+
+    def listdir_attr(self, _path):
+        raise OSError("leer")
+
+
+def make_swap_deploy(module, run_id="run-2"):
+    deploy = module.SftpDeploy({}, run_id, logger=lambda _: None)
+    client = FakeClient()
+    client.set_file(STATE_FILE, ACTIVE_STATE_INI)
+    client.set_file("vendor-a/.meta", VENDOR_META)
+    client.set_file("app-a/.deploy-run", "run-prev")
+    deploy.client = client
+    deploy.upload_static_entry_files = lambda: None
+    deploy.migrate_tokens = lambda _a, _b: None
+    return deploy, client
+
+
+class Szenario1aTest(unittest.TestCase):
+    """
+    start:  active_app=app-a, active_vendor=vendor-a
+    run_1:  fail_at=upload_app
+    expect: state unverändert, kein .deploy-run auf app-b
+    """
+
+    def setUp(self):
+        self.module = load_module()
+
+    def test_state_unveraendert_wenn_upload_fehlschlaegt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, client = make_swap_deploy(self.module)
+            deploy.STAGING_DIR = Path(tmp)
+            (Path(tmp) / "index.php").write_text("<?php")
+            with (
+                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
+                patch.object(deploy, "upload_file", side_effect=OSError("fail")),
+            ):
+                with self.assertRaises(OSError):
+                    deploy.deploy()
+        self.assertNotIn(STATE_FILE, client.texts)
+
+    def test_app_sentinel_fehlt_nach_upload_fehler(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, client = make_swap_deploy(self.module)
+            deploy.STAGING_DIR = Path(tmp)
+            (Path(tmp) / "index.php").write_text("<?php")
+            with (
+                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
+                patch.object(deploy, "upload_file", side_effect=OSError("fail")),
+            ):
+                with self.assertRaises(OSError):
+                    deploy.deploy()
+        self.assertNotIn("app-b/.deploy-run", client.texts)
+
+
+class Szenario1bTest(unittest.TestCase):
+    """
+    start:  active_app=app-a (State unverändert nach run_1-Fehler)
+            app-b: partiell, kein .deploy-run
+    run_2:  kein Fehler
+    expect: app-b bereinigt vor Upload, .deploy-run auf app-b geschrieben
+    """
+
+    def setUp(self):
+        self.module = load_module()
+
+    def test_zielslot_bereinigt_vor_upload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, client = make_swap_deploy(self.module)
+            deploy.STAGING_DIR = Path(tmp)
+            deploy.dispatch_switch = lambda _t, _a: None
+            with patch.object(self.module, "vendor_checksum", return_value=CHECKSUM):
+                deploy.deploy()
+        self.assertIn("app-b", client.removed_dirs)
+
+    def test_app_sentinel_nach_erfolgreichem_folgelauf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, client = make_swap_deploy(self.module)
+            deploy.STAGING_DIR = Path(tmp)
+            deploy.dispatch_switch = lambda _t, _a: None
+            with patch.object(self.module, "vendor_checksum", return_value=CHECKSUM):
+                deploy.deploy()
+        self.assertEqual(client.texts.get("app-b/.deploy-run"), "run-2")
+
+
+class Szenario2Test(unittest.TestCase):
+    """
+    run:    switch=success, post_switch_smoke=fail
+    expect: ROLLED_BACK, active_app=app-a wiederhergestellt
+    Status: offen — wird in Schritt 6 implementiert
+    """
+
+    @unittest.skip("Post-Switch-Smoke und Rollback: Schritt 6")
+    def test_smoke_fehler_loest_rollback_aus(self):
+        pass
+
+    @unittest.skip("Post-Switch-Smoke und Rollback: Schritt 6")
+    def test_rollback_stellt_alten_state_wieder_her(self):
+        pass
+
+
+class Szenario3Test(unittest.TestCase):
+    """
+    start:  deploy_state=absent, app-a vorhanden, app-b vorhanden
+    expect: MANUAL_INTERVENTION_REQUIRED, keine Schreibvorgänge
+    Status: offen — wird in Schritt 5 implementiert
+    """
+
+    @unittest.skip("Conflict-Erkennung bei fehlendem State: Schritt 5")
+    def test_fehlender_state_beide_slots_erfordert_eingriff(self):
+        pass
+
+    @unittest.skip("Conflict-Erkennung bei fehlendem State: Schritt 5")
+    def test_kein_schreibvorgang_bei_manual_intervention(self):
+        pass
+
+
+if __name__ == "__main__":
+    unittest.main()
