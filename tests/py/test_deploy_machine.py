@@ -6,7 +6,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from cli.py.deploy.machine import (  # noqa: E402
     DeployConflictError,
     DeployMachine,
-    DeployPhase,
 )
 from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 
@@ -85,7 +84,7 @@ class FakeOps:
 def test_happy_path_endet_in_cleaned_up():
     m = DeployMachine()
     m.run(FakeOps())
-    assert m.phase == DeployPhase.CLEANED_UP
+    assert m.current_state == DeployMachine.cleaned_up
 
 
 def test_cleanup_wird_nach_erfolg_aufgerufen():
@@ -98,13 +97,13 @@ def test_cleanup_wird_nach_erfolg_aufgerufen():
 def test_cleanup_fehler_fuehrt_zu_failed_safe():
     m = DeployMachine()
     m.run(FakeOps(fail_at="cleanup"))
-    assert m.phase == DeployPhase.FAILED_SAFE
+    assert m.current_state == DeployMachine.failed_safe
 
 
 def test_upload_fehler_fuehrt_zu_failed_safe():
     m = DeployMachine()
     m.run(FakeOps(fail_at="upload_app"))
-    assert m.phase == DeployPhase.FAILED_SAFE
+    assert m.current_state == DeployMachine.failed_safe
 
 
 def test_failed_safe_verhindert_switch():
@@ -117,13 +116,13 @@ def test_failed_safe_verhindert_switch():
 def test_smoke_ok_exception_fuehrt_zu_failed_safe():
     m = DeployMachine()
     m.run(FakeOps(fail_at="smoke_ok"))
-    assert m.phase == DeployPhase.FAILED_SAFE
+    assert m.current_state == DeployMachine.failed_safe
 
 
 def test_smoke_fehler_fuehrt_zu_rollback():
     m = DeployMachine()
     m.run(FakeOps(smoke=False))
-    assert m.phase == DeployPhase.ROLLED_BACK
+    assert m.current_state == DeployMachine.rolled_back
 
 
 def test_rollback_wird_nach_smoke_fehler_aufgerufen():
@@ -137,14 +136,14 @@ def test_rollback_wird_nach_smoke_fehler_aufgerufen():
 def test_konflikt_fuehrt_zu_manual_intervention():
     m = DeployMachine()
     m.run(FakeOps(state=None, both_slots=True))
-    assert m.phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED
+    assert m.current_state == DeployMachine.manual_intervention_required
 
 
 def test_history_enthaelt_alle_zwischenphasen():
     m = DeployMachine()
     m.run(FakeOps())
-    assert DeployPhase.STARTED in m.history
-    assert DeployPhase.SWITCHED in m.history
+    assert "started" in m.history
+    assert "switched" in m.history
 
 
 def test_fresh_plan_wird_bei_fehlendem_state_erstellt():

@@ -17,7 +17,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from cli.py.deploy.machine import (  # noqa: E402
     DeployConflictError,
     DeployMachine,
-    DeployPhase,
 )
 from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 
@@ -38,22 +37,22 @@ EXECUTE_STEPS = (
 FAIL_STEPS = (*OBSERVE_STEPS, *EXECUTE_STEPS, "smoke_ok", "cleanup", "rollback")
 
 PHASE_FLOW = (
-    DeployPhase.STARTED,
-    DeployPhase.STATE_LOADED,
-    DeployPhase.TARGET_SELECTED,
-    DeployPhase.TARGET_PREPARED,
-    DeployPhase.APP_UPLOADED,
-    DeployPhase.VENDOR_READY,
-    DeployPhase.TOKENS_MIGRATED,
-    DeployPhase.SWITCHED,
-    DeployPhase.VERIFIED,
+    "started",
+    "state_loaded",
+    "target_selected",
+    "target_prepared",
+    "app_uploaded",
+    "vendor_ready",
+    "tokens_migrated",
+    "switched",
+    "verified",
 )
 
 TERMINAL_PHASES = {
-    DeployPhase.CLEANED_UP,
-    DeployPhase.ROLLED_BACK,
-    DeployPhase.FAILED_SAFE,
-    DeployPhase.MANUAL_INTERVENTION_REQUIRED,
+    DeployMachine.cleaned_up,
+    DeployMachine.rolled_back,
+    DeployMachine.failed_safe,
+    DeployMachine.manual_intervention_required,
 }
 
 DEFAULT_STATE = SlotState("a", "a")
@@ -200,16 +199,16 @@ def expected_phase(scenario):
     if scenario.fail_at in calls:
         return expected_error_phase(scenario)
     if plan_conflicts(scenario):
-        return DeployPhase.MANUAL_INTERVENTION_REQUIRED
+        return DeployMachine.manual_intervention_required
     if scenario.smoke:
-        return DeployPhase.CLEANED_UP
-    return DeployPhase.ROLLED_BACK
+        return DeployMachine.cleaned_up
+    return DeployMachine.rolled_back
 
 
 def expected_error_phase(scenario):
     if scenario.error_kind == "conflict":
-        return DeployPhase.MANUAL_INTERVENTION_REQUIRED
-    return DeployPhase.FAILED_SAFE
+        return DeployMachine.manual_intervention_required
+    return DeployMachine.failed_safe
 
 
 def make_scenario(
@@ -286,8 +285,8 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def endet_in_erwartetem_terminalzustand(self):
-        assert self.machine.phase in TERMINAL_PHASES
-        assert self.machine.phase == expected_phase(self.scenario)
+        assert self.machine.current_state in TERMINAL_PHASES
+        assert self.machine.current_state == expected_phase(self.scenario)
 
     @invariant()
     def history_folgt_phasenordnung(self):
@@ -342,8 +341,8 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 @pytest.mark.parametrize(
     ("error_kind", "expected"),
     [
-        ("runtime", DeployPhase.FAILED_SAFE),
-        ("conflict", DeployPhase.MANUAL_INTERVENTION_REQUIRED),
+        ("runtime", DeployMachine.failed_safe),
+        ("conflict", DeployMachine.manual_intervention_required),
     ],
 )
 def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
@@ -353,7 +352,7 @@ def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
 
     machine.run(ops)
 
-    assert machine.phase == expected
+    assert machine.current_state == expected
     assert ops.calls == expected_calls(scenario)
 
 

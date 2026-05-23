@@ -1,41 +1,13 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from enum import Enum, auto
 from typing import Protocol
+
+from statemachine import State, StateMachine
 
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotState
 
 MISSING_STATE_CONFLICT = (
     ".htaccess fehlt oder ungültig, aber beide App-Slots vorhanden"
 )
-
-
-class DeployPhase(Enum):
-    STARTED = auto()
-    STATE_LOADED = auto()
-    TARGET_SELECTED = auto()
-    TARGET_PREPARED = auto()
-    APP_UPLOADED = auto()
-    VENDOR_READY = auto()
-    TOKENS_MIGRATED = auto()
-    SWITCHED = auto()
-    VERIFIED = auto()
-    CLEANED_UP = auto()
-    ROLLED_BACK = auto()
-    FAILED_SAFE = auto()
-    MANUAL_INTERVENTION_REQUIRED = auto()
-
-    @property
-    def is_terminal(self) -> bool:
-        return self in _TERMINAL_PHASES
-
-
-_TERMINAL_PHASES = frozenset({
-    DeployPhase.CLEANED_UP,
-    DeployPhase.ROLLED_BACK,
-    DeployPhase.FAILED_SAFE,
-    DeployPhase.MANUAL_INTERVENTION_REQUIRED,
-})
 
 
 class DeployConflictError(Exception):
@@ -56,59 +28,108 @@ class DeployOps(Protocol):
     def cleanup(self, plan: DeploymentPlan) -> None: ...
 
 
-@dataclass
-class DeployMachine:
-    phase: DeployPhase = field(default=DeployPhase.STARTED)
-    history: list[DeployPhase] = field(default_factory=list)
-    on_transition: Callable | None = field(default=None)
+class DeployMachine(StateMachine):
+    started                      = State(initial=True)
+    state_loaded                 = State()
+    target_selected              = State()
+    target_prepared              = State()
+    app_uploaded                 = State()
+    vendor_ready                 = State()
+    tokens_migrated              = State()
+    switched                     = State()
+    verified                     = State()
+    cleaned_up                   = State(final=True)
+    rolled_back                  = State(final=True)
+    failed_safe                  = State(final=True)
+    manual_intervention_required = State(final=True)
+
+    ev_load     = started.to(state_loaded)
+    ev_select   = state_loaded.to(target_selected)
+    ev_prepare  = target_selected.to(target_prepared)
+    ev_upload   = target_prepared.to(app_uploaded)
+    ev_vendor   = app_uploaded.to(vendor_ready)
+    ev_tokens   = vendor_ready.to(tokens_migrated)
+    ev_switch   = tokens_migrated.to(switched)
+    ev_verify   = switched.to(verified)
+    ev_cleanup  = verified.to(cleaned_up)
+    ev_rollback = verified.to(rolled_back)
+
+    ev_fail = (
+        started.to(failed_safe)
+        | state_loaded.to(failed_safe)
+        | target_selected.to(failed_safe)
+        | target_prepared.to(failed_safe)
+        | app_uploaded.to(failed_safe)
+        | vendor_ready.to(failed_safe)
+        | tokens_migrated.to(failed_safe)
+        | switched.to(failed_safe)
+        | verified.to(failed_safe)
+    )
+    ev_conflict = (
+        started.to(manual_intervention_required)
+        | state_loaded.to(manual_intervention_required)
+        | target_selected.to(manual_intervention_required)
+        | target_prepared.to(manual_intervention_required)
+        | app_uploaded.to(manual_intervention_required)
+        | vendor_ready.to(manual_intervention_required)
+        | tokens_migrated.to(manual_intervention_required)
+        | switched.to(manual_intervention_required)
+        | verified.to(manual_intervention_required)
+    )
+
+    def __init__(self, on_transition: Callable | None = None):
+        super().__init__()
+        self._on_transition = on_transition
+        self.history: list[str] = []
+
+    def after_transition(self, event, source, target):
+        if self._on_transition:
+            self._on_transition(source, target)
+        self.history.append(source.id)
 
     def run(self, ops: DeployOps) -> None:
-        state = self.transition(
-            DeployPhase.STATE_LOADED,
-            ops.load_state,
-        )
-        plan = self.transition(
-            DeployPhase.TARGET_SELECTED,
-            lambda: self._select_plan(ops, state),
-        )
-        self._run_plan_steps(ops, plan)
-        self._verify_or_rollback(ops, plan, state)
+        state = self._step(self.ev_load, ops.load_state)
+        plan = self._step(self.ev_select, lambda: self._select_plan(ops, state))
+        if not self.current_state.final:
+            self._run_plan_steps(ops, plan)
+            self._verify_or_rollback(ops, plan, state)
 
-    def _run_plan_steps(
-        self,
-        ops: DeployOps,
-        plan: DeploymentPlan,
-    ) -> None:
-        self.transition(
-            DeployPhase.TARGET_PREPARED,
-            lambda: ops.prepare_target(plan),
-        )
-        self.transition(
-            DeployPhase.APP_UPLOADED,
-            lambda: ops.upload_app(plan),
-        )
-        self.transition(
-            DeployPhase.VENDOR_READY,
-            lambda: ops.prepare_vendor(plan),
-        )
-        self.transition(
-            DeployPhase.TOKENS_MIGRATED,
-            lambda: ops.migrate_tokens(plan),
-        )
-        self.transition(DeployPhase.SWITCHED, lambda: ops.switch(plan))
-
-    def transition(self, target: DeployPhase, action: Callable):
-        if self.phase.is_terminal:
+    def _step(self, event, action):
+        if self.current_state.final:
             return None
         try:
             result = action()
-            self._advance(target)
+            event()
             return result
         except DeployConflictError:
-            self._advance(DeployPhase.MANUAL_INTERVENTION_REQUIRED)
+            self.ev_conflict()
+            return None
         except Exception:
-            self._advance(DeployPhase.FAILED_SAFE)
-        return None
+            self.ev_fail()
+            return None
+
+    def _run_plan_steps(self, ops: DeployOps, plan: DeploymentPlan) -> None:
+        self._step(self.ev_prepare, lambda: ops.prepare_target(plan))
+        self._step(self.ev_upload,  lambda: ops.upload_app(plan))
+        self._step(self.ev_vendor,  lambda: ops.prepare_vendor(plan))
+        self._step(self.ev_tokens,  lambda: ops.migrate_tokens(plan))
+        self._step(self.ev_switch,  lambda: ops.switch(plan))
+
+    def _verify_or_rollback(
+        self,
+        ops: DeployOps,
+        plan: DeploymentPlan | None,
+        state: SlotState | None,
+    ) -> None:
+        if self.current_state.final:
+            return
+        ok = self._step(self.ev_verify, ops.smoke_ok)
+        if self.current_state.final:
+            return
+        if ok:
+            self._step(self.ev_cleanup, lambda: ops.cleanup(plan))
+        else:
+            self._step(self.ev_rollback, lambda: ops.rollback(state))
 
     def _select_plan(
         self,
@@ -121,25 +142,3 @@ class DeployMachine:
             return DeploymentPlan.fresh()
         include_vendor = ops.should_upload_vendor(state)
         return DeploymentPlan.swap(state, include_vendor)
-
-    def _verify_or_rollback(
-        self,
-        ops: DeployOps,
-        plan: DeploymentPlan | None,
-        state: SlotState | None,
-    ) -> None:
-        if self.phase.is_terminal:
-            return
-        ok = self.transition(DeployPhase.VERIFIED, ops.smoke_ok)
-        if self.phase.is_terminal:
-            return
-        if ok:
-            self.transition(DeployPhase.CLEANED_UP, lambda: ops.cleanup(plan))
-        else:
-            self.transition(DeployPhase.ROLLED_BACK, lambda: ops.rollback(state))
-
-    def _advance(self, target: DeployPhase) -> None:
-        if self.on_transition:
-            self.on_transition(self.phase, target)
-        self.history.append(self.phase)
-        self.phase = target

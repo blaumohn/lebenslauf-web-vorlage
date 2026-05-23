@@ -18,6 +18,7 @@ from unittest.mock import patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from cli.py.deploy.machine import DeployMachine  # noqa: E402
 from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile  # noqa: E402
 
 CHECKSUM = "abc123def456abcd"
@@ -182,7 +183,7 @@ class Szenario2Test(unittest.TestCase):
             ):
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
-        self.assertEqual(deploy.deploy_phase.name, "ROLLED_BACK")
+        self.assertEqual(deploy.deploy_phase, DeployMachine.rolled_back)
 
     def test_rollback_stellt_alten_state_wieder_her(self):
         with tempfile.TemporaryDirectory() as tmp:

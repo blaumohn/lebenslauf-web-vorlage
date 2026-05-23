@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 import requests.exceptions
 
-from cli.py.deploy.machine import DeployMachine, DeployPhase
+from cli.py.deploy.machine import DeployMachine
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
     DeployState,
@@ -80,31 +80,31 @@ class SftpDeploy:
         ops = SftpDeployOps(self)
         machine = DeployMachine(on_transition=self._log_phase)
         machine.run(ops)
-        self.deploy_phase = machine.phase
-        self._log_deploy_result(machine.phase)
-        self._raise_if_failed(machine.phase)
+        self.deploy_phase = machine.current_state
+        self._log_deploy_result(machine.current_state)
+        self._raise_if_failed(machine.current_state)
 
-    def _log_phase(self, from_phase, to_phase):
-        self.log(f"Phase: {from_phase.name} → {to_phase.name}")
+    def _log_phase(self, source, target):
+        self.log(f"Phase: {source.id} → {target.id}")
 
-    def _log_deploy_result(self, phase):
-        if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
+    def _log_deploy_result(self, state):
+        if state == DeployMachine.manual_intervention_required:
             self.log(
                 "Manueller Eingriff erforderlich — keine Änderungen"
             )
-        elif phase == DeployPhase.FAILED_SAFE:
+        elif state == DeployMachine.failed_safe:
             self.log(
                 "Deploy fehlgeschlagen — aktiver Deploy unberührt"
             )
-        elif phase == DeployPhase.CLEANED_UP:
+        elif state == DeployMachine.cleaned_up:
             self.log("Deploy abgeschlossen")
 
-    def _raise_if_failed(self, phase):
-        if phase == DeployPhase.CLEANED_UP:
+    def _raise_if_failed(self, state):
+        if state == DeployMachine.cleaned_up:
             return
-        if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
+        if state == DeployMachine.manual_intervention_required:
             raise RuntimeError("Manueller Eingriff erforderlich")
-        raise RuntimeError(f"Deploy fehlgeschlagen: {phase.name}")
+        raise RuntimeError(f"Deploy fehlgeschlagen: {state.id}")
 
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
