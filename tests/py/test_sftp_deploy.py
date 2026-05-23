@@ -13,19 +13,15 @@ import requests.exceptions
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
+from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile, SlotState  # noqa: E402
 
 
 CHECKSUM = "abc123def456abcd"
-ACTIVE_STATE_INI = (
-    "[state]\n"
-    "app = a\n"
-    "vendor = a\n"
-    "run_id = run-prev\n"
-    f"vendor_checksum = {CHECKSUM}\n\n"
-)
 VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
-STATE_FILE = ".deploy-state.ini"
+STATE_FILE = ".htaccess"
+ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
+ACTIVE_BOOTSTRAP = "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+VENDOR_INJECT_LINE = "require $vendorDir . '/autoload.php';"
 
 
 def load_sftp_deploy_module():
@@ -155,28 +151,33 @@ class FakeDispatchHttpError:
 def make_stubbed_deploy(module, run_id="run-1"):
     deploy = module.SftpDeploy({}, run_id, logger=lambda _: None)
     deploy.client = FakeClient()
-    deploy.upload_app_tree = lambda _tree: None
-    deploy.upload_static_entry_files = lambda: None
+    deploy.upload_app_tree = lambda _tree, _vendor: None
     deploy.publish_switch = lambda _target: None
     deploy.migrate_tokens = lambda _a, _b: None
     deploy.dispatch_switch = lambda _target, _active: None
     return deploy
 
 
-def make_scenario_deploy(module, state_ini=""):
+def make_scenario_deploy(module, active=False):
     vendor_uploads = []
     deploy = module.SftpDeploy({}, "run-1", logger=lambda _: None)
     client = FakeClient()
-    if state_ini:
-        client.set_file(STATE_FILE, state_ini)
+    if active:
+        client.set_file(".htaccess", ACTIVE_HTACCESS)
+        client.set_file("app-a/src/Http/bootstrap.php", ACTIVE_BOOTSTRAP)
         client.set_file("vendor-a/.meta", VENDOR_META)
         client.set_file("app-a/.deploy-run", "run-prev")
     deploy.client = client
-    deploy.upload_app_tree = lambda _: None
-    deploy.upload_static_entry_files = lambda: None
+    deploy.upload_app_tree = lambda _tree, _vendor: None
     deploy.migrate_tokens = lambda _a, _b: None
     deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
     return deploy, vendor_uploads
+
+
+def write_staging_bootstrap(staging_dir):
+    path = Path(staging_dir) / "src" / "Http" / "bootstrap.php"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(VENDOR_INJECT_LINE)
 
 
 class DispatchSwitchTest(unittest.TestCase):
@@ -317,8 +318,9 @@ class UploadSentinelTest(unittest.TestCase):
     def test_app_sentinel_written_on_success(self):
         module = load_sftp_deploy_module()
         with tempfile.TemporaryDirectory() as tmp:
+            write_staging_bootstrap(tmp)
             deploy = self._make_deploy(module, Path(tmp))
-            deploy.upload_app_tree("app-b")
+            deploy.upload_app_tree("app-b", "vendor-a")
         self.assertEqual(
             deploy.client.texts.get("app-b/.deploy-run"), "run-1"
         )
@@ -327,13 +329,14 @@ class UploadSentinelTest(unittest.TestCase):
         module = load_sftp_deploy_module()
         with tempfile.TemporaryDirectory() as tmp:
             staging = Path(tmp)
+            write_staging_bootstrap(tmp)
             (staging / "index.php").write_text("<?php")
             deploy = self._make_deploy(module, staging)
             with patch.object(
                 deploy, "upload_file", side_effect=OSError("fail")
             ):
                 with self.assertRaises(OSError):
-                    deploy.upload_app_tree("app-b")
+                    deploy.upload_app_tree("app-b", "vendor-a")
         self.assertNotIn("app-b/.deploy-run", deploy.client.texts)
 
 
@@ -347,8 +350,9 @@ class PrepareSlotTest(unittest.TestCase):
     def test_app_slot_removed_before_upload(self):
         module = load_sftp_deploy_module()
         with tempfile.TemporaryDirectory() as tmp:
+            write_staging_bootstrap(tmp)
             deploy = self._make_deploy(module, Path(tmp))
-            deploy.upload_app_tree("app-b")
+            deploy.upload_app_tree("app-b", "vendor-a")
         self.assertIn("app-b", deploy.client.removed_dirs)
 
     def test_vendor_slot_removed_before_upload(self):
@@ -422,7 +426,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
 
     def test_deploy_fresh_writes_state_and_uploads_vendor(self):
         module = load_sftp_deploy_module()
-        deploy, vendor_uploads = make_scenario_deploy(module, state_ini="")
+        deploy, vendor_uploads = make_scenario_deploy(module)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
             deploy.deploy()
         self.assertIn(STATE_FILE, deploy.client.texts)
@@ -430,7 +434,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
 
     def test_deploy_swap_normal_dispatches_task_without_writing_state(self):
         module = load_sftp_deploy_module()
-        deploy, vendor_uploads = make_scenario_deploy(module, state_ini=ACTIVE_STATE_INI)
+        deploy, vendor_uploads = make_scenario_deploy(module, active=True)
         with (
             patch.object(module, "TaskDispatch", FakeDispatch),
             patch.object(module, "vendor_checksum", return_value=CHECKSUM),
@@ -442,33 +446,13 @@ class SftpDeployScenarioTest(unittest.TestCase):
 
     def test_deploy_swap_unreachable_app_writes_state_directly(self):
         module = load_sftp_deploy_module()
-        deploy, _vendor_uploads = make_scenario_deploy(module, state_ini=ACTIVE_STATE_INI)
+        deploy, _vendor_uploads = make_scenario_deploy(module, active=True)
         with (
             patch.object(module, "TaskDispatch", FakeDispatchUnreachable),
             patch.object(module, "vendor_checksum", return_value=CHECKSUM),
         ):
             deploy.deploy()
         self.assertIn(STATE_FILE, deploy.client.texts)
-
-
-class SftpDeployStaticFilesTest(unittest.TestCase):
-    def test_upload_static_entry_files_uploads_runtime_state(self):
-        module = load_sftp_deploy_module()
-        deploy = module.SftpDeploy(
-            {"SFTP_WEBROOT": "public"},
-            "run-1",
-        )
-        deploy.client = FakeClient()
-        deploy.upload_static_entry_files()
-        paths = [path for _local, path in deploy.client.files]
-        self.assertEqual(
-            paths,
-            [
-                "public/.htaccess",
-                "public/deploy-state.php",
-                "public/index.php",
-            ],
-        )
 
 
 class TokenMigrationTest(unittest.TestCase):

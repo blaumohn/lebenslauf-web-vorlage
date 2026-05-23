@@ -1,10 +1,6 @@
 # ruff: noqa: E402, I001
 import json
-import os
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,215 +11,199 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from cli.py.deploy.sftp_deploy_state import (
     DeployState,
     DeploymentPlan,
+    HtaccessSlotFile,
     SlotState,
+    _VENDOR_SLOT_RE,
 )
 from cli.py.deploy.sftp_deploy_templates import resource_path
 
+BOOTSTRAP_SRC = REPO_ROOT / "src" / "Http" / "bootstrap.php"
+VENDOR_INJECT_LINE = "require $vendorDir . '/autoload.php';"
+VENDOR_INJECTED = (
+    "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';"
+)
 
-class SftpDeployStateTest(unittest.TestCase):
-    def test_deploy_state_ini_roundtrip(self):
-        state = SlotState("b", "a", "run-1", "checksum-1")
-        content = DeployState.format(state)
-        lines = content.splitlines()
 
-        self.assertEqual(DeployState.parse(content), state)
-        expected = [
-            "[state]",
-            "app = b",
-            "vendor = a",
-            "run_id = run-1",
-            "vendor_checksum = checksum-1",
-            "",
-        ]
-        self.assertEqual(lines, expected)
+class HtaccessSlotFileTest(unittest.TestCase):
+    def test_roundtrip_app_a(self):
+        content = HtaccessSlotFile.generate("a")
+        self.assertEqual(HtaccessSlotFile.read_slot(content), "a")
 
-    def test_invalid_deploy_state_returns_none(self):
-        content = "[state]\napp=x\nvendor=a\n"
+    def test_roundtrip_app_b(self):
+        content = HtaccessSlotFile.generate("b")
+        self.assertEqual(HtaccessSlotFile.read_slot(content), "b")
 
-        self.assertIsNone(DeployState.parse(content))
-        self.assertIsNone(DeployState.parse("[]"))
-        self.assertIsNone(DeployState.parse(""))
-        self.assertIsNone(DeployState.parse("[state]\napp=a\nvendor=a\nrun_id=1\n"))
-        self.assertIsNone(DeployState.parse("[state]\napp=a\nvendor=a\nvendor_checksum=1\n"))
-
-    def test_deploy_state_format_rejects_missing_state(self):
+    def test_read_slot_raises_no_rule(self):
+        """read_slot() wirft ValueError, wenn keine RewriteRule passt.
+        """
         with self.assertRaises(ValueError):
-            DeployState.format(None)
+            HtaccessSlotFile.read_slot("RewriteEngine On\n")
 
-    def test_deploy_state_format_rejects_incomplete_state(self):
-        with self.assertRaises(ValueError):
-            DeployState.format(SlotState("a", "a"))
-        with self.assertRaises(ValueError):
-            DeployState.format(SlotState("a", "a", "run-1"))
+    def test_generate_app_slot_content(self):
+        """generate() enthält App-Slot-Pfade und RewriteEngine-Direktive.
+        """
+        content = HtaccessSlotFile.generate("a")
+        self.assertIn("/app-a/public/index.php", content)
+        self.assertIn("/app-a/public/", content)
+        self.assertIn("RewriteEngine On", content)
 
-    def test_deployment_plan_swaps_tree_and_optional_vendor(self):
+
+class BootstrapInjectTest(unittest.TestCase):
+    def test_inject_line_once(self):
+        """bootstrap.php enthält die Inject-Zielzeile genau einmal."""
+        content = BOOTSTRAP_SRC.read_text(encoding="utf-8")
+        self.assertEqual(
+            content.count(VENDOR_INJECT_LINE),
+            1,
+            f"Zeile '{VENDOR_INJECT_LINE}' muss genau einmal"
+            " vorkommen — Änderung → _inject_vendor_require()"
+            " in sftp-deploy.py anpassen",
+        )
+
+    def test_vendor_regex_matches_injected(self):
+        """_VENDOR_SLOT_RE trifft auf injizierte bootstrap.php-Zeile."""
+        match = _VENDOR_SLOT_RE.search(VENDOR_INJECTED)
+        self.assertIsNotNone(
+            match,
+            f"_VENDOR_SLOT_RE trifft nicht auf '{VENDOR_INJECTED}' — "
+            "Änderung des Inject-Formats → _VENDOR_SLOT_RE anpassen",
+        )
+        self.assertEqual(match.group(1), "a")
+
+    def test_vendor_regex_no_source_match(self):
+        """_VENDOR_SLOT_RE darf die Quellzeile nicht treffen."""
+        self.assertIsNone(
+            _VENDOR_SLOT_RE.search(VENDOR_INJECT_LINE),
+            f"_VENDOR_SLOT_RE trifft auf Quellzeile"
+            f" '{VENDOR_INJECT_LINE}'"
+            " — DeployState.read() würde falschen Slot lesen",
+        )
+
+
+class DeploymentPlanTest(unittest.TestCase):
+    def test_swap_both_slots_include_vendor(self):
+        """swap() wechselt App- und Vendor-Slot,
+        wenn Vendor eingeschlossen."""
         active = SlotState("a", "b")
-
-        with_vendor = DeploymentPlan.swap(active, include_vendor=True)
-        without_vendor = DeploymentPlan.swap(active, include_vendor=False)
-
-        self.assertEqual(with_vendor.target, SlotState("b", "a"))
-        self.assertEqual(without_vendor.target, SlotState("b", "b"))
-
-    def test_deployment_plan_uploads_vendor_when_include_vendor_true(self):
-        active = SlotState("a", "b")
-
         plan = DeploymentPlan.swap(active, include_vendor=True)
-
         self.assertEqual(plan.target, SlotState("b", "a"))
 
-    def test_static_entry_resources_exist(self):
-        router = read_resource("webroot/index.php")
-        htaccess = read_resource("webroot/.htaccess")
-        deploy_state = read_resource("webroot/deploy-state.php")
+    def test_swap_keeps_vendor_without_flag(self):
+        """swap() behält Vendor-Slot, wenn include_vendor=False."""
+        active = SlotState("a", "b")
+        plan = DeploymentPlan.swap(active, include_vendor=False)
+        self.assertEqual(plan.target, SlotState("b", "b"))
 
-        self.assertIn("require __DIR__ . '/deploy-state.php';", router)
-        self.assertIn(".deploy-state.ini", router)
-        self.assertNotIn("// deploy-state:", router)
-        self.assertIn("final class DeployRuntimeState", deploy_state)
-        self.assertIn("RewriteRule ^ index.php [L]", htaccess)
 
-    def test_composer_does_not_autoload_deploy_state(self):
+class DeployResourceTest(unittest.TestCase):
+    def test_public_entry_bootstrap(self):
+        """public/index.php bindet bootstrap.php ein."""
+        content = (REPO_ROOT / "public" / "index.php").read_text(encoding="utf-8")
+        self.assertIn(
+            "require dirname(__DIR__) . '/src/Http/bootstrap.php'",
+            content,
+        )
+
+    def test_public_htaccess_routing(self):
+        """public/.htaccess leitet Anfragen an index.php weiter."""
+        content = (REPO_ROOT / "public" / ".htaccess").read_text(encoding="utf-8")
+        self.assertIn("RewriteEngine On", content)
+        self.assertIn("index.php", content)
+
+    def test_app_slot_protects_src_and_var(self):
+        """src/ und var/ innerhalb app-slot sind per .htaccess gesperrt.
+        """
+        src = read_resource("app-slot/src/.htaccess")
+        var = read_resource("app-slot/var/.htaccess")
+        self.assertEqual(src.strip(), "Require all denied")
+        self.assertEqual(var.strip(), "Require all denied")
+
+    def test_composer_no_deploy_autoload(self):
+        """composer.json enthält kein files-Autoload
+        für deploy-state.php."""
         composer = json.loads((REPO_ROOT / "composer.json").read_text())
         autoload = composer["autoload"]
-
         self.assertNotIn("files", autoload)
         self.assertNotIn(
             "src/resources/deploy-root/webroot/deploy-state.php",
             json.dumps(autoload),
         )
 
-    def test_webroot_router_serves_only_active_public_files(self):
-        router = read_resource("webroot/index.php")
-        app_root = (
-            "define('APP_ROOT_DIR', __DIR__ . '/../' "
-            ". $state->appDir());"
-        )
+    def test_public_index_exists(self):
+        """public/index.php ist als App-Einstieg vorhanden."""
+        self.assertTrue((REPO_ROOT / "public" / "index.php").exists())
 
-        deploy_state_require = "require __DIR__ . '/deploy-state.php';"
-        bootstrap_require = "require $bootstrap;"
 
-        self.assertIn(app_root, router)
-        self.assertIn("DeployRuntimeState::fromIniFile", router)
-        self.assertIn("deploy_router_log", router)
-        self.assertLess(
-            router.index(deploy_state_require),
-            router.index(bootstrap_require),
-        )
-        self.assertIn("$file = $appRoot . '/public/' . $path;", router)
-        self.assertIn(bootstrap_require, router)
-        bootstrap_path = "APP_ROOT_DIR . '/src/Http/bootstrap.php'"
-        self.assertIn(bootstrap_path, router)
-        self.assertIn("str_contains($path, '..')", router)
-        self.assertNotIn("$file = $appRoot . '/' . $path;", router)
-        self.assertNotIn("public/index.php", router)
-
-    def test_app_slot_protects_non_public_runtime_paths(self):
-        app_root = read_resource("app-slot/.htaccess")
-        src = read_resource("app-slot/src/.htaccess")
-        var = read_resource("app-slot/var/.htaccess")
-
-        self.assertEqual(app_root.strip(), "Require all denied")
-        self.assertEqual(src.strip(), "Require all denied")
-        self.assertEqual(var.strip(), "Require all denied")
-
-    def test_webroot_router_uses_active_public_file(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            webroot = prepare_router_layout(root, "b")
-            public_file = root / "app-b" / "public" / "asset.txt"
-            write_text(public_file, "active asset")
-
-            output = run_router(webroot, "/asset.txt")
-
-        self.assertEqual(output, "active asset")
-
-    def test_webroot_router_hides_runtime_paths(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            webroot = prepare_router_layout(root, "a")
-            write_text(root / "app-a" / "var" / "secret.txt", "var")
-            write_text(root / "app-a" / "src" / "secret.txt", "src")
-
-            var_output = run_router(webroot, "/var/secret.txt")
-            src_output = run_router(webroot, "/src/secret.txt")
-
-        self.assertEqual(var_output, "front")
-        self.assertEqual(src_output, "front")
-
-    def test_public_index_is_not_required_as_app_entry(self):
-        self.assertFalse((REPO_ROOT / "public" / "index.php").exists())
-
-    def test_dev_router_is_outside_public_and_uses_bootstrap(self):
-        router = (REPO_ROOT / "scripts" / "local" / "dev-index.php")
-        content = router.read_text(encoding="utf-8")
-
-        self.assertIn("define('APP_ROOT_DIR'", content)
-        self.assertIn("define('APP_VENDOR_DIR'", content)
-        self.assertIn("getenv('APP_ROOT_DIR')", content)
-        self.assertIn("getenv('APP_VENDOR_DIR')", content)
-        self.assertIn("return false;", content)
-        self.assertIn("src/Http/bootstrap.php", content)
-
-    def test_dev_server_uses_local_router_with_public_root(self):
-        dev_script = REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
-        content = dev_script.read_text(encoding="utf-8")
-
+class DevRouterTest(unittest.TestCase):
+    def test_dev_server_uses_public_docroot(self):
+        """Dev-Server startet PHP mit public/ als Webroot ohne Router."""
+        path = REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
+        content = path.read_text(encoding="utf-8")
         self.assertIn('"php"', content)
         self.assertIn('"-t"', content)
         self.assertIn('"public"', content)
-        self.assertIn('"scripts/local/dev-index.php"', content)
+        self.assertNotIn("dev-index.php", content)
+
+
+_CHECKSUM = "abc123def456abcd"
+_RUN_ID = "run-42"
+_HTACCESS_A = HtaccessSlotFile.generate("a")
+_BOOTSTRAP_B = (
+    "require dirname(__DIR__, 3) . '/vendor-b/autoload.php';\n"
+)
+_VENDOR_META = f"[vendor]\nchecksum = {_CHECKSUM}\n\n"
+
+
+class _FakeClient:
+    def __init__(self, files):
+        self._files = files
+
+    def read_file(self, path):
+        return self._files.get(path, "")
+
+
+def _full_client(**overrides):
+    files = {
+        ".htaccess": _HTACCESS_A,
+        "app-a/src/Http/bootstrap.php": _BOOTSTRAP_B,
+        "app-a/.deploy-run": _RUN_ID,
+        "vendor-b/.meta": _VENDOR_META,
+    }
+    files.update(overrides)
+    return _FakeClient(files)
+
+
+class DeployStateReadTest(unittest.TestCase):
+    def test_liest_app_slot_aus_htaccess(self):
+        state = DeployState.read(_full_client())
+        self.assertEqual(state.app, "a")
+
+    def test_liest_vendor_slot_aus_bootstrap(self):
+        state = DeployState.read(_full_client())
+        self.assertEqual(state.vendor, "b")
+
+    def test_liest_run_id_aus_deploy_run(self):
+        state = DeployState.read(_full_client())
+        self.assertEqual(state.run_id, _RUN_ID)
+
+    def test_liest_vendor_checksum_aus_meta(self):
+        state = DeployState.read(_full_client())
+        self.assertEqual(state.vendor_checksum, _CHECKSUM)
+
+    def test_gibt_none_ohne_htaccess(self):
+        self.assertIsNone(DeployState.read(_FakeClient({})))
+
+    def test_leere_run_id_wenn_deploy_run_fehlt(self):
+        state = DeployState.read(_full_client(**{"app-a/.deploy-run": ""}))
+        self.assertEqual(state.run_id, "")
+
+    def test_leere_checksum_wenn_meta_fehlt(self):
+        state = DeployState.read(_full_client(**{"vendor-b/.meta": ""}))
+        self.assertEqual(state.vendor_checksum, "")
 
 
 def read_resource(path):
     return resource_path(path).read_text(encoding="utf-8")
-
-
-def prepare_router_layout(root, app_slot):
-    webroot = root / "public"
-    webroot.mkdir()
-    router = resource_path("webroot/index.php")
-    shutil.copy(router, webroot / "index.php")
-    deploy_state = resource_path("webroot/deploy-state.php")
-    shutil.copy(deploy_state, webroot / "deploy-state.php")
-    write_text(root / ".deploy-state.ini", state_ini(app_slot))
-    bootstrap = (
-        root / f"app-{app_slot}" / "src" / "Http" / "bootstrap.php"
-    )
-    write_text(bootstrap, "<?php echo 'front';")
-    return webroot
-
-
-def state_ini(app_slot):
-    return f"[state]\napp = {app_slot}\nvendor = a\n\n"
-
-
-def write_text(path, content):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def run_router(webroot, uri):
-    env = os.environ.copy()
-    env["REQUEST_URI"] = uri
-    code = router_php_code(webroot)
-    result = subprocess.run(
-        ["php", "-r", code],
-        check=True,
-        capture_output=True,
-        env=env,
-        text=True,
-    )
-    return result.stdout
-
-
-def router_php_code(webroot):
-    router = str(webroot / "index.php")
-    return (
-        '$_SERVER["REQUEST_URI"] = getenv("REQUEST_URI"); require "'
-        + router
-        + '";'
-    )
 
 
 if __name__ == "__main__":

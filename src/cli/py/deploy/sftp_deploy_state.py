@@ -1,11 +1,39 @@
-import configparser
+import re
 from dataclasses import dataclass
 
-from cli.py.util.structured_text import IniModel
+from cli.py.deploy.vendor_sentinel import VendorSentinel
 
-
-STATE_FILE = ".deploy-state.ini"
+HTACCESS_FILE = ".htaccess"
+BOOTSTRAP_PATH = "src/Http/bootstrap.php"
 VALID_SLOTS = ("a", "b")
+
+_APP_SLOT_RE = re.compile(r"RewriteRule \^ /app-([ab])/public/index\.php")
+_VENDOR_SLOT_RE = re.compile(r"/vendor-([ab])/autoload\.php")
+
+
+# deploy: Format von generate() wird von DeployState.php toHtaccess()
+# erzeugt und von read_slot() per Regex gelesen.
+# Änderung → _APP_SLOT_RE anpassen.
+# Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
+class HtaccessSlotFile:
+    @staticmethod
+    def read_slot(content):
+        match = _APP_SLOT_RE.search(content)
+        if not match:
+            raise ValueError(
+                "Kein aktiver app-a/app-b-Slot in .htaccess gefunden"
+            )
+        return match.group(1)
+
+    @staticmethod
+    def generate(app):
+        return (
+            f"RewriteEngine On\n"
+            f"RewriteCond %{{DOCUMENT_ROOT}}/app-{app}/public/"
+            f"%{{REQUEST_URI}} -f\n"
+            f"RewriteRule ^(.*)$ /app-{app}/public/$1 [L]\n"
+            f"RewriteRule ^ /app-{app}/public/index.php [L,QSA]\n"
+        )
 
 
 @dataclass(frozen=True)
@@ -49,61 +77,55 @@ class DeploymentPlan:
     @classmethod
     def swap(cls, active, include_vendor: bool):
         app = other_slot(active.app)
-        vendor = other_slot(active.vendor) if include_vendor else active.vendor
+        if include_vendor:
+            vendor = other_slot(active.vendor)
+        else:
+            vendor = active.vendor
         return cls(active, SlotState(app, vendor))
-
-
-@dataclass(frozen=True)
-class DeployStateDocument(IniModel):
-    schema = {
-        "state": {
-            "app": str,
-            "vendor": str,
-            "run_id": str,
-            "vendor_checksum": str,
-        },
-    }
-
-    state_app: str
-    state_vendor: str
-    state_run_id: str
-    state_vendor_checksum: str
 
 
 class DeployState:
     @staticmethod
     def read(client):
-        return DeployState.parse(client.read_file(STATE_FILE))
+        content = client.read_file(HTACCESS_FILE)
+        if not content:
+            return None
+        try:
+            app = HtaccessSlotFile.read_slot(content)
+        except ValueError:
+            return None
+        vendor = DeployState._read_vendor_label(client, app)
+        if vendor is None:
+            return None
+        run_id = DeployState._read_run_id(client, app)
+        vendor_checksum = DeployState._read_vendor_checksum(client, vendor)
+        return SlotState(app, vendor, run_id, vendor_checksum)
 
     @staticmethod
     def write(client, state):
-        client.put_text(STATE_FILE, DeployState.format(state))
+        htaccess = HtaccessSlotFile.generate(state.app)
+        client.put_text(HTACCESS_FILE, htaccess)
 
     @staticmethod
-    def parse(content):
-        try:
-            document = DeployStateDocument.from_text(content)
-        except (configparser.Error, KeyError):
+    def _read_vendor_label(client, app):
+        content = client.read_file(f"app-{app}/{BOOTSTRAP_PATH}")
+        if not content:
             return None
-        return SlotState.from_values(
-            document.state_app,
-            document.state_vendor,
-            document.state_run_id,
-            document.state_vendor_checksum,
-        )
+        match = _VENDOR_SLOT_RE.search(content)
+        return match.group(1) if match else None
 
     @staticmethod
-    def format(state):
-        if state is None:
-            raise ValueError("Deploy-State fehlt.")
-        if state.run_id == "" or state.vendor_checksum == "":
-            raise ValueError("Deploy-State unvollständig.")
-        return DeployStateDocument(
-            state.app,
-            state.vendor,
-            state.run_id,
-            state.vendor_checksum,
-        ).to_text()
+    def _read_run_id(client, app):
+        content = client.read_file(f"app-{app}/.deploy-run")
+        return content.strip() if content else ""
+
+    @staticmethod
+    def _read_vendor_checksum(client, vendor):
+        content = client.read_file(f"vendor-{vendor}/.meta")
+        if not content:
+            return ""
+        sentinel = VendorSentinel.from_text(content)
+        return sentinel.vendor_checksum
 
 
 def other_slot(slot):
