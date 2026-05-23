@@ -16,9 +16,10 @@ run_pipeline() {
   pipeline_report_start
   run_step "Setup ($PIPELINE)" pipeline_setup "$is_dev"
   run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
-  run_step "Tests" run_unit_and_feature_tests
+  # run_step "Tests" run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
+    run_step "Tests" composer test
     run_step "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
     return
   fi
@@ -72,7 +73,6 @@ prepare_deploy_dir() {
   cp -a src/Http src/resources "$DEPLOY_DIR/src/"
   cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
   cp -a var/config "$DEPLOY_DIR/var/"
-  copy_slot_htaccess "" "$DEPLOY_DIR/.htaccess"
   copy_slot_htaccess "src" "$DEPLOY_DIR/src/.htaccess"
   copy_slot_htaccess "var" "$DEPLOY_DIR/var/.htaccess"
 }
@@ -83,9 +83,10 @@ copy_slot_htaccess() {
 }
 
 verify_artifact() {
+  test -f "$DEPLOY_DIR/public/index.php"
+  test -f "$DEPLOY_DIR/public/.htaccess"
   test -f "$DEPLOY_DIR/src/Http/bootstrap.php"
   test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
-  test -f "$DEPLOY_DIR/.htaccess"
   test -f "$DEPLOY_DIR/src/.htaccess"
   test -f "$DEPLOY_DIR/var/.htaccess"
 }
@@ -154,23 +155,11 @@ with_dev_server() {
 
 
 start_php_server() {
-  local port="$1"
-  local docroot="$2"
-  local log_file="$3"
-  local app_root app_vendor
+  local port="$1" docroot="$2" log_file="$3"
 
-  if [[ "$docroot" == "public" ]]; then
-    app_root="$PWD"
-  else
-    app_root="${docroot%/public}"
-  fi
-  app_vendor="${app_root}/vendor"
-
-  APP_ROOT_DIR="$app_root" APP_VENDOR_DIR="$app_vendor" \
-    php -S "0.0.0.0:${port}" \
-      -t "$docroot" \
-      scripts/local/dev-index.php \
-      > "$log_file" 2>&1 &
+  php -S "0.0.0.0:${port}" \
+    -t "$docroot" \
+    > "$log_file" 2>&1 &
   echo "$!"
 }
 

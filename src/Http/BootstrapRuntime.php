@@ -8,25 +8,17 @@ final class BootstrapRuntime
 
     public static function rootPath(): string
     {
-        if (defined('APP_ROOT_DIR')) {
-            return APP_ROOT_DIR;
-        }
         return dirname(__DIR__, 2);
     }
 
     public static function vendorPath(string $rootPath): string
     {
-        if (defined('APP_VENDOR_DIR')) {
-            return APP_VENDOR_DIR;
-        }
         return $rootPath . '/vendor';
     }
 
     public static function registerShutdownTrap(string $rootPath): void
     {
-        $logDir = defined('APP_ROOT_DIR')
-            ? dirname(APP_ROOT_DIR) . '/log'
-            : $rootPath . '/var/log';
+        $logDir = $rootPath . '/var/log';
 
         $logPath = $logDir . '/error.log';
         $handler = [self::class, 'writeFatalToLog'];

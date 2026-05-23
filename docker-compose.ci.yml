@@ -124,7 +124,6 @@ services:
     environment:
       APACHE_RUN_USER: "preview-ci"
       APACHE_RUN_GROUP: "preview-ci"
-      APACHE_WEBROOT: "public"
     command: bash /scripts/config-apache.sh
     volumes:
       - "preview_deploy:/var/www/html"

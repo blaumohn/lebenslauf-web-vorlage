@@ -18,15 +18,12 @@ from unittest.mock import patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile  # noqa: E402
+
 CHECKSUM = "abc123def456abcd"
-STATE_FILE = ".deploy-state.ini"
-ACTIVE_STATE_INI = (
-    "[state]\n"
-    "app = a\n"
-    "vendor = a\n"
-    "run_id = run-prev\n"
-    f"vendor_checksum = {CHECKSUM}\n\n"
-)
+STATE_FILE = ".htaccess"
+ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
+ACTIVE_BOOTSTRAP = "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
 VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 
 
@@ -84,11 +81,12 @@ class FakeClient:
 def make_swap_deploy(module, run_id="run-2"):
     deploy = module.SftpDeploy({}, run_id, logger=lambda _: None)
     client = FakeClient()
-    client.set_file(STATE_FILE, ACTIVE_STATE_INI)
+    client.set_file(".htaccess", ACTIVE_HTACCESS)
+    client.set_file("app-a/src/Http/bootstrap.php", ACTIVE_BOOTSTRAP)
     client.set_file("vendor-a/.meta", VENDOR_META)
     client.set_file("app-a/.deploy-run", "run-prev")
     deploy.client = client
-    deploy.upload_static_entry_files = lambda: None
+    deploy._inject_vendor_require = lambda _: None
     deploy.migrate_tokens = lambda _a, _b: None
     return deploy, client
 
@@ -196,7 +194,7 @@ class Szenario2Test(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
         written = client.texts.get(STATE_FILE, "")
-        self.assertIn("app = a", written)
+        self.assertIn("/app-a/", written)
 
 
 class Szenario3Test(unittest.TestCase):

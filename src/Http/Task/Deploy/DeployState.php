@@ -72,16 +72,17 @@ final class DeployState
         $this->validateVendorSlot($entryPath);
     }
 
-    public function toIni(): string
+    // deploy: Dieses Format wird von HtaccessSlotFile.read_slot() per Regex gelesen.
+    // Änderung hier → _APP_SLOT_RE in src/cli/py/deploy/sftp_deploy_state.py anpassen.
+    // Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
+    public function toHtaccess(): string
     {
-        $ini = "[state]\n"
-            . "app={$this->appSlot->label()}\n"
-            . "vendor={$this->vendorSlot->label()}\n"
-            . "run_id={$this->deployId}\n";
-        if ($this->vendorChecksum !== '') {
-            $ini .= "vendor_checksum={$this->vendorChecksum}\n";
-        }
-        return $ini;
+        $app = $this->appSlot->label();
+        return "# deploy-slot: {$app}\n"
+            . "RewriteEngine On\n"
+            . "RewriteCond %{DOCUMENT_ROOT}/app-{$app}/public/%{REQUEST_URI} -f\n"
+            . "RewriteRule ^(.*)$ /app-{$app}/public/\$1 [L]\n"
+            . "RewriteRule ^ /app-{$app}/public/index.php [L,QSA]\n";
     }
 
     private function validateAppSlot(string $entryPath): void

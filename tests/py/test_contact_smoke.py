@@ -87,11 +87,11 @@ class ContactSmokeTest(unittest.TestCase):
             smoke.read_captcha_solution(sftp, "a", "missing_123")
 
     def test_reads_app_slot_from_state(self):
+        from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile
         files = {
-            ".deploy-state.ini": (
-                "[state]\napp=b\nvendor=a\n"
-                "run_id=run-1\n"
-                "vendor_checksum=checksum-1\n"
+            ".htaccess": HtaccessSlotFile.generate("b"),
+            "app-b/src/Http/bootstrap.php": (
+                "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
             ),
         }
         sftp = FakeSftpClient(files)
@@ -103,7 +103,7 @@ class ContactSmokeTest(unittest.TestCase):
         self.assertEqual(smoke.read_active_app_slot(sftp), "b")
 
     def test_rejects_invalid_deploy_state(self):
-        files = {".deploy-state.ini": "[state]\napp=x\nvendor=a\n"}
+        files = {".htaccess": "RewriteEngine On\n"}
         sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://preview-web"},

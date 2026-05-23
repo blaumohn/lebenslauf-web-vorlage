@@ -9,6 +9,9 @@ require __DIR__ . '/BootstrapRuntime.php';
 $rootPath = BootstrapRuntime::rootPath();
 $vendorDir = BootstrapRuntime::vendorPath($rootPath);
 
+// deploy: Diese Zeile wird im Staging durch den Vendor-Slot-Pfad ersetzt.
+// Änderung hier → _inject_vendor_require() in scripts/sftp-deploy.py anpassen.
+// Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
 require $vendorDir . '/autoload.php';
 BootstrapRuntime::registerAppHttpAutoload($rootPath . '/src/Http');
 BootstrapRuntime::registerShutdownTrap($rootPath);

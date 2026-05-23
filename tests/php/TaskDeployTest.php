@@ -60,7 +60,14 @@ final class TaskDeployTest extends TestCase
         $this->assertSame('b', $state->appLabel());
         $this->assertSame('a', $state->vendorLabel());
         $this->assertSame('app-b/.deploy-run', $state->appRunMarkerPath());
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=run-42\n", $state->toIni());
+        $this->assertSame(
+            "# deploy-slot: b\n"
+            . "RewriteEngine On\n"
+            . "RewriteCond %{DOCUMENT_ROOT}/app-b/public/%{REQUEST_URI} -f\n"
+            . "RewriteRule ^(.*)$ /app-b/public/\$1 [L]\n"
+            . "RewriteRule ^ /app-b/public/index.php [L,QSA]\n",
+            $state->toHtaccess(),
+        );
     }
 
     public function testDeployStateRejectsMissingDeployId(): void
@@ -88,15 +95,13 @@ final class TaskDeployTest extends TestCase
 
     // ── DeploySwitcher ───────────────────────────────────────────────────────
 
-    public function testDeploySwitcherWritesStateFile(): void
+    public function testDeploySwitcherWritesHtaccess(): void
     {
-        $stateFile = $this->dir . '/.deploy-state.ini';
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
 
         $switcher->switchTo(DeployState::fromParams('42', 'b', 'a'));
 
-        $this->assertFileExists($stateFile);
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\n", file_get_contents($stateFile));
+        $this->assertFileExists($this->dir . '/.htaccess');
     }
 
     // ── Task ─────────────────────────────────────────────────────────────────
@@ -152,7 +157,7 @@ final class TaskDeployTest extends TestCase
         $result = $this->buildDeploySwitchHandler()->handle($task, $this->dir);
 
         $this->assertTrue($result->success);
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=checksum-1\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertFileExists($this->dir . '/.htaccess');
     }
 
     public function testDeploySwitchTaskHandlerRejectsLegacyAppMarkerPath(): void
@@ -217,8 +222,7 @@ final class TaskDeployTest extends TestCase
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
-        $this->assertFileExists($this->dir . '/.deploy-state.ini');
-        $this->assertSame("[state]\napp=b\nvendor=a\nrun_id=42\nvendor_checksum=checksum-1\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertFileExists($this->dir . '/.htaccess');
     }
 
     public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void

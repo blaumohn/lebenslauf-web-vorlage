@@ -69,17 +69,12 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn(curl_error_guard, pipeline_lib)
         self.assertIn(smoke_error_message, pipeline_lib)
 
-    def test_pipeline_dev_server_uses_local_router(self):
+    def test_pipeline_dev_server_uses_public_docroot(self):
         pipeline_lib = read_repo_file("scripts/pipeline_lib.sh")
-        local_public_root = 'if [[ "$docroot" == "public" ]]; then'
 
-        self.assertIn(local_public_root, pipeline_lib)
-        self.assertIn('app_root="$PWD"', pipeline_lib)
-        self.assertIn('app_root="${docroot%/public}"', pipeline_lib)
-        self.assertIn('app_vendor="${app_root}/vendor"', pipeline_lib)
-        self.assertIn('APP_ROOT_DIR="$app_root"', pipeline_lib)
-        self.assertIn('APP_VENDOR_DIR="$app_vendor"', pipeline_lib)
-        self.assertIn("scripts/local/dev-index.php", pipeline_lib)
+        self.assertIn('php -S "0.0.0.0:${port}"', pipeline_lib)
+        self.assertIn('-t "$docroot"', pipeline_lib)
+        self.assertNotIn("dev-index.php", pipeline_lib)
 
     def test_entrypoints_wrap_dependency_install(self):
         ci_entrypoint = read_repo_file("bin/ci")

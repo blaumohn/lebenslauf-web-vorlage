@@ -18,8 +18,9 @@ final class DeploySwitcher
     {
         $writeState = function () use ($state): void {
             $this->writer->writeText(
-                $this->entryPath . '/.deploy-state.ini',
-                $state->toIni(),
+                $this->entryPath . '/.htaccess',
+                $state->toHtaccess(),
+                0644,
             );
         };
         $this->lockRunner->runWithLock('deploy-switch', $writeState);
