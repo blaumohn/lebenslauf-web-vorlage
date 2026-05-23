@@ -31,7 +31,9 @@ class DeployOps(Protocol):
 class DeployMachine(StateMachine):
     started                      = State(initial=True)
     state_loaded                 = State()
-    target_selected              = State()
+    fresh_selected               = State()
+    swap_selected                = State()
+    swap_vendor_update_selected  = State()
     target_prepared              = State()
     app_uploaded                 = State()
     vendor_ready                 = State()
@@ -43,9 +45,15 @@ class DeployMachine(StateMachine):
     failed_safe                  = State(final=True)
     manual_intervention_required = State(final=True)
 
-    ev_load     = started.to(state_loaded)
-    ev_select   = state_loaded.to(target_selected)
-    ev_prepare  = target_selected.to(target_prepared)
+    ev_load              = started.to(state_loaded)
+    ev_select_fresh      = state_loaded.to(fresh_selected)
+    ev_select_swap       = state_loaded.to(swap_selected)
+    ev_select_swap_vendor = state_loaded.to(swap_vendor_update_selected)
+    ev_prepare = (
+        fresh_selected.to(target_prepared)
+        | swap_selected.to(target_prepared)
+        | swap_vendor_update_selected.to(target_prepared)
+    )
     ev_upload   = target_prepared.to(app_uploaded)
     ev_vendor   = app_uploaded.to(vendor_ready)
     ev_tokens   = vendor_ready.to(tokens_migrated)
@@ -57,7 +65,9 @@ class DeployMachine(StateMachine):
     ev_fail = (
         started.to(failed_safe)
         | state_loaded.to(failed_safe)
-        | target_selected.to(failed_safe)
+        | fresh_selected.to(failed_safe)
+        | swap_selected.to(failed_safe)
+        | swap_vendor_update_selected.to(failed_safe)
         | target_prepared.to(failed_safe)
         | app_uploaded.to(failed_safe)
         | vendor_ready.to(failed_safe)
@@ -68,7 +78,9 @@ class DeployMachine(StateMachine):
     ev_conflict = (
         started.to(manual_intervention_required)
         | state_loaded.to(manual_intervention_required)
-        | target_selected.to(manual_intervention_required)
+        | fresh_selected.to(manual_intervention_required)
+        | swap_selected.to(manual_intervention_required)
+        | swap_vendor_update_selected.to(manual_intervention_required)
         | target_prepared.to(manual_intervention_required)
         | app_uploaded.to(manual_intervention_required)
         | vendor_ready.to(manual_intervention_required)
@@ -89,10 +101,32 @@ class DeployMachine(StateMachine):
 
     def run(self, ops: DeployOps) -> None:
         state = self._step(self.ev_load, ops.load_state)
-        plan = self._step(self.ev_select, lambda: self._select_plan(ops, state))
+        plan = self._select_with_transition(ops, state)
         if not self.current_state.final:
             self._run_plan_steps(ops, plan)
             self._verify_or_rollback(ops, plan, state)
+
+    def _select_with_transition(self, ops, state):
+        if self.current_state.final:
+            return None
+        try:
+            plan = self._select_plan(ops, state)
+            self._fire_select_event(plan)
+            return plan
+        except DeployConflictError:
+            self.ev_conflict()
+            return None
+        except Exception:
+            self.ev_fail()
+            return None
+
+    def _fire_select_event(self, plan):
+        if plan.active is None:
+            self.ev_select_fresh()
+        elif plan.target.vendor != plan.active.vendor:
+            self.ev_select_swap_vendor()
+        else:
+            self.ev_select_swap()
 
     def _step(self, event, action):
         if self.current_state.final:

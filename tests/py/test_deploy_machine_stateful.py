@@ -36,10 +36,7 @@ EXECUTE_STEPS = (
 
 FAIL_STEPS = (*OBSERVE_STEPS, *EXECUTE_STEPS, "smoke_ok", "cleanup", "rollback")
 
-PHASE_FLOW = (
-    "started",
-    "state_loaded",
-    "target_selected",
+_PHASE_FLOW_SUFFIX = (
     "target_prepared",
     "app_uploaded",
     "vendor_ready",
@@ -47,6 +44,23 @@ PHASE_FLOW = (
     "switched",
     "verified",
 )
+
+
+def _select_phase_id(scenario):
+    if scenario.state is None:
+        return "fresh_selected"
+    if scenario.include_vendor:
+        return "swap_vendor_update_selected"
+    return "swap_selected"
+
+
+def expected_phase_flow(scenario):
+    return (
+        "started",
+        "state_loaded",
+        _select_phase_id(scenario),
+        *_PHASE_FLOW_SUFFIX,
+    )
 
 TERMINAL_PHASES = {
     DeployMachine.cleaned_up,
@@ -290,8 +304,9 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def history_folgt_phasenordnung(self):
+        flow = expected_phase_flow(self.scenario)
         length = len(self.machine.history)
-        assert self.machine.history == list(PHASE_FLOW[:length])
+        assert self.machine.history == list(flow[:length])
 
     @invariant()
     def calls_stoppen_nach_erster_terminalphase(self):
