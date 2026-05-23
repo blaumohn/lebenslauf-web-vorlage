@@ -12,7 +12,6 @@ from cli.py.deploy.sftp_deploy_state import (
     DeployState,
     SlotState,
 )
-from cli.py.deploy.sftp_deploy_templates import resource_path
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.deploy.vendor_sentinel import (
     ComposerInputChecksum,
@@ -97,11 +96,11 @@ class SftpDeploy:
             self.log(
                 "Deploy fehlgeschlagen — aktiver Deploy unberührt"
             )
-        elif phase == DeployPhase.VERIFIED:
+        elif phase == DeployPhase.CLEANED_UP:
             self.log("Deploy abgeschlossen")
 
     def _raise_if_failed(self, phase):
-        if phase == DeployPhase.VERIFIED:
+        if phase == DeployPhase.CLEANED_UP:
             return
         if phase == DeployPhase.MANUAL_INTERVENTION_REQUIRED:
             raise RuntimeError("Manueller Eingriff erforderlich")
@@ -114,9 +113,8 @@ class SftpDeploy:
             f"Erstdeploy: Slot {target.app_dir}, "
             f"Vendor {target.vendor_dir}"
         )
-        self.upload_app_tree(target.app_dir)
+        self.upload_app_tree(target.app_dir, target.vendor_dir)
         self.upload_vendor_dir(target.vendor_dir)
-        self.upload_static_entry_files()
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
@@ -130,7 +128,7 @@ class SftpDeploy:
             f"Vendor: {active.vendor_dir}→{target.vendor_dir}"
         )
         self._log_vendor_decision(plan)
-        self.upload_app_tree(target.app_dir)
+        self.upload_app_tree(target.app_dir, target.vendor_dir)
         if include_vendor:
             self.upload_vendor_dir(target.vendor_dir)
         self.migrate_tokens(active.app_dir, target.app_dir)
@@ -211,24 +209,8 @@ class SftpDeploy:
             f"Vendor {target.vendor_dir}, Run {self.run_id}"
         )
 
-    def upload_static_entry_files(self):
-        webroot = self.cfg["SFTP_WEBROOT"]
-        self.client.ensure_dir(webroot)
-        self.client.put_file(
-            resource_path("webroot/.htaccess"),
-            f"{webroot}/.htaccess",
-        )
-        self.client.put_file(
-            resource_path("webroot/deploy-state.php"),
-            f"{webroot}/deploy-state.php",
-        )
-        self.client.put_file(
-            resource_path("webroot/index.php"),
-            f"{webroot}/index.php",
-        )
-        self.log("Statische Entry-Dateien hochgeladen")
-
-    def upload_app_tree(self, app_dir):
+    def upload_app_tree(self, app_dir, vendor_dir):
+        self._inject_vendor_require(vendor_dir)
         stats = new_stats()
         started_at = time.monotonic()
         self.log(f"Upload App-Slot: {app_dir}")
@@ -237,6 +219,21 @@ class SftpDeploy:
             self.upload_app_item(item, app_dir, stats)
         self.client.put_text(f"{app_dir}/.deploy-run", self.run_id)
         self.log_upload_app_tree(app_dir, stats, started_at)
+
+    def _inject_vendor_require(self, vendor_dir):
+        bootstrap = self.STAGING_DIR / "src/Http/bootstrap.php"
+        original = bootstrap.read_text(encoding="utf-8")
+        old = "require $vendorDir . '/autoload.php';"
+        new = f"require dirname(__DIR__, 3) . '/{vendor_dir}/autoload.php';"
+        if old not in original:
+            raise RuntimeError(
+                f"bootstrap.php: Zeile '{old}' nicht gefunden — "
+                "Vendor-Inject fehlgeschlagen. "
+                "Wenn diese Zeile geändert wurde, muss auch "
+                "_inject_vendor_require() angepasst werden. "
+                "Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/"
+            )
+        bootstrap.write_text(original.replace(old, new, 1), encoding="utf-8")
 
     def upload_app_item(self, item, app_dir, stats):
         if item.name == "vendor":
@@ -373,7 +370,7 @@ class SftpDeployOps:
         pass
 
     def upload_app(self, plan):
-        self._deploy.upload_app_tree(plan.target.app_dir)
+        self._deploy.upload_app_tree(plan.target.app_dir, plan.target.vendor_dir)
 
     def prepare_vendor(self, plan):
         vendor_changed = (
@@ -386,9 +383,7 @@ class SftpDeployOps:
             self._deploy._log_vendor_decision(plan)
 
     def migrate_tokens(self, plan):
-        if plan.active is None:
-            self._deploy.upload_static_entry_files()
-        else:
+        if plan.active is not None:
             self._deploy.migrate_tokens(
                 plan.active.app_dir,
                 plan.target.app_dir,
@@ -402,6 +397,12 @@ class SftpDeployOps:
 
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
+
+    def cleanup(self, plan):
+        if plan is None or plan.active is None:
+            self._deploy.log("Cleanup: Erstdeploy, kein alter Slot")
+            return
+        self._deploy.cleanup(plan.active, plan.target)
 
     def rollback(self, state):
         if state is None:

@@ -6,7 +6,7 @@ from typing import Protocol
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotState
 
 MISSING_STATE_CONFLICT = (
-    ".deploy-state.ini fehlt, aber beide App-Slots vorhanden"
+    ".htaccess fehlt oder ungültig, aber beide App-Slots vorhanden"
 )
 
 
@@ -20,6 +20,7 @@ class DeployPhase(Enum):
     TOKENS_MIGRATED = auto()
     SWITCHED = auto()
     VERIFIED = auto()
+    CLEANED_UP = auto()
     ROLLED_BACK = auto()
     FAILED_SAFE = auto()
     MANUAL_INTERVENTION_REQUIRED = auto()
@@ -30,7 +31,7 @@ class DeployPhase(Enum):
 
 
 _TERMINAL_PHASES = frozenset({
-    DeployPhase.VERIFIED,
+    DeployPhase.CLEANED_UP,
     DeployPhase.ROLLED_BACK,
     DeployPhase.FAILED_SAFE,
     DeployPhase.MANUAL_INTERVENTION_REQUIRED,
@@ -52,6 +53,7 @@ class DeployOps(Protocol):
     def switch(self, plan: DeploymentPlan) -> None: ...
     def smoke_ok(self) -> bool: ...
     def rollback(self, state: SlotState | None) -> None: ...
+    def cleanup(self, plan: DeploymentPlan) -> None: ...
 
 
 @dataclass
@@ -70,7 +72,7 @@ class DeployMachine:
             lambda: self._select_plan(ops, state),
         )
         self._run_plan_steps(ops, plan)
-        self._verify_or_rollback(ops, state)
+        self._verify_or_rollback(ops, plan, state)
 
     def _run_plan_steps(
         self,
@@ -123,15 +125,18 @@ class DeployMachine:
     def _verify_or_rollback(
         self,
         ops: DeployOps,
+        plan: DeploymentPlan | None,
         state: SlotState | None,
     ) -> None:
         if self.phase.is_terminal:
             return
-        if ops.smoke_ok():
-            self._advance(DeployPhase.VERIFIED)
+        ok = self.transition(DeployPhase.VERIFIED, ops.smoke_ok)
+        if self.phase.is_terminal:
+            return
+        if ok:
+            self.transition(DeployPhase.CLEANED_UP, lambda: ops.cleanup(plan))
         else:
-            ops.rollback(state)
-            self._advance(DeployPhase.ROLLED_BACK)
+            self.transition(DeployPhase.ROLLED_BACK, lambda: ops.rollback(state))
 
     def _advance(self, target: DeployPhase) -> None:
         if self.on_transition:

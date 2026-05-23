@@ -35,7 +35,7 @@ EXECUTE_STEPS = (
     "switch",
 )
 
-FAIL_STEPS = (*OBSERVE_STEPS, *EXECUTE_STEPS)
+FAIL_STEPS = (*OBSERVE_STEPS, *EXECUTE_STEPS, "smoke_ok", "cleanup", "rollback")
 
 PHASE_FLOW = (
     DeployPhase.STARTED,
@@ -46,10 +46,11 @@ PHASE_FLOW = (
     DeployPhase.VENDOR_READY,
     DeployPhase.TOKENS_MIGRATED,
     DeployPhase.SWITCHED,
+    DeployPhase.VERIFIED,
 )
 
 TERMINAL_PHASES = {
-    DeployPhase.VERIFIED,
+    DeployPhase.CLEANED_UP,
     DeployPhase.ROLLED_BACK,
     DeployPhase.FAILED_SAFE,
     DeployPhase.MANUAL_INTERVENTION_REQUIRED,
@@ -83,6 +84,7 @@ class ControllableOps:
         self.completed = []
         self.plans = []
         self.rollback_state = None
+        self.cleanup_plan = None
 
     def load_state(self):
         self._call("load_state")
@@ -111,13 +113,16 @@ class ControllableOps:
     def switch(self, plan): self._call_with_plan("switch", plan)
 
     def smoke_ok(self) -> bool:
-        self.calls.append("smoke_ok")
+        self._call("smoke_ok")
         return self.scenario.smoke
 
     def rollback(self, state):
-        self.calls.append("rollback")
-        self.completed.append("rollback")
+        self._call("rollback")
         self.rollback_state = state
+
+    def cleanup(self, plan):
+        self._call("cleanup")
+        self.cleanup_plan = plan
 
     def _call_with_plan(self, name, plan):
         self.plans.append(plan)
@@ -167,8 +172,12 @@ def expected_calls(scenario):
     if stops_at(scenario, calls):
         return calls[: terminal_call_index(scenario, calls)]
     calls.append("smoke_ok")
+    if stops_at(scenario, calls):
+        return calls[: terminal_call_index(scenario, calls)]
     if not scenario.smoke:
         calls.append("rollback")
+    else:
+        calls.append("cleanup")
     return calls
 
 
@@ -193,7 +202,7 @@ def expected_phase(scenario):
     if plan_conflicts(scenario):
         return DeployPhase.MANUAL_INTERVENTION_REQUIRED
     if scenario.smoke:
-        return DeployPhase.VERIFIED
+        return DeployPhase.CLEANED_UP
     return DeployPhase.ROLLED_BACK
 
 
@@ -224,12 +233,16 @@ def make_scenario(
 
 def make_failing_scenario(step, error_kind):
     state = DEFAULT_STATE
+    smoke = True
     if step == "both_app_slots_exist":
         state = None
+    if step == "rollback":
+        smoke = False
     return make_scenario(
         state=state,
         fail_at=step,
         error_kind=error_kind,
+        smoke=smoke,
     )
 
 
@@ -314,7 +327,15 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
             return
         assert "smoke_ok" in self.ops.calls
         assert not self.scenario.smoke
-        assert self.ops.rollback_state == self.scenario.state
+        if "rollback" in self.ops.completed:
+            assert self.ops.rollback_state == self.scenario.state
+
+    @invariant()
+    def cleanup_nur_nach_erfolgreichem_smoke(self):
+        if "cleanup" not in self.ops.calls:
+            return
+        assert "smoke_ok" in self.ops.calls
+        assert self.scenario.smoke
 
 
 @pytest.mark.parametrize("step", FAIL_STEPS)

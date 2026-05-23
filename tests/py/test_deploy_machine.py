@@ -30,6 +30,7 @@ class FakeOps:
         self.called = []
         self.plans = []
         self.rollback_state = None
+        self.cleanup_plan = None
 
     def load_state(self):
         self._call("load_state")
@@ -58,10 +59,16 @@ class FakeOps:
     def switch(self, plan): self._call_with_plan("switch", plan)
 
     def rollback(self, state):
-        self.called.append("rollback")
+        self._call("rollback")
         self.rollback_state = state
 
-    def smoke_ok(self) -> bool: return self.smoke
+    def cleanup(self, plan):
+        self._call("cleanup")
+        self.cleanup_plan = plan
+
+    def smoke_ok(self) -> bool:
+        self._call("smoke_ok")
+        return self.smoke
 
     def _call_with_plan(self, name, plan):
         self.plans.append(plan)
@@ -75,10 +82,23 @@ class FakeOps:
             raise DeployConflictError(name)
 
 
-def test_happy_path_endet_in_verified():
+def test_happy_path_endet_in_cleaned_up():
     m = DeployMachine()
     m.run(FakeOps())
-    assert m.phase == DeployPhase.VERIFIED
+    assert m.phase == DeployPhase.CLEANED_UP
+
+
+def test_cleanup_wird_nach_erfolg_aufgerufen():
+    ops = FakeOps()
+    m = DeployMachine()
+    m.run(ops)
+    assert "cleanup" in ops.called
+
+
+def test_cleanup_fehler_fuehrt_zu_failed_safe():
+    m = DeployMachine()
+    m.run(FakeOps(fail_at="cleanup"))
+    assert m.phase == DeployPhase.FAILED_SAFE
 
 
 def test_upload_fehler_fuehrt_zu_failed_safe():
@@ -92,6 +112,12 @@ def test_failed_safe_verhindert_switch():
     m = DeployMachine()
     m.run(ops)
     assert "switch" not in ops.called
+
+
+def test_smoke_ok_exception_fuehrt_zu_failed_safe():
+    m = DeployMachine()
+    m.run(FakeOps(fail_at="smoke_ok"))
+    assert m.phase == DeployPhase.FAILED_SAFE
 
 
 def test_smoke_fehler_fuehrt_zu_rollback():
