@@ -20,12 +20,15 @@ class DeployOps(Protocol):
     def should_upload_vendor(self, active: SlotState) -> bool: ...
     def prepare_target(self, plan: DeploymentPlan) -> None: ...
     def upload_app(self, plan: DeploymentPlan) -> None: ...
-    def prepare_vendor(self, plan: DeploymentPlan) -> None: ...
+    def upload_vendor(self, plan: DeploymentPlan) -> None: ...
+    def skip_vendor(self, plan: DeploymentPlan) -> None: ...
     def migrate_tokens(self, plan: DeploymentPlan) -> None: ...
-    def switch(self, plan: DeploymentPlan) -> None: ...
+    def switch_fresh(self, plan: DeploymentPlan) -> None: ...
+    def switch_swap(self, plan: DeploymentPlan) -> None: ...
     def smoke_ok(self) -> bool: ...
     def rollback(self, state: SlotState | None) -> None: ...
-    def cleanup(self, plan: DeploymentPlan) -> None: ...
+    def cleanup_fresh(self, plan: DeploymentPlan) -> None: ...
+    def cleanup_swap(self, plan: DeploymentPlan) -> None: ...
 
 
 class DeployMachine(StateMachine):
@@ -54,13 +57,17 @@ class DeployMachine(StateMachine):
         | swap_selected.to(target_prepared)
         | swap_vendor_update_selected.to(target_prepared)
     )
-    ev_upload   = target_prepared.to(app_uploaded)
-    ev_vendor   = app_uploaded.to(vendor_ready)
-    ev_tokens   = vendor_ready.to(tokens_migrated)
-    ev_switch   = tokens_migrated.to(switched)
-    ev_verify   = switched.to(verified)
-    ev_cleanup  = verified.to(cleaned_up)
-    ev_rollback = verified.to(rolled_back)
+    ev_upload         = target_prepared.to(app_uploaded)
+    ev_vendor_upload  = app_uploaded.to(vendor_ready)
+    ev_vendor_skip    = app_uploaded.to(vendor_ready)
+    ev_tokens_migrate = vendor_ready.to(tokens_migrated)
+    ev_tokens_skip    = vendor_ready.to(tokens_migrated)
+    ev_switch_fresh   = tokens_migrated.to(switched)
+    ev_switch_swap    = tokens_migrated.to(switched)
+    ev_verify         = switched.to(verified)
+    ev_cleanup_fresh  = verified.to(cleaned_up)
+    ev_cleanup_swap   = verified.to(cleaned_up)
+    ev_rollback       = verified.to(rolled_back)
 
     ev_fail = (
         started.to(failed_safe)
@@ -92,6 +99,8 @@ class DeployMachine(StateMachine):
     def __init__(self, on_transition: Callable | None = None):
         super().__init__()
         self._on_transition = on_transition
+        self._fresh: bool = False
+        self._vendor_upload: bool = False
         self.history: list[str] = []
 
     def after_transition(self, event, source, target):
@@ -122,10 +131,16 @@ class DeployMachine(StateMachine):
 
     def _fire_select_event(self, plan):
         if plan.active is None:
+            self._fresh = True
+            self._vendor_upload = True
             self.ev_select_fresh()
         elif plan.target.vendor != plan.active.vendor:
+            self._fresh = False
+            self._vendor_upload = True
             self.ev_select_swap_vendor()
         else:
+            self._fresh = False
+            self._vendor_upload = False
             self.ev_select_swap()
 
     def _step(self, event, action):
@@ -144,10 +159,19 @@ class DeployMachine(StateMachine):
 
     def _run_plan_steps(self, ops: DeployOps, plan: DeploymentPlan) -> None:
         self._step(self.ev_prepare, lambda: ops.prepare_target(plan))
-        self._step(self.ev_upload,  lambda: ops.upload_app(plan))
-        self._step(self.ev_vendor,  lambda: ops.prepare_vendor(plan))
-        self._step(self.ev_tokens,  lambda: ops.migrate_tokens(plan))
-        self._step(self.ev_switch,  lambda: ops.switch(plan))
+        self._step(self.ev_upload, lambda: ops.upload_app(plan))
+        if self._vendor_upload:
+            self._step(self.ev_vendor_upload, lambda: ops.upload_vendor(plan))
+        else:
+            self._step(self.ev_vendor_skip, lambda: ops.skip_vendor(plan))
+        if self._fresh:
+            self._step(self.ev_tokens_skip, lambda: None)
+        else:
+            self._step(self.ev_tokens_migrate, lambda: ops.migrate_tokens(plan))
+        if self._fresh:
+            self._step(self.ev_switch_fresh, lambda: ops.switch_fresh(plan))
+        else:
+            self._step(self.ev_switch_swap, lambda: ops.switch_swap(plan))
 
     def _verify_or_rollback(
         self,
@@ -161,7 +185,10 @@ class DeployMachine(StateMachine):
         if self.current_state.final:
             return
         if ok:
-            self._step(self.ev_cleanup, lambda: ops.cleanup(plan))
+            if self._fresh:
+                self._step(self.ev_cleanup_fresh, lambda: ops.cleanup_fresh(plan))
+            else:
+                self._step(self.ev_cleanup_swap, lambda: ops.cleanup_swap(plan))
         else:
             self._step(self.ev_rollback, lambda: ops.rollback(state))
 

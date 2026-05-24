@@ -372,36 +372,28 @@ class SftpDeployOps:
     def upload_app(self, plan):
         self._deploy.upload_app_tree(plan.target.app_dir, plan.target.vendor_dir)
 
-    def prepare_vendor(self, plan):
-        vendor_changed = (
-            plan.active is None
-            or plan.target.vendor != plan.active.vendor
-        )
-        if vendor_changed:
-            self._deploy.upload_vendor_dir(plan.target.vendor_dir)
-        else:
-            self._deploy._log_vendor_decision(plan)
+    def upload_vendor(self, plan):
+        self._deploy.upload_vendor_dir(plan.target.vendor_dir)
+
+    def skip_vendor(self, plan):
+        self._deploy._log_vendor_decision(plan)
 
     def migrate_tokens(self, plan):
-        if plan.active is not None:
-            self._deploy.migrate_tokens(
-                plan.active.app_dir,
-                plan.target.app_dir,
-            )
+        self._deploy.migrate_tokens(plan.active.app_dir, plan.target.app_dir)
 
-    def switch(self, plan):
-        if plan.active is None:
-            self._deploy.publish_switch(plan.target)
-        else:
-            self._deploy.dispatch_switch(plan.target, plan.active)
+    def switch_fresh(self, plan):
+        self._deploy.publish_switch(plan.target)
+
+    def switch_swap(self, plan):
+        self._deploy.dispatch_switch(plan.target, plan.active)
 
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
 
-    def cleanup(self, plan):
-        if plan is None or plan.active is None:
-            self._deploy.log("Cleanup: Erstdeploy, kein alter Slot")
-            return
+    def cleanup_fresh(self, plan):
+        self._deploy.log("Cleanup: Erstdeploy, kein alter Slot")
+
+    def cleanup_swap(self, plan):
         self._deploy.cleanup(plan.active, plan.target)
 
     def rollback(self, state):

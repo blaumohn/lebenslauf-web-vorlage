@@ -26,15 +26,20 @@ OBSERVE_STEPS = (
     "should_upload_vendor",
 )
 
-EXECUTE_STEPS = (
+FAIL_STEPS = (
+    *OBSERVE_STEPS,
     "prepare_target",
     "upload_app",
-    "prepare_vendor",
+    "upload_vendor",
+    "skip_vendor",
     "migrate_tokens",
-    "switch",
+    "switch_fresh",
+    "switch_swap",
+    "smoke_ok",
+    "cleanup_fresh",
+    "cleanup_swap",
+    "rollback",
 )
-
-FAIL_STEPS = (*OBSERVE_STEPS, *EXECUTE_STEPS, "smoke_ok", "cleanup", "rollback")
 
 _PHASE_FLOW_SUFFIX = (
     "target_prepared",
@@ -61,6 +66,7 @@ def expected_phase_flow(scenario):
         _select_phase_id(scenario),
         *_PHASE_FLOW_SUFFIX,
     )
+
 
 TERMINAL_PHASES = {
     DeployMachine.cleaned_up,
@@ -90,6 +96,21 @@ class DeployScenario:
     smoke: bool = True
 
 
+def expected_execute_steps(scenario):
+    steps = ["prepare_target", "upload_app"]
+    if scenario.state is None or scenario.include_vendor:
+        steps.append("upload_vendor")
+    else:
+        steps.append("skip_vendor")
+    if scenario.state is not None:
+        steps.append("migrate_tokens")
+    if scenario.state is None:
+        steps.append("switch_fresh")
+    else:
+        steps.append("switch_swap")
+    return steps
+
+
 class ControllableOps:
     def __init__(self, scenario):
         self.scenario = scenario
@@ -97,7 +118,6 @@ class ControllableOps:
         self.completed = []
         self.plans = []
         self.rollback_state = None
-        self.cleanup_plan = None
 
     def load_state(self):
         self._call("load_state")
@@ -117,13 +137,20 @@ class ControllableOps:
     def upload_app(self, plan):
         self._call_with_plan("upload_app", plan)
 
-    def prepare_vendor(self, plan):
-        self._call_with_plan("prepare_vendor", plan)
+    def upload_vendor(self, plan):
+        self._call_with_plan("upload_vendor", plan)
+
+    def skip_vendor(self, plan):
+        self._call_with_plan("skip_vendor", plan)
 
     def migrate_tokens(self, plan):
         self._call_with_plan("migrate_tokens", plan)
 
-    def switch(self, plan): self._call_with_plan("switch", plan)
+    def switch_fresh(self, plan):
+        self._call_with_plan("switch_fresh", plan)
+
+    def switch_swap(self, plan):
+        self._call_with_plan("switch_swap", plan)
 
     def smoke_ok(self) -> bool:
         self._call("smoke_ok")
@@ -133,9 +160,11 @@ class ControllableOps:
         self._call("rollback")
         self.rollback_state = state
 
-    def cleanup(self, plan):
-        self._call("cleanup")
-        self.cleanup_plan = plan
+    def cleanup_fresh(self, plan):
+        self._call_with_plan("cleanup_fresh", plan)
+
+    def cleanup_swap(self, plan):
+        self._call_with_plan("cleanup_swap", plan)
 
     def _call_with_plan(self, name, plan):
         self.plans.append(plan)
@@ -181,7 +210,7 @@ def expected_calls(scenario):
     calls.extend(plan_selection_calls(scenario))
     if stops_at(scenario, calls) or plan_conflicts(scenario):
         return calls
-    calls.extend(EXECUTE_STEPS)
+    calls.extend(expected_execute_steps(scenario))
     if stops_at(scenario, calls):
         return calls[: terminal_call_index(scenario, calls)]
     calls.append("smoke_ok")
@@ -189,8 +218,10 @@ def expected_calls(scenario):
         return calls[: terminal_call_index(scenario, calls)]
     if not scenario.smoke:
         calls.append("rollback")
+    elif scenario.state is None:
+        calls.append("cleanup_fresh")
     else:
-        calls.append("cleanup")
+        calls.append("cleanup_swap")
     return calls
 
 
@@ -246,13 +277,23 @@ def make_scenario(
 
 def make_failing_scenario(step, error_kind):
     state = DEFAULT_STATE
+    include_vendor = False
     smoke = True
-    if step == "both_app_slots_exist":
+    if step in (
+        "both_app_slots_exist",
+        "upload_vendor",
+        "switch_fresh",
+        "cleanup_fresh",
+    ):
         state = None
+    if step == "skip_vendor":
+        state = DEFAULT_STATE
+        include_vendor = False
     if step == "rollback":
         smoke = False
     return make_scenario(
         state=state,
+        include_vendor=include_vendor,
         fail_at=step,
         error_kind=error_kind,
         smoke=smoke,
@@ -324,16 +365,23 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def switch_nur_nach_vorphasen(self):
-        if "switch" not in self.ops.calls:
+        switched = (
+            "switch_fresh" in self.ops.calls
+            or "switch_swap" in self.ops.calls
+        )
+        if not switched:
             return
-        required = EXECUTE_STEPS[:-1]
+        required = expected_execute_steps(self.scenario)[:-1]
         assert all(step in self.ops.completed for step in required)
 
     @invariant()
     def smoke_nur_nach_erfolgreichem_switch(self):
         if "smoke_ok" not in self.ops.calls:
             return
-        assert "switch" in self.ops.completed
+        assert (
+            "switch_fresh" in self.ops.completed
+            or "switch_swap" in self.ops.completed
+        )
 
     @invariant()
     def rollback_nur_nach_smoke_fehler(self):
@@ -346,7 +394,11 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def cleanup_nur_nach_erfolgreichem_smoke(self):
-        if "cleanup" not in self.ops.calls:
+        cleaned = (
+            "cleanup_fresh" in self.ops.calls
+            or "cleanup_swap" in self.ops.calls
+        )
+        if not cleaned:
             return
         assert "smoke_ok" in self.ops.calls
         assert self.scenario.smoke
