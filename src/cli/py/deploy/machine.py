@@ -3,20 +3,12 @@ from typing import Protocol
 
 from statemachine import State, StateMachine
 
+from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotState
-
-MISSING_STATE_CONFLICT = (
-    ".htaccess fehlt oder ungültig, aber beide App-Slots vorhanden"
-)
-
-
-class DeployConflictError(Exception):
-    pass
 
 
 class DeployOps(Protocol):
     def load_state(self) -> SlotState | None: ...
-    def both_app_slots_exist(self) -> bool: ...
     def should_upload_vendor(self, active: SlotState) -> bool: ...
     def prepare_target(self, plan: DeploymentPlan) -> None: ...
     def upload_app(self, plan: DeploymentPlan) -> None: ...
@@ -27,8 +19,6 @@ class DeployOps(Protocol):
     def switch_swap(self, plan: DeploymentPlan) -> None: ...
     def smoke_ok(self) -> bool: ...
     def rollback(self, state: SlotState | None) -> None: ...
-    def cleanup_fresh(self, plan: DeploymentPlan) -> None: ...
-    def cleanup_swap(self, plan: DeploymentPlan) -> None: ...
 
 
 class DeployMachine(StateMachine):
@@ -64,10 +54,9 @@ class DeployMachine(StateMachine):
     ev_tokens_skip    = vendor_ready.to(tokens_migrated)
     ev_switch_fresh   = tokens_migrated.to(switched)
     ev_switch_swap    = tokens_migrated.to(switched)
-    ev_verify         = switched.to(verified)
-    ev_cleanup_fresh  = verified.to(cleaned_up)
-    ev_cleanup_swap   = verified.to(cleaned_up)
-    ev_rollback       = verified.to(rolled_back)
+    ev_verify   = switched.to(verified)
+    ev_done     = verified.to(cleaned_up)
+    ev_rollback = verified.to(rolled_back)
 
     ev_fail = (
         started.to(failed_safe)
@@ -185,10 +174,7 @@ class DeployMachine(StateMachine):
         if self.current_state.final:
             return
         if ok:
-            if self._fresh:
-                self._step(self.ev_cleanup_fresh, lambda: ops.cleanup_fresh(plan))
-            else:
-                self._step(self.ev_cleanup_swap, lambda: ops.cleanup_swap(plan))
+            self.ev_done()
         else:
             self._step(self.ev_rollback, lambda: ops.rollback(state))
 
@@ -198,8 +184,6 @@ class DeployMachine(StateMachine):
         state: SlotState | None,
     ) -> DeploymentPlan:
         if state is None:
-            if ops.both_app_slots_exist():
-                raise DeployConflictError(MISSING_STATE_CONFLICT)
             return DeploymentPlan.fresh()
         include_vendor = ops.should_upload_vendor(state)
         return DeploymentPlan.swap(state, include_vendor)

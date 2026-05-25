@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 
 import requests
 
+from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.sftp_deploy_state import DeployState
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
@@ -66,7 +67,10 @@ class ContactSmoke:
         return captcha_id
 
     def read_active_app_slot(self, sftp) -> str:
-        state = DeployState.read(sftp)
+        try:
+            state = DeployState.read(sftp)
+        except DeployConflictError as e:
+            raise RuntimeError(f"[contact-smoke] Aktiver App-Slot fehlt: {e}")
         if state is None:
             raise RuntimeError("[contact-smoke] Aktiver App-Slot fehlt")
         return state.app

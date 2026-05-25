@@ -321,13 +321,6 @@ class SftpDeploy:
     def publish_switch(self, target):
         self.upload_deploy_state(target)
 
-    def cleanup(self, active, target):
-        self.client.remove_dir(active.app_dir)
-        self.log(f"Alter App-Slot entfernt: {active.app_dir}")
-        if active.vendor != target.vendor:
-            self.client.remove_dir(active.vendor_dir)
-            self.log(f"Alter Vendor entfernt: {active.vendor_dir}")
-
     def upload_dir(self, local_path, rel_remote, stats):
         created = self.client.mkdir_p(rel_remote)
         if created:
@@ -356,13 +349,6 @@ class SftpDeployOps:
     def load_state(self):
         return DeployState.read(self._deploy.client)
 
-    def both_app_slots_exist(self):
-        client = self._deploy.client
-        return (
-            client.file_exists("app-a/.deploy-run")
-            and client.file_exists("app-b/.deploy-run")
-        )
-
     def should_upload_vendor(self, active):
         return self._deploy._include_vendor(active)
 
@@ -389,12 +375,6 @@ class SftpDeployOps:
 
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
-
-    def cleanup_fresh(self, plan):
-        self._deploy.log("Cleanup: Erstdeploy, kein alter Slot")
-
-    def cleanup_swap(self, plan):
-        self._deploy.cleanup(plan.active, plan.target)
 
     def rollback(self, state):
         if state is None:

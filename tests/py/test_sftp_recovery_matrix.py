@@ -198,35 +198,5 @@ class Szenario2Test(unittest.TestCase):
         self.assertIn("/app-a/", written)
 
 
-class Szenario3Test(unittest.TestCase):
-    """
-    start:  deploy_state=absent, app-a vorhanden, app-b vorhanden
-    expect: MANUAL_INTERVENTION_REQUIRED, keine Schreibvorgänge
-    """
-
-    def setUp(self):
-        self.module = load_module()
-
-    def _make_conflict_deploy(self):
-        deploy = self.module.SftpDeploy({}, "run-1", logger=lambda _: None)
-        client = FakeClient()
-        client.set_file("app-a/.deploy-run", "run-a")
-        client.set_file("app-b/.deploy-run", "run-b")
-        deploy.client = client
-        return deploy, client
-
-    def test_fehlender_state_beide_slots_erfordert_eingriff(self):
-        deploy, _ = self._make_conflict_deploy()
-        with self.assertRaises(RuntimeError) as ctx:
-            deploy.deploy()
-        self.assertIn("Manueller Eingriff", str(ctx.exception))
-
-    def test_kein_schreibvorgang_bei_manual_intervention(self):
-        deploy, client = self._make_conflict_deploy()
-        with self.assertRaises(RuntimeError):
-            deploy.deploy()
-        self.assertNotIn(STATE_FILE, client.texts)
-
-
 if __name__ == "__main__":
     unittest.main()

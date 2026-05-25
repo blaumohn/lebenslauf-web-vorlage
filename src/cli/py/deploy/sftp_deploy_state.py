@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 
+from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.vendor_sentinel import VendorSentinel
 
 HTACCESS_FILE = ".htaccess"
@@ -93,10 +94,14 @@ class DeployState:
         try:
             app = HtaccessSlotFile.read_slot(content)
         except ValueError:
-            return None
+            raise DeployConflictError(
+                ".htaccess vorhanden, aber kein gültiger App-Slot erkennbar"
+            )
         vendor = DeployState._read_vendor_label(client, app)
         if vendor is None:
-            return None
+            raise DeployConflictError(
+                f"bootstrap.php in app-{app}/ fehlt oder enthält keinen Vendor-Slot"
+            )
         run_id = DeployState._read_run_id(client, app)
         vendor_checksum = DeployState._read_vendor_checksum(client, vendor)
         return SlotState(app, vendor, run_id, vendor_checksum)

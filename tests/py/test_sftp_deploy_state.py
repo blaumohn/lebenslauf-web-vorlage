@@ -8,6 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.sftp_deploy_state import (
     DeployState,
     DeploymentPlan,
@@ -192,6 +193,16 @@ class DeployStateReadTest(unittest.TestCase):
 
     def test_gibt_none_ohne_htaccess(self):
         self.assertIsNone(DeployState.read(_FakeClient({})))
+
+    def test_konflikt_bei_ungueltigem_htaccess(self):
+        client = _FakeClient({".htaccess": "RewriteEngine On\n"})
+        with self.assertRaises(DeployConflictError):
+            DeployState.read(client)
+
+    def test_konflikt_bei_fehlendem_bootstrap(self):
+        client = _full_client(**{"app-a/src/Http/bootstrap.php": ""})
+        with self.assertRaises(DeployConflictError):
+            DeployState.read(client)
 
     def test_leere_run_id_wenn_deploy_run_fehlt(self):
         state = DeployState.read(_full_client(**{"app-a/.deploy-run": ""}))

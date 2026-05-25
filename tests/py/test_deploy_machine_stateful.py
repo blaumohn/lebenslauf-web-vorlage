@@ -14,15 +14,12 @@ from hypothesis.stateful import (
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from cli.py.deploy.machine import (  # noqa: E402
-    DeployConflictError,
-    DeployMachine,
-)
+from cli.py.deploy.exceptions import DeployConflictError  # noqa: E402
+from cli.py.deploy.machine import DeployMachine  # noqa: E402
 from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 
 OBSERVE_STEPS = (
     "load_state",
-    "both_app_slots_exist",
     "should_upload_vendor",
 )
 
@@ -36,8 +33,6 @@ FAIL_STEPS = (
     "switch_fresh",
     "switch_swap",
     "smoke_ok",
-    "cleanup_fresh",
-    "cleanup_swap",
     "rollback",
 )
 
@@ -89,7 +84,6 @@ STATES = (
 @dataclass(frozen=True)
 class DeployScenario:
     state: SlotState | None = SlotState("a", "a")
-    both_slots: bool = False
     include_vendor: bool = False
     fail_at: str | None = None
     error_kind: str | None = None
@@ -122,10 +116,6 @@ class ControllableOps:
     def load_state(self):
         self._call("load_state")
         return self.scenario.state
-
-    def both_app_slots_exist(self):
-        self._call("both_app_slots_exist")
-        return self.scenario.both_slots
 
     def should_upload_vendor(self, _active):
         self._call("should_upload_vendor")
@@ -160,12 +150,6 @@ class ControllableOps:
         self._call("rollback")
         self.rollback_state = state
 
-    def cleanup_fresh(self, plan):
-        self._call_with_plan("cleanup_fresh", plan)
-
-    def cleanup_swap(self, plan):
-        self._call_with_plan("cleanup_swap", plan)
-
     def _call_with_plan(self, name, plan):
         self.plans.append(plan)
         self._call(name)
@@ -183,8 +167,6 @@ class ControllableOps:
 def expected_plan(scenario):
     state = scenario.state
     if state is None:
-        if scenario.both_slots:
-            return None
         return (None, DEFAULT_STATE)
     app = other_slot(state.app)
     vendor = state.vendor
@@ -199,7 +181,7 @@ def other_slot(slot):
 
 def plan_selection_calls(scenario):
     if scenario.state is None:
-        return ["both_app_slots_exist"]
+        return []
     return ["should_upload_vendor"]
 
 
@@ -208,7 +190,7 @@ def expected_calls(scenario):
     if stops_at(scenario, calls):
         return calls
     calls.extend(plan_selection_calls(scenario))
-    if stops_at(scenario, calls) or plan_conflicts(scenario):
+    if stops_at(scenario, calls):
         return calls
     calls.extend(expected_execute_steps(scenario))
     if stops_at(scenario, calls):
@@ -218,10 +200,6 @@ def expected_calls(scenario):
         return calls[: terminal_call_index(scenario, calls)]
     if not scenario.smoke:
         calls.append("rollback")
-    elif scenario.state is None:
-        calls.append("cleanup_fresh")
-    else:
-        calls.append("cleanup_swap")
     return calls
 
 
@@ -235,16 +213,10 @@ def stops_at(scenario, calls):
     return scenario.fail_at in calls
 
 
-def plan_conflicts(scenario):
-    return scenario.state is None and scenario.both_slots
-
-
 def expected_phase(scenario):
     calls = expected_calls(scenario)
     if scenario.fail_at in calls:
         return expected_error_phase(scenario)
-    if plan_conflicts(scenario):
-        return DeployMachine.manual_intervention_required
     if scenario.smoke:
         return DeployMachine.cleaned_up
     return DeployMachine.rolled_back
@@ -258,7 +230,6 @@ def expected_error_phase(scenario):
 
 def make_scenario(
     state=DEFAULT_STATE,
-    both_slots=False,
     include_vendor=False,
     fail_at=None,
     error_kind="runtime",
@@ -267,7 +238,6 @@ def make_scenario(
     kind = None if fail_at is None else error_kind
     return DeployScenario(
         state=state,
-        both_slots=both_slots,
         include_vendor=include_vendor,
         fail_at=fail_at,
         error_kind=kind,
@@ -280,10 +250,8 @@ def make_failing_scenario(step, error_kind):
     include_vendor = False
     smoke = True
     if step in (
-        "both_app_slots_exist",
         "upload_vendor",
         "switch_fresh",
-        "cleanup_fresh",
     ):
         state = None
     if step == "skip_vendor":
@@ -307,7 +275,6 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @rule(
         state=st.sampled_from(STATES),
-        both_slots=st.booleans(),
         include_vendor=st.booleans(),
         fail_at=st.one_of(st.none(), st.sampled_from(FAIL_STEPS)),
         error_kind=st.sampled_from(("runtime", "conflict")),
@@ -316,7 +283,6 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
     def run_generated(
         self,
         state,
-        both_slots,
         include_vendor,
         fail_at,
         error_kind,
@@ -324,7 +290,6 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
     ):
         scenario = make_scenario(
             state,
-            both_slots,
             include_vendor,
             fail_at,
             error_kind,
