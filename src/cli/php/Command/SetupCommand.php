@@ -112,7 +112,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
             $output->writeln('<error>Python-Venv fehlt. Bitte setup erneut ausfuehren.</error>');
             return false;
         }
-        $command = [$python, '-m', 'pip', 'install', '-r', $requirements];
+        $command = [$python, '-m', 'pip', 'install', '-q', '-r', $requirements];
         $cacheDir = $this->pythonCacheDir($input);
         if ($cacheDir !== null) {
             $command[] = '--cache-dir';
@@ -149,7 +149,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function installNodeDependencies(InputInterface $input, OutputInterface $output): bool
     {
-        $command = ['npm', 'install'];
+        $command = ['npm', 'install', '--loglevel=error'];
         $cacheDir = $this->npmCacheDir($input);
         if ($cacheDir !== null) {
             $command[] = '--cache';

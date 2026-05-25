@@ -89,7 +89,7 @@ class CiWorkflowTest(unittest.TestCase):
 
         self.assertIn(ci_install_step, ci_entrypoint)
         self.assertIn(cd_install_step, cd_entrypoint)
-        self.assertIn('"install:ci": "composer install --optimize-autoloader --no-interaction"', composer_json)
+        self.assertIn('"install:ci": "composer install --optimize-autoloader --no-interaction -q"', composer_json)
         self.assertIn('"install:deploy": "@install:ci --no-dev"', composer_json)
         self.assertIn(no_deploy, cd_entrypoint)
 
