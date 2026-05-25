@@ -10,10 +10,10 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.sftp_deploy_state import (
-    DeployState,
     DeploymentPlan,
     HtaccessSlotFile,
-    SlotState,
+    SlotMap,
+    SlotStore,
     _VENDOR_SLOT_RE,
 )
 from cli.py.deploy.sftp_deploy_templates import resource_path
@@ -77,7 +77,7 @@ class BootstrapInjectTest(unittest.TestCase):
             _VENDOR_SLOT_RE.search(VENDOR_INJECT_LINE),
             f"_VENDOR_SLOT_RE trifft auf Quellzeile"
             f" '{VENDOR_INJECT_LINE}'"
-            " — DeployState.read() würde falschen Slot lesen",
+            " — SlotStore.current_slot_map() würde falschen Slot lesen",
         )
 
 
@@ -85,21 +85,27 @@ class DeploymentPlanTest(unittest.TestCase):
     def test_swap_both_slots_include_vendor(self):
         """swap() wechselt App- und Vendor-Slot,
         wenn Vendor eingeschlossen."""
-        active = SlotState("a", "b")
+        active = SlotMap.from_labels(app="a", vendor="b")
         plan = DeploymentPlan.swap(active, include_vendor=True)
-        self.assertEqual(plan.target, SlotState("b", "a"))
+        self.assertEqual(
+            plan.target_slot_map, SlotMap.from_labels(app="b", vendor="a")
+        )
 
     def test_swap_keeps_vendor_without_flag(self):
         """swap() behält Vendor-Slot, wenn include_vendor=False."""
-        active = SlotState("a", "b")
+        active = SlotMap.from_labels(app="a", vendor="b")
         plan = DeploymentPlan.swap(active, include_vendor=False)
-        self.assertEqual(plan.target, SlotState("b", "b"))
+        self.assertEqual(
+            plan.target_slot_map, SlotMap.from_labels(app="b", vendor="b")
+        )
 
 
 class DeployResourceTest(unittest.TestCase):
     def test_public_entry_bootstrap(self):
         """public/index.php bindet bootstrap.php ein."""
-        content = (REPO_ROOT / "public" / "index.php").read_text(encoding="utf-8")
+        content = (
+            REPO_ROOT / "public" / "index.php"
+        ).read_text(encoding="utf-8")
         self.assertIn(
             "require dirname(__DIR__) . '/src/Http/bootstrap.php'",
             content,
@@ -107,7 +113,9 @@ class DeployResourceTest(unittest.TestCase):
 
     def test_public_htaccess_routing(self):
         """public/.htaccess leitet Anfragen an index.php weiter."""
-        content = (REPO_ROOT / "public" / ".htaccess").read_text(encoding="utf-8")
+        content = (
+            REPO_ROOT / "public" / ".htaccess"
+        ).read_text(encoding="utf-8")
         self.assertIn("RewriteEngine On", content)
         self.assertIn("index.php", content)
 
@@ -122,7 +130,9 @@ class DeployResourceTest(unittest.TestCase):
     def test_composer_no_deploy_autoload(self):
         """composer.json enthält kein files-Autoload
         für deploy-state.php."""
-        composer = json.loads((REPO_ROOT / "composer.json").read_text())
+        composer = json.loads(
+            (REPO_ROOT / "composer.json").read_text()
+        )
         autoload = composer["autoload"]
         self.assertNotIn("files", autoload)
         self.assertNotIn(
@@ -138,7 +148,9 @@ class DeployResourceTest(unittest.TestCase):
 class DevRouterTest(unittest.TestCase):
     def test_dev_server_uses_public_docroot(self):
         """Dev-Server startet PHP mit public/ als Webroot ohne Router."""
-        path = REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
+        path = (
+            REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
+        )
         content = path.read_text(encoding="utf-8")
         self.assertIn('"php"', content)
         self.assertIn('"-t"', content)
@@ -162,6 +174,9 @@ class _FakeClient:
     def read_file(self, path):
         return self._files.get(path, "")
 
+    def put_text(self, path, content):
+        self._files[path] = content
+
 
 def _full_client(**overrides):
     files = {
@@ -174,43 +189,49 @@ def _full_client(**overrides):
     return _FakeClient(files)
 
 
-class DeployStateReadTest(unittest.TestCase):
+class SlotStoreReadTest(unittest.TestCase):
     def test_liest_app_slot_aus_htaccess(self):
-        state = DeployState.read(_full_client())
-        self.assertEqual(state.app, "a")
+        slot_map = SlotStore(_full_client()).current_slot_map()
+        self.assertEqual(slot_map.app.label, "a")
 
     def test_liest_vendor_slot_aus_bootstrap(self):
-        state = DeployState.read(_full_client())
-        self.assertEqual(state.vendor, "b")
+        slot_map = SlotStore(_full_client()).current_slot_map()
+        self.assertEqual(slot_map.vendor.label, "b")
 
     def test_liest_run_id_aus_deploy_run(self):
-        state = DeployState.read(_full_client())
-        self.assertEqual(state.run_id, _RUN_ID)
+        store = SlotStore(_full_client())
+        self.assertEqual(store.run_id_for_app_slot("a"), _RUN_ID)
 
     def test_liest_vendor_checksum_aus_meta(self):
-        state = DeployState.read(_full_client())
-        self.assertEqual(state.vendor_checksum, _CHECKSUM)
+        store = SlotStore(_full_client())
+        self.assertEqual(
+            store.vendor_checksum_for_slot("b"), _CHECKSUM
+        )
 
     def test_gibt_none_ohne_htaccess(self):
-        self.assertIsNone(DeployState.read(_FakeClient({})))
+        self.assertIsNone(
+            SlotStore(_FakeClient({})).current_slot_map()
+        )
 
     def test_konflikt_bei_ungueltigem_htaccess(self):
         client = _FakeClient({".htaccess": "RewriteEngine On\n"})
         with self.assertRaises(DeployConflictError):
-            DeployState.read(client)
+            SlotStore(client).current_slot_map()
 
     def test_konflikt_bei_fehlendem_bootstrap(self):
-        client = _full_client(**{"app-a/src/Http/bootstrap.php": ""})
+        client = _full_client(
+            **{"app-a/src/Http/bootstrap.php": ""}
+        )
         with self.assertRaises(DeployConflictError):
-            DeployState.read(client)
+            SlotStore(client).current_slot_map()
 
     def test_leere_run_id_wenn_deploy_run_fehlt(self):
-        state = DeployState.read(_full_client(**{"app-a/.deploy-run": ""}))
-        self.assertEqual(state.run_id, "")
+        store = SlotStore(_full_client(**{"app-a/.deploy-run": ""}))
+        self.assertEqual(store.run_id_for_app_slot("a"), "")
 
     def test_leere_checksum_wenn_meta_fehlt(self):
-        state = DeployState.read(_full_client(**{"vendor-b/.meta": ""}))
-        self.assertEqual(state.vendor_checksum, "")
+        store = SlotStore(_full_client(**{"vendor-b/.meta": ""}))
+        self.assertEqual(store.vendor_checksum_for_slot("b"), "")
 
 
 def read_resource(path):

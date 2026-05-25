@@ -56,7 +56,7 @@ final class TaskRunner
     private function executeTask(string $filePath, string $taskName): array
     {
         try {
-            $task = Task::fromFile($filePath);
+            $task = QueuedTaskFile::load($filePath);
             $result = $this->resolveHandler($task->type())->handle($task, $this->entryPath);
             return [$result, $task->get('task_id')];
         } catch (\Throwable $e) {

@@ -9,7 +9,6 @@ from unittest.mock import patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
 from cli.py.deploy.vendor_sentinel import ComposerInputChecksum  # noqa: E402
 
 CHECKSUM = "abc123def456abcd"
@@ -22,14 +21,12 @@ def load_module():
         types.SimpleNamespace(RejectPolicy=object, SSHClient=object),
     )
     path = REPO_ROOT / "scripts" / "sftp-verify-deploy.py"
-    spec = importlib.util.spec_from_file_location("sftp_verify_deploy", path)
+    spec = importlib.util.spec_from_file_location(
+        "sftp_verify_deploy", path
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-
-def make_state(run_id=RUN_ID, vendor_checksum=CHECKSUM):
-    return SlotState("a", "b", run_id, vendor_checksum)
 
 
 class VerifyRunIdTest(unittest.TestCase):
@@ -38,15 +35,15 @@ class VerifyRunIdTest(unittest.TestCase):
         cls.mod = load_module()
 
     def test_kein_fehler_bei_ubereinstimmung(self):
-        self.mod.verify_run_id(make_state(run_id=RUN_ID), RUN_ID)
+        self.mod.verify_run_id(RUN_ID, RUN_ID)
 
     def test_exit_bei_abweichung(self):
         with self.assertRaises(SystemExit):
-            self.mod.verify_run_id(make_state(run_id="run-99"), RUN_ID)
+            self.mod.verify_run_id("run-99", RUN_ID)
 
     def test_exit_bei_leerer_run_id(self):
         with self.assertRaises(SystemExit):
-            self.mod.verify_run_id(make_state(run_id=""), RUN_ID)
+            self.mod.verify_run_id("", RUN_ID)
 
 
 class VerifyChecksumTest(unittest.TestCase):
@@ -55,18 +52,24 @@ class VerifyChecksumTest(unittest.TestCase):
         cls.mod = load_module()
 
     def test_kein_fehler_bei_ubereinstimmung(self):
-        with patch.object(ComposerInputChecksum, "from_repo", return_value=CHECKSUM):
-            self.mod.verify_checksum(make_state(vendor_checksum=CHECKSUM))
+        with patch.object(
+            ComposerInputChecksum, "from_repo", return_value=CHECKSUM
+        ):
+            self.mod.verify_checksum(CHECKSUM)
 
     def test_exit_bei_abweichung(self):
-        with patch.object(ComposerInputChecksum, "from_repo", return_value=CHECKSUM):
+        with patch.object(
+            ComposerInputChecksum, "from_repo", return_value=CHECKSUM
+        ):
             with self.assertRaises(SystemExit):
-                self.mod.verify_checksum(make_state(vendor_checksum="falsch"))
+                self.mod.verify_checksum("falsch")
 
     def test_exit_bei_leerer_checksum(self):
-        with patch.object(ComposerInputChecksum, "from_repo", return_value=CHECKSUM):
+        with patch.object(
+            ComposerInputChecksum, "from_repo", return_value=CHECKSUM
+        ):
             with self.assertRaises(SystemExit):
-                self.mod.verify_checksum(make_state(vendor_checksum=""))
+                self.mod.verify_checksum("")
 
 
 if __name__ == "__main__":

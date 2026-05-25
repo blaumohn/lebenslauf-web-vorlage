@@ -12,8 +12,8 @@ _APP_SLOT_RE = re.compile(r"RewriteRule \^ /app-([ab])/public/index\.php")
 _VENDOR_SLOT_RE = re.compile(r"/vendor-([ab])/autoload\.php")
 
 
-# deploy: Format von generate() wird von DeployState.php toHtaccess()
-# erzeugt und von read_slot() per Regex gelesen.
+# deploy: Format von generate() wird von SlotSwitchCommand.php toHtaccess()
+# erzeugt und von current_slot_map() per Regex gelesen.
 # Änderung → _APP_SLOT_RE anpassen.
 # Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
 class HtaccessSlotFile:
@@ -38,57 +38,66 @@ class HtaccessSlotFile:
 
 
 @dataclass(frozen=True)
-class SlotState:
-    app: str
-    vendor: str
-    run_id: str = ""
-    vendor_checksum: str = ""
+class SlotEntry:
+    slot_type: str  # "app" | "vendor"
+    label: str      # "a" | "b"
+
+    @property
+    def dir(self) -> str:
+        return f"{self.slot_type}-{self.label}"
+
+
+@dataclass(frozen=True)
+class SlotMap:
+    app: SlotEntry
+    vendor: SlotEntry
 
     @classmethod
-    def from_values(cls, app, vendor, run_id="", vendor_checksum=""):
+    def from_labels(cls, *, app: str, vendor: str) -> "SlotMap | None":
         if app in VALID_SLOTS and vendor in VALID_SLOTS:
-            return cls(app, vendor, run_id, vendor_checksum)
+            return cls(
+                SlotEntry("app", app),
+                SlotEntry("vendor", vendor),
+            )
         return None
 
     @classmethod
-    def initial(cls):
-        return cls("a", "a")
+    def initial(cls) -> "SlotMap":
+        return cls(SlotEntry("app", "a"), SlotEntry("vendor", "a"))
 
-    @property
-    def app_dir(self):
-        return f"app-{self.app}"
-
-    @property
-    def vendor_dir(self):
-        return f"vendor-{self.vendor}"
-
-    def as_tuple(self):
-        return (self.app, self.vendor)
+    def as_tuple(self) -> tuple[str, str]:
+        return (self.app.label, self.vendor.label)
 
 
 @dataclass(frozen=True)
 class DeploymentPlan:
-    active: SlotState | None
-    target: SlotState
+    active_slot_map: SlotMap | None
+    target_slot_map: SlotMap
 
     @classmethod
-    def fresh(cls):
-        return cls(None, SlotState.initial())
+    def fresh(cls) -> "DeploymentPlan":
+        return cls(None, SlotMap.initial())
 
     @classmethod
-    def swap(cls, active, include_vendor: bool):
-        app = other_slot(active.app)
-        if include_vendor:
-            vendor = other_slot(active.vendor)
-        else:
-            vendor = active.vendor
-        return cls(active, SlotState(app, vendor))
+    def swap(cls, active: SlotMap, include_vendor: bool) -> "DeploymentPlan":
+        app = other_slot(active.app.label)
+        vendor = (
+            other_slot(active.vendor.label)
+            if include_vendor
+            else active.vendor.label
+        )
+        return cls(
+            active,
+            SlotMap(SlotEntry("app", app), SlotEntry("vendor", vendor)),
+        )
 
 
-class DeployState:
-    @staticmethod
-    def read(client):
-        content = client.read_file(HTACCESS_FILE)
+class SlotStore:
+    def __init__(self, client):
+        self._client = client
+
+    def current_slot_map(self) -> SlotMap | None:
+        content = self._client.read_file(HTACCESS_FILE)
         if not content:
             return None
         try:
@@ -97,41 +106,38 @@ class DeployState:
             raise DeployConflictError(
                 ".htaccess vorhanden, aber kein gültiger App-Slot erkennbar"
             )
-        vendor = DeployState._read_vendor_label(client, app)
+        vendor = self.vendor_slot_for_app_slot(app)
         if vendor is None:
             raise DeployConflictError(
-                f"bootstrap.php in app-{app}/ fehlt oder enthält keinen Vendor-Slot"
+                f"bootstrap.php in app-{app}/ fehlt oder enthält"
+                " keinen Vendor-Slot"
             )
-        run_id = DeployState._read_run_id(client, app)
-        vendor_checksum = DeployState._read_vendor_checksum(client, vendor)
-        return SlotState(app, vendor, run_id, vendor_checksum)
+        return SlotMap(SlotEntry("app", app), SlotEntry("vendor", vendor))
 
-    @staticmethod
-    def write(client, state):
-        htaccess = HtaccessSlotFile.generate(state.app)
-        client.put_text(HTACCESS_FILE, htaccess)
+    def activate_slot_map(self, slot_map: SlotMap) -> None:
+        htaccess = HtaccessSlotFile.generate(slot_map.app.label)
+        self._client.put_text(HTACCESS_FILE, htaccess)
 
-    @staticmethod
-    def _read_vendor_label(client, app):
-        content = client.read_file(f"app-{app}/{BOOTSTRAP_PATH}")
+    def vendor_slot_for_app_slot(self, app_slot: str) -> str | None:
+        content = self._client.read_file(
+            f"app-{app_slot}/{BOOTSTRAP_PATH}"
+        )
         if not content:
             return None
         match = _VENDOR_SLOT_RE.search(content)
         return match.group(1) if match else None
 
-    @staticmethod
-    def _read_run_id(client, app):
-        content = client.read_file(f"app-{app}/.deploy-run")
+    def run_id_for_app_slot(self, app_slot: str) -> str:
+        content = self._client.read_file(f"app-{app_slot}/.deploy-run")
         return content.strip() if content else ""
 
-    @staticmethod
-    def _read_vendor_checksum(client, vendor):
-        content = client.read_file(f"vendor-{vendor}/.meta")
+    def vendor_checksum_for_slot(self, vendor_slot: str) -> str:
+        content = self._client.read_file(f"vendor-{vendor_slot}/.meta")
         if not content:
             return ""
         sentinel = VendorSentinel.from_text(content)
         return sentinel.vendor_checksum
 
 
-def other_slot(slot):
+def other_slot(slot: str) -> str:
     return "b" if slot == "a" else "a"

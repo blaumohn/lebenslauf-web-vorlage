@@ -5,9 +5,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from cli.py.deploy.exceptions import DeployConflictError  # noqa: E402
 from cli.py.deploy.machine import DeployMachine  # noqa: E402
-from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
+from cli.py.deploy.sftp_deploy_state import SlotMap  # noqa: E402
 
-DEFAULT_STATE = SlotState("a", "a")
+DEFAULT_STATE = SlotMap.from_labels(app="a", vendor="a")
 
 
 class FakeOps:
@@ -112,8 +112,7 @@ def test_rollback_wird_nach_smoke_fehler_aufgerufen():
     m = DeployMachine()
     m.run(ops)
     assert "rollback" in ops.called
-    assert ops.rollback_state == SlotState("a", "a")
-
+    assert ops.rollback_state == SlotMap.from_labels(app="a", vendor="a")
 
 
 def test_history_enthaelt_alle_zwischenphasen():
@@ -128,26 +127,30 @@ def test_fresh_plan_wird_bei_fehlendem_state_erstellt():
     m = DeployMachine()
     m.run(ops)
     plan = ops.plans[0]
-    assert plan.active is None
-    assert plan.target == SlotState("a", "a")
+    assert plan.active_slot_map is None
+    assert plan.target_slot_map == SlotMap.from_labels(app="a", vendor="a")
 
 
 def test_swap_plan_verwendet_vendor_wieder():
-    ops = FakeOps(state=SlotState("a", "a"), include_vendor=False)
+    ops = FakeOps(
+        state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=False
+    )
     m = DeployMachine()
     m.run(ops)
     plan = ops.plans[0]
-    assert plan.active == SlotState("a", "a")
-    assert plan.target == SlotState("b", "a")
+    assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
+    assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="a")
 
 
 def test_swap_plan_wechselt_vendor_wenn_noetig():
-    ops = FakeOps(state=SlotState("a", "a"), include_vendor=True)
+    ops = FakeOps(
+        state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=True
+    )
     m = DeployMachine()
     m.run(ops)
     plan = ops.plans[0]
-    assert plan.active == SlotState("a", "a")
-    assert plan.target == SlotState("b", "b")
+    assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
+    assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="b")
 
 
 def test_fresh_deploy_ruft_switch_fresh_auf():

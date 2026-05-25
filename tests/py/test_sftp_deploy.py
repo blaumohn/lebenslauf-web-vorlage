@@ -13,7 +13,7 @@ import requests.exceptions
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile, SlotState  # noqa: E402
+from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile, SlotMap  # noqa: E402
 
 
 CHECKSUM = "abc123def456abcd"
@@ -181,8 +181,8 @@ def write_staging_bootstrap(staging_dir):
 
 
 class DispatchSwitchTest(unittest.TestCase):
-    ACTIVE = SlotState("a", "a")
-    TARGET = SlotState("b", "a")
+    ACTIVE = SlotMap.from_labels(app="a", vendor="a")
+    TARGET = SlotMap.from_labels(app="b", vendor="a")
 
     def setUp(self):
         FakeDispatch.submitted = []
@@ -234,7 +234,7 @@ class DispatchSwitchTest(unittest.TestCase):
 
 
 class SystemInvalidReasonTest(unittest.TestCase):
-    ACTIVE = SlotState("a", "a")
+    ACTIVE = SlotMap.from_labels(app="a", vendor="a")
 
     def _make_deploy(self, module, vendor_checksum_ok, app_sentinel_ok):
         deploy = module.SftpDeploy({}, "run-1", logger=lambda _: None)
@@ -374,7 +374,7 @@ class PrepareSlotTest(unittest.TestCase):
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
-            deploy.deploy_swap(SlotState("a", "a"))
+            deploy.deploy_swap(SlotMap.from_labels(app="a", vendor="a"))
         self.assertEqual(vendor_uploads, [])
         self.assertNotIn("vendor-a", client.removed_dirs)
         self.assertNotIn("vendor-b", client.removed_dirs)
@@ -397,7 +397,7 @@ class SftpDeployPathTest(unittest.TestCase):
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
-            deploy.deploy_swap(SlotState("a", "a"))
+            deploy.deploy_swap(SlotMap.from_labels(app="a", vendor="a"))
         self.assertEqual(len(vendor_uploads), 1)
 
     def test_deploy_swap_skips_vendor_when_sentinel_matches(self):
@@ -407,7 +407,7 @@ class SftpDeployPathTest(unittest.TestCase):
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
-            deploy.deploy_swap(SlotState("a", "a"))
+            deploy.deploy_swap(SlotMap.from_labels(app="a", vendor="a"))
         self.assertEqual(len(vendor_uploads), 0)
 
     def test_deploy_swap_uploads_vendor_when_sentinel_missing(self):
@@ -416,7 +416,7 @@ class SftpDeployPathTest(unittest.TestCase):
         vendor_uploads = []
         deploy.upload_vendor_dir = lambda slot: vendor_uploads.append(slot)
         with patch.object(module, "vendor_checksum", return_value=CHECKSUM):
-            deploy.deploy_swap(SlotState("a", "a"))
+            deploy.deploy_swap(SlotMap.from_labels(app="a", vendor="a"))
         self.assertEqual(len(vendor_uploads), 1)
 
 

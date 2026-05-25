@@ -3,7 +3,7 @@
 namespace App\Http\Task\Token;
 
 use App\Http\Security\TokenRotationService;
-use App\Http\Task\Task;
+use App\Http\Task\QueuedTask;
 use App\Http\Task\TaskHandler;
 use App\Http\Task\TaskResult;
 
@@ -18,7 +18,7 @@ final class CvTokenRotationTaskHandler implements TaskHandler
         return $type === 'cv_token_rotation';
     }
 
-    public function handle(Task $task, string $entryPath): TaskResult
+    public function handle(QueuedTask $task, string $entryPath): TaskResult
     {
         $profile = $task->get('profile');
         $count = max(1, (int) $task->get('count'));

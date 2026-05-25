@@ -4,12 +4,12 @@ from typing import Protocol
 from statemachine import State, StateMachine
 
 from cli.py.deploy.exceptions import DeployConflictError
-from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotState
+from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotMap
 
 
 class DeployOps(Protocol):
-    def load_state(self) -> SlotState | None: ...
-    def should_upload_vendor(self, active: SlotState) -> bool: ...
+    def load_state(self) -> SlotMap | None: ...
+    def should_upload_vendor(self, active: SlotMap) -> bool: ...
     def prepare_target(self, plan: DeploymentPlan) -> None: ...
     def upload_app(self, plan: DeploymentPlan) -> None: ...
     def upload_vendor(self, plan: DeploymentPlan) -> None: ...
@@ -18,7 +18,7 @@ class DeployOps(Protocol):
     def switch_fresh(self, plan: DeploymentPlan) -> None: ...
     def switch_swap(self, plan: DeploymentPlan) -> None: ...
     def smoke_ok(self) -> bool: ...
-    def rollback(self, state: SlotState | None) -> None: ...
+    def rollback(self, state: SlotMap | None) -> None: ...
 
 
 class DeployMachine(StateMachine):
@@ -119,11 +119,14 @@ class DeployMachine(StateMachine):
             return None
 
     def _fire_select_event(self, plan):
-        if plan.active is None:
+        if plan.active_slot_map is None:
             self._fresh = True
             self._vendor_upload = True
             self.ev_select_fresh()
-        elif plan.target.vendor != plan.active.vendor:
+        elif (
+            plan.target_slot_map.vendor
+            != plan.active_slot_map.vendor
+        ):
             self._fresh = False
             self._vendor_upload = True
             self.ev_select_swap_vendor()
@@ -166,7 +169,7 @@ class DeployMachine(StateMachine):
         self,
         ops: DeployOps,
         plan: DeploymentPlan | None,
-        state: SlotState | None,
+        state: SlotMap | None,
     ) -> None:
         if self.current_state.final:
             return
@@ -181,7 +184,7 @@ class DeployMachine(StateMachine):
     def _select_plan(
         self,
         ops: DeployOps,
-        state: SlotState | None,
+        state: SlotMap | None,
     ) -> DeploymentPlan:
         if state is None:
             return DeploymentPlan.fresh()

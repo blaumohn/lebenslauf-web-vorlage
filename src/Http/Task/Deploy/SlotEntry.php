@@ -2,12 +2,12 @@
 
 namespace App\Http\Task\Deploy;
 
-final class DeploySlot
+final class SlotEntry
 {
     private const VALID_LABELS = ['a', 'b'];
 
     private function __construct(
-        private readonly string $kind,
+        private readonly string $slotType,
         private readonly string $label,
     ) {
     }
@@ -29,7 +29,7 @@ final class DeploySlot
 
     public function directory(): string
     {
-        return "{$this->kind}-{$this->label}";
+        return "{$this->slotType}-{$this->label}";
     }
 
     public function runMarkerPath(): string

@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from cli.py.deploy.exceptions import DeployConflictError  # noqa: E402
 from cli.py.deploy.machine import DeployMachine  # noqa: E402
-from cli.py.deploy.sftp_deploy_state import SlotState  # noqa: E402
+from cli.py.deploy.sftp_deploy_state import SlotMap  # noqa: E402
 
 OBSERVE_STEPS = (
     "load_state",
@@ -70,20 +70,20 @@ TERMINAL_PHASES = {
     DeployMachine.manual_intervention_required,
 }
 
-DEFAULT_STATE = SlotState("a", "a")
+DEFAULT_STATE = SlotMap.from_labels(app="a", vendor="a")
 
 STATES = (
     None,
     DEFAULT_STATE,
-    SlotState("a", "b"),
-    SlotState("b", "a"),
-    SlotState("b", "b"),
+    SlotMap.from_labels(app="a", vendor="b"),
+    SlotMap.from_labels(app="b", vendor="a"),
+    SlotMap.from_labels(app="b", vendor="b"),
 )
 
 
 @dataclass(frozen=True)
 class DeployScenario:
-    state: SlotState | None = SlotState("a", "a")
+    state: SlotMap | None = DEFAULT_STATE
     include_vendor: bool = False
     fail_at: str | None = None
     error_kind: str | None = None
@@ -168,11 +168,11 @@ def expected_plan(scenario):
     state = scenario.state
     if state is None:
         return (None, DEFAULT_STATE)
-    app = other_slot(state.app)
-    vendor = state.vendor
+    app = other_slot(state.app.label)
+    vendor = state.vendor.label
     if scenario.include_vendor:
-        vendor = other_slot(state.vendor)
-    return (state, SlotState(app, vendor))
+        vendor = other_slot(state.vendor.label)
+    return (state, SlotMap.from_labels(app=app, vendor=vendor))
 
 
 def other_slot(slot):
@@ -325,8 +325,8 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
             return
         active, target = expected
         for plan in self.ops.plans:
-            assert plan.active == active
-            assert plan.target == target
+            assert plan.active_slot_map == active
+            assert plan.target_slot_map == target
 
     @invariant()
     def switch_nur_nach_vorphasen(self):
@@ -391,24 +391,24 @@ def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
 @pytest.mark.parametrize(
     ("scenario", "active", "target"),
     [
-        (make_scenario(state=None), None, SlotState("a", "a")),
+        (make_scenario(state=None), None, SlotMap.from_labels(app="a", vendor="a")),
         (
             make_scenario(include_vendor=False),
-            SlotState("a", "a"),
-            SlotState("b", "a"),
+            SlotMap.from_labels(app="a", vendor="a"),
+            SlotMap.from_labels(app="b", vendor="a"),
         ),
         (
             make_scenario(include_vendor=True),
-            SlotState("a", "a"),
-            SlotState("b", "b"),
+            SlotMap.from_labels(app="a", vendor="a"),
+            SlotMap.from_labels(app="b", vendor="b"),
         ),
         (
             make_scenario(
-                state=SlotState("b", "b"),
+                state=SlotMap.from_labels(app="b", vendor="b"),
                 include_vendor=True,
             ),
-            SlotState("b", "b"),
-            SlotState("a", "a"),
+            SlotMap.from_labels(app="b", vendor="b"),
+            SlotMap.from_labels(app="a", vendor="a"),
         ),
     ],
 )
@@ -418,8 +418,8 @@ def test_machine_entscheidet_deployment_plan(scenario, active, target):
 
     machine.run(ops)
 
-    assert ops.plans[0].active == active
-    assert ops.plans[0].target == target
+    assert ops.plans[0].active_slot_map == active
+    assert ops.plans[0].target_slot_map == target
 
 
 DeployMachineTest = DeployMachineStateMachine.TestCase

@@ -2,7 +2,7 @@
 
 namespace App\Http\Task\Deploy;
 
-use App\Http\Task\Task;
+use App\Http\Task\QueuedTask;
 use App\Http\Task\TaskHandler;
 use App\Http\Task\TaskResult;
 
@@ -18,18 +18,18 @@ final class DeploySwitchTaskHandler implements TaskHandler
         return $type === 'deploy_switch';
     }
 
-    public function handle(Task $task, string $entryPath): TaskResult
+    public function handle(QueuedTask $task, string $entryPath): TaskResult
     {
-        $target = DeployState::fromTask($task, $entryPath);
+        $target = SlotSwitchCommand::fromQueuedTask($task, $entryPath);
         $target->validatePreparedSlots($entryPath);
         $this->switcher->switchTo($target);
         return TaskResult::ok($this->formatResult($target));
     }
 
-    private function formatResult(DeployState $state): string
+    private function formatResult(SlotSwitchCommand $command): string
     {
-        return "app={$state->appLabel()} "
-            . "vendor={$state->vendorLabel()} "
-            . "run_id={$state->deployId()}";
+        return "app={$command->appLabel()} "
+            . "vendor={$command->vendorLabel()} "
+            . "run_id={$command->deployId()}";
     }
 }

@@ -14,12 +14,12 @@ final class DeploySwitcher
     ) {
     }
 
-    public function switchTo(DeployState $state): void
+    public function switchTo(SlotSwitchCommand $command): void
     {
-        $writeState = function () use ($state): void {
+        $writeState = function () use ($command): void {
             $this->writer->writeText(
                 $this->entryPath . '/.htaccess',
-                $state->toHtaccess(),
+                $command->toHtaccess(),
                 0644,
             );
         };

@@ -9,8 +9,8 @@ import requests.exceptions
 from cli.py.deploy.machine import DeployMachine
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
-    DeployState,
-    SlotState,
+    SlotMap,
+    SlotStore,
 )
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.deploy.vendor_sentinel import (
@@ -108,13 +108,13 @@ class SftpDeploy:
 
     def deploy_fresh(self):
         plan = DeploymentPlan.fresh()
-        target = plan.target
+        target = plan.target_slot_map
         self.log(
-            f"Erstdeploy: Slot {target.app_dir}, "
-            f"Vendor {target.vendor_dir}"
+            f"Erstdeploy: Slot {target.app.dir}, "
+            f"Vendor {target.vendor.dir}"
         )
-        self.upload_app_tree(target.app_dir, target.vendor_dir)
-        self.upload_vendor_dir(target.vendor_dir)
+        self.upload_app_tree(target.app.dir, target.vendor.dir)
+        self.upload_vendor_dir(target.vendor.dir)
         self.publish_switch(target)
         self.log("Erstdeploy abgeschlossen")
 
@@ -122,27 +122,34 @@ class SftpDeploy:
         active = state
         include_vendor = self._include_vendor(active)
         plan = DeploymentPlan.swap(active, include_vendor)
-        target = plan.target
+        target = plan.target_slot_map
         self.log(
-            f"Slot: {active.app_dir}→{target.app_dir}, "
-            f"Vendor: {active.vendor_dir}→{target.vendor_dir}"
+            f"Slot: {active.app.dir}→{target.app.dir}, "
+            f"Vendor: {active.vendor.dir}→{target.vendor.dir}"
         )
         self._log_vendor_decision(plan)
-        self.upload_app_tree(target.app_dir, target.vendor_dir)
+        self.upload_app_tree(target.app.dir, target.vendor.dir)
         if include_vendor:
-            self.upload_vendor_dir(target.vendor_dir)
-        self.migrate_tokens(active.app_dir, target.app_dir)
+            self.upload_vendor_dir(target.vendor.dir)
+        self.migrate_tokens(active.app.dir, target.app.dir)
         self.dispatch_switch(target, active)
         self.log(
-            f"Deploy vorbereitet: Slot {target.app_dir}, "
-            f"Vendor {target.vendor_dir}"
+            f"Deploy vorbereitet: Slot {target.app.dir}, "
+            f"Vendor {target.vendor.dir}"
         )
 
     def _log_vendor_decision(self, plan):
-        if plan.target.vendor != plan.active.vendor:
-            self.log(f"Vendor neu hochladen: {plan.target.vendor_dir}")
+        if (
+            plan.target_slot_map.vendor
+            != plan.active_slot_map.vendor
+        ):
+            self.log(
+                f"Vendor neu hochladen: {plan.target_slot_map.vendor.dir}"
+            )
         else:
-            self.log(f"Vendor unverändert: {plan.target.vendor_dir}")
+            self.log(
+                f"Vendor unverändert: {plan.target_slot_map.vendor.dir}"
+            )
 
     def _include_vendor(self, active) -> bool:
         stored = self._read_vendor_checksum(active)
@@ -165,7 +172,7 @@ class SftpDeploy:
 
     def _read_vendor_checksum(self, active) -> str | None:
         try:
-            path = f"{active.vendor_dir}/.meta"
+            path = f"{active.vendor.dir}/.meta"
             content = self.client.read_file(path)
             sentinel = VendorSentinel.from_text(content)
             return sentinel.vendor_checksum
@@ -188,7 +195,9 @@ class SftpDeploy:
                 "vorheriger Deploy möglicherweise unvollständig, "
                 "Switch direkt via SFTP"
             )
-        if not self.client.file_exists(f"{active.app_dir}/.deploy-run"):
+        if not self.client.file_exists(
+            f"{active.app.dir}/.deploy-run"
+        ):
             return (
                 "Warnung: App-Sentinel fehlt — "
                 "Switch direkt via SFTP"
@@ -199,14 +208,14 @@ class SftpDeploy:
 
     def _dispatch_via_task(self, target):
         task = Task("deploy_switch", {
-            "app": target.app,
-            "vendor": target.vendor,
+            "app": target.app.label,
+            "vendor": target.vendor.label,
             "run_id": self.run_id,
         })
         TaskDispatch(self.cfg, logger=self.log).submit(task)
         self.log(
-            f"Switch ausgelöst: Slot {target.app_dir}, "
-            f"Vendor {target.vendor_dir}, Run {self.run_id}"
+            f"Switch ausgelöst: Slot {target.app.dir}, "
+            f"Vendor {target.vendor.dir}, Run {self.run_id}"
         )
 
     def upload_app_tree(self, app_dir, vendor_dir):
@@ -224,7 +233,9 @@ class SftpDeploy:
         bootstrap = self.STAGING_DIR / "src/Http/bootstrap.php"
         original = bootstrap.read_text(encoding="utf-8")
         old = "require $vendorDir . '/autoload.php';"
-        new = f"require dirname(__DIR__, 3) . '/{vendor_dir}/autoload.php';"
+        new = (
+            f"require dirname(__DIR__, 3) . '/{vendor_dir}/autoload.php';"
+        )
         if old not in original:
             raise RuntimeError(
                 f"bootstrap.php: Zeile '{old}' nicht gefunden — "
@@ -233,7 +244,9 @@ class SftpDeploy:
                 "_inject_vendor_require() angepasst werden. "
                 "Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/"
             )
-        bootstrap.write_text(original.replace(old, new, 1), encoding="utf-8")
+        bootstrap.write_text(
+            original.replace(old, new, 1), encoding="utf-8"
+        )
 
     def upload_app_item(self, item, app_dir, stats):
         if item.name == "vendor":
@@ -258,14 +271,18 @@ class SftpDeploy:
         started_at = time.monotonic()
         self.log(f"Upload Vendor: {vendor_dir}")
         self._prepare_slot(vendor_dir)
-        for item in sorted((self.STAGING_DIR / "vendor").iterdir()):
+        for item in sorted(
+            (self.STAGING_DIR / "vendor").iterdir()
+        ):
             rel_remote = vendor_dir + "/" + item.name
             if item.is_dir():
                 self.upload_dir(item, rel_remote, stats)
             else:
                 self.upload_file(item, rel_remote, stats)
         sentinel = VendorSentinel(vendor_checksum())
-        self.client.put_text(f"{vendor_dir}/.meta", sentinel.to_text())
+        self.client.put_text(
+            f"{vendor_dir}/.meta", sentinel.to_text()
+        )
         self.log_upload_vendor(stats, started_at)
 
     def log_upload_vendor(self, stats, started_at):
@@ -304,18 +321,11 @@ class SftpDeploy:
         self.client.put_bytes(f"{dst}/{entry.filename}", data)
         return 1
 
-    def upload_deploy_state(self, state: SlotState) -> None:
-        checksum = vendor_checksum()
-        record = SlotState(
-            state.app,
-            state.vendor,
-            self.run_id,
-            checksum,
-        )
-        DeployState.write(self.client, record)
+    def upload_deploy_state(self, state: SlotMap) -> None:
+        SlotStore(self.client).activate_slot_map(state)
         self.log(
-            f"Deploy-State hochgeladen: Slot {state.app_dir}, "
-            f"Vendor {state.vendor_dir}"
+            f"Deploy-State hochgeladen: Slot {state.app.dir}, "
+            f"Vendor {state.vendor.dir}"
         )
 
     def publish_switch(self, target):
@@ -347,7 +357,7 @@ class SftpDeployOps:
         self._deploy = deploy
 
     def load_state(self):
-        return DeployState.read(self._deploy.client)
+        return SlotStore(self._deploy.client).current_slot_map()
 
     def should_upload_vendor(self, active):
         return self._deploy._include_vendor(active)
@@ -356,22 +366,31 @@ class SftpDeployOps:
         pass
 
     def upload_app(self, plan):
-        self._deploy.upload_app_tree(plan.target.app_dir, plan.target.vendor_dir)
+        self._deploy.upload_app_tree(
+            plan.target_slot_map.app.dir,
+            plan.target_slot_map.vendor.dir,
+        )
 
     def upload_vendor(self, plan):
-        self._deploy.upload_vendor_dir(plan.target.vendor_dir)
+        self._deploy.upload_vendor_dir(plan.target_slot_map.vendor.dir)
 
     def skip_vendor(self, plan):
         self._deploy._log_vendor_decision(plan)
 
     def migrate_tokens(self, plan):
-        self._deploy.migrate_tokens(plan.active.app_dir, plan.target.app_dir)
+        self._deploy.migrate_tokens(
+            plan.active_slot_map.app.dir,
+            plan.target_slot_map.app.dir,
+        )
 
     def switch_fresh(self, plan):
-        self._deploy.publish_switch(plan.target)
+        self._deploy.publish_switch(plan.target_slot_map)
 
     def switch_swap(self, plan):
-        self._deploy.dispatch_switch(plan.target, plan.active)
+        self._deploy.dispatch_switch(
+            plan.target_slot_map,
+            plan.active_slot_map,
+        )
 
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
@@ -382,10 +401,10 @@ class SftpDeployOps:
                 "Rollback: kein vorheriger State vorhanden"
             )
             return
-        DeployState.write(self._deploy.client, state)
+        SlotStore(self._deploy.client).activate_slot_map(state)
         self._deploy.log(
-            f"Rollback: {state.app_dir}, "
-            f"Vendor {state.vendor_dir}"
+            f"Rollback: {state.app.dir}, "
+            f"Vendor {state.vendor.dir}"
         )
 
 

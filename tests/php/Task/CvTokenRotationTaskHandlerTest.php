@@ -10,7 +10,8 @@ use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
-use App\Http\Task\Task;
+use App\Http\Task\QueuedTask;
+use App\Http\Task\QueuedTaskFile;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use PHPUnit\Framework\TestCase;
 
@@ -72,11 +73,11 @@ final class CvTokenRotationTaskHandlerTest extends TestCase
         return new CvTokenRotationTaskHandler(new TokenRotationService($cvStorage, $tokenService));
     }
 
-    private function makeTask(string $profile, int $count): Task
+    private function makeTask(string $profile, int $count): QueuedTask
     {
         $file = $this->root . '/task.ini';
         file_put_contents($file, "[task]\ntype = cv_token_rotation\nprofile = {$profile}\ncount = {$count}\n");
-        return Task::fromFile($file);
+        return QueuedTaskFile::load($file);
     }
 
     private function removeDir(string $dir): void

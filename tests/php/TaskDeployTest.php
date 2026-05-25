@@ -10,11 +10,11 @@ use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
-use App\Http\Task\Deploy\DeployState;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
 use App\Http\Task\Deploy\DeploySwitcher;
-use App\Http\Task\Deploy\PreparedDeployState;
-use App\Http\Task\Task;
+use App\Http\Task\Deploy\SlotSwitchCommand;
+use App\Http\Task\QueuedTask;
+use App\Http\Task\QueuedTaskFile;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use App\Http\Task\TaskRunner;
 use PHPUnit\Framework\TestCase;
@@ -38,59 +38,46 @@ final class TaskDeployTest extends TestCase
         $this->removeDir($this->dir);
     }
 
-    // ── PreparedDeployState ──────────────────────────────────────────────────
+    // ── SlotSwitchCommand ────────────────────────────────────────────────────
 
-    public function testPreparedDeployStateRoundtrip(): void
+    public function testSlotSwitchCommandResolvesRunMarkerPaths(): void
     {
-        $state = PreparedDeployState::fromParams('b', 'a');
+        $cmd = SlotSwitchCommand::fromParams('run-42', 'b', 'a');
 
-        $this->assertSame("[state]\napp=b\nvendor=a\n", $state->toIni());
-    }
-
-    public function testPreparedDeployStateRejectsInvalidSlot(): void
-    {
-        $this->expectException(RuntimeException::class);
-        PreparedDeployState::fromParams('c', 'a');
-    }
-
-    public function testDeployStateResolvesRunMarkerPaths(): void
-    {
-        $state = DeployState::fromParams('run-42', 'b', 'a');
-
-        $this->assertSame('b', $state->appLabel());
-        $this->assertSame('a', $state->vendorLabel());
-        $this->assertSame('app-b/.deploy-run', $state->appRunMarkerPath());
+        $this->assertSame('b', $cmd->appLabel());
+        $this->assertSame('a', $cmd->vendorLabel());
+        $this->assertSame('app-b/.deploy-run', $cmd->appRunMarkerPath());
         $this->assertSame(
             "# deploy-slot: b\n"
             . "RewriteEngine On\n"
             . "RewriteCond %{DOCUMENT_ROOT}/app-b/public/%{REQUEST_URI} -f\n"
             . "RewriteRule ^(.*)$ /app-b/public/\$1 [L]\n"
             . "RewriteRule ^ /app-b/public/index.php [L,QSA]\n",
-            $state->toHtaccess(),
+            $cmd->toHtaccess(),
         );
     }
 
-    public function testDeployStateRejectsMissingDeployId(): void
+    public function testSlotSwitchCommandRejectsMissingDeployId(): void
     {
         $this->expectException(RuntimeException::class);
-        DeployState::fromParams('', 'b', 'a');
+        SlotSwitchCommand::fromParams('', 'b', 'a');
     }
 
-    public function testDeployStateRejectsInvalidSlotLabel(): void
+    public function testSlotSwitchCommandRejectsInvalidSlotLabel(): void
     {
         $this->expectException(RuntimeException::class);
-        DeployState::fromParams('run-42', 'x', 'a');
+        SlotSwitchCommand::fromParams('run-42', 'x', 'a');
     }
 
-    public function testDeployStateValidatesPreparedSlots(): void
+    public function testSlotSwitchCommandValidatesPreparedSlots(): void
     {
         $this->writeVendorSlot('a');
         $this->writeAppMarker('b', 'run-42');
-        $state = DeployState::fromParams('run-42', 'b', 'a');
+        $cmd = SlotSwitchCommand::fromParams('run-42', 'b', 'a');
 
-        $state->validatePreparedSlots($this->dir);
+        $cmd->validatePreparedSlots($this->dir);
 
-        $this->assertSame('run-42', $state->deployId());
+        $this->assertSame('run-42', $cmd->deployId());
     }
 
     // ── DeploySwitcher ───────────────────────────────────────────────────────
@@ -99,18 +86,18 @@ final class TaskDeployTest extends TestCase
     {
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
 
-        $switcher->switchTo(DeployState::fromParams('42', 'b', 'a'));
+        $switcher->switchTo(SlotSwitchCommand::fromParams('42', 'b', 'a'));
 
         $this->assertFileExists($this->dir . '/.htaccess');
     }
 
-    // ── Task ─────────────────────────────────────────────────────────────────
+    // ── QueuedTask / QueuedTaskFile ──────────────────────────────────────────
 
-    public function testTaskParsesFile(): void
+    public function testQueuedTaskFileParsesFile(): void
     {
         $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
 
-        $task = Task::fromFile($file);
+        $task = QueuedTaskFile::load($file);
 
         $this->assertSame('deploy_switch', $task->type());
         $this->assertSame('b', $task->get('app'));
@@ -118,19 +105,19 @@ final class TaskDeployTest extends TestCase
         $this->assertSame('42', $task->get('run_id'));
     }
 
-    public function testTaskRejectsMissingType(): void
+    public function testQueuedTaskFileRejectsMissingType(): void
     {
         $file = $this->writeTempIni("[task]\n");
         $this->expectException(RuntimeException::class);
-        Task::fromFile($file);
+        QueuedTaskFile::load($file);
     }
 
-    public function testTaskParsesTokenRotationIniFormat(): void
+    public function testQueuedTaskFileParsesTokenRotationIniFormat(): void
     {
         $ini = "[task]\ntype = cv_token_rotation\nprofile = default\ncount = 1\n\n";
         $file = $this->writeTempIni($ini);
 
-        $task = Task::fromFile($file);
+        $task = QueuedTaskFile::load($file);
 
         $this->assertSame('cv_token_rotation', $task->type());
         $this->assertSame('default', $task->get('profile'));
@@ -152,7 +139,7 @@ final class TaskDeployTest extends TestCase
         $this->writeVendorSlot('a');
         $this->writeAppMarker('b', '42');
         $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
-        $task = Task::fromFile($this->writeTempIni($ini));
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $result = $this->buildDeploySwitchHandler()->handle($task, $this->dir);
 
@@ -165,7 +152,7 @@ final class TaskDeployTest extends TestCase
         $this->writeVendorSlot('a');
         $this->writeLegacyAppMarker('b', '42');
         $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
-        $task = Task::fromFile($this->writeTempIni($ini));
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -176,7 +163,7 @@ final class TaskDeployTest extends TestCase
         $this->writeVendorSlot('a');
         $this->writeAppMarker('b', '99');
         $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
-        $task = Task::fromFile($this->writeTempIni($ini));
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -184,7 +171,9 @@ final class TaskDeployTest extends TestCase
 
     public function testDeploySwitchTaskHandlerRejectsMissingRunId(): void
     {
-        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\n"));
+        $task = QueuedTaskFile::load(
+            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\n")
+        );
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -193,7 +182,9 @@ final class TaskDeployTest extends TestCase
     public function testDeploySwitchTaskHandlerRejectsMissingVendorMeta(): void
     {
         $this->writeAppMarker('b', '42');
-        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n"));
+        $task = QueuedTaskFile::load(
+            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n")
+        );
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
