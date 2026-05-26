@@ -1,7 +1,7 @@
 import sys
 
-from cli.py.deploy.sftp_deploy_state import SlotStore
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.slot_store import SlotStore
 from cli.py.pipeline_cfg import PipelineCfg
 
 

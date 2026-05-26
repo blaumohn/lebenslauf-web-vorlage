@@ -1,14 +1,15 @@
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Protocol
 
 from statemachine import State, StateMachine
 
 from cli.py.deploy.exceptions import DeployConflictError
-from cli.py.deploy.sftp_deploy_state import DeploymentPlan, SlotMap
+from cli.py.deploy.slots import DeploymentPlan, SlotMap
 
 
 class DeployOps(Protocol):
-    def load_state(self) -> SlotMap | None: ...
+    def load_current_slot_map(self) -> SlotMap | None: ...
     def should_upload_vendor(self, active: SlotMap) -> bool: ...
     def prepare_target(self, plan: DeploymentPlan) -> None: ...
     def upload_app(self, plan: DeploymentPlan) -> None: ...
@@ -24,12 +25,12 @@ class DeployOps(Protocol):
     def abort_before_switch(
         self,
         plan: DeploymentPlan | None,
-        state: SlotMap | None,
+        active_slot_map: SlotMap | None,
     ) -> None: ...
     def rollback_after_switch(
         self,
         plan: DeploymentPlan | None,
-        state: SlotMap | None,
+        previous_slot_map: SlotMap | None,
     ) -> None: ...
 
 
@@ -107,7 +108,7 @@ class DeployMachine(StateMachine):
         super().__init__()
         self._ops = ops
         self._plan: DeploymentPlan | None = None
-        self._current_slots: SlotMap | None = None
+        self._current_slot_map: SlotMap | None = None
         self._smoke_ok: bool = False
         self._post_switch: bool = False
         self._on_transition = on_transition
@@ -151,12 +152,13 @@ class DeployMachine(StateMachine):
             self._recover_post_switch()
 
     def after_transition(self, event, source, target) -> None:
+        _ = event
         if self._on_transition:
             self._on_transition(source, target)
         self.history.append(source.id)
 
     def _step_load(self) -> None:
-        self._current_slots = self._ops.load_state()
+        self._current_slot_map = self._ops.load_current_slot_map()
         self.load()
 
     def _step_select(self) -> None:
@@ -170,12 +172,15 @@ class DeployMachine(StateMachine):
             self.select_swap()
 
     def _build_plan(self) -> DeploymentPlan:
-        if self._current_slots is None:
+        if self._current_slot_map is None:
             return DeploymentPlan.fresh()
         include_vendor = self._ops.should_upload_vendor(
-            self._current_slots
+            self._current_slot_map
         )
-        return DeploymentPlan.swap(self._current_slots, include_vendor)
+        return DeploymentPlan.swap(
+            self._current_slot_map,
+            include_vendor,
+        )
 
     def _vendor_changed(self) -> bool:
         return (
@@ -249,18 +254,16 @@ class DeployMachine(StateMachine):
                 self._abort_and_fail()
 
     def _abort_and_fail(self) -> None:
-        try:
+        with suppress(Exception):
             self._ops.abort_before_switch(
-                self._plan, self._current_slots
+                self._plan, self._current_slot_map
             )
-        except Exception:
-            pass
         self.fail()
 
     def _recover_post_switch(self) -> None:
         try:
             self._ops.rollback_after_switch(
-                self._plan, self._current_slots
+                self._plan, self._current_slot_map
             )
             self.rollback()
         except DeployConflictError:

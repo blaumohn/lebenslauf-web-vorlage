@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 import requests
 
 from cli.py.deploy.exceptions import DeployConflictError
-from cli.py.deploy.sftp_deploy_state import SlotStore
+from cli.py.deploy.slot_store import SlotStore
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 

@@ -87,7 +87,7 @@ class ContactSmokeTest(unittest.TestCase):
             smoke.read_captcha_solution(sftp, "a", "missing_123")
 
     def test_reads_app_slot_from_state(self):
-        from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile
+        from cli.py.deploy.slot_store import HtaccessSlotFile
         files = {
             ".htaccess": HtaccessSlotFile.generate("b"),
             "app-b/src/Http/bootstrap.php": (

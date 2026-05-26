@@ -1,7 +1,7 @@
 import sys
 
-from cli.py.deploy.sftp_deploy_state import SlotStore
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.slot_store import SlotStore
 from cli.py.deploy.vendor_sentinel import ComposerInputChecksum
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.util.envvar import env
@@ -15,7 +15,7 @@ def main():
         slot_map = store.current_slot_map()
         if slot_map is None:
             print(
-                "[verify] Kein Deploy-State gefunden",
+                "[verify] Keine aktive Slot-Zuordnung gefunden",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -32,7 +32,7 @@ def verify_run_id(stored: str, expected: str) -> None:
     if stored != expected:
         print(
             f"[verify] Run-ID stimmt nicht: "
-            f"erwartet={expected!r}, state={stored!r}",
+            f"erwartet={expected!r}, server={stored!r}",
             file=sys.stderr,
         )
         sys.exit(1)

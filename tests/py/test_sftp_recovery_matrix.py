@@ -12,6 +12,7 @@ import sys
 import tempfile
 import types
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
 
@@ -19,13 +20,29 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from cli.py.deploy.machine import DeployMachine  # noqa: E402
-from cli.py.deploy.sftp_deploy_state import HtaccessSlotFile  # noqa: E402
+from cli.py.deploy.slot_store import HtaccessSlotFile  # noqa: E402
 
 CHECKSUM = "abc123def456abcd"
 STATE_FILE = ".htaccess"
 ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
-ACTIVE_BOOTSTRAP = "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+ACTIVE_BOOTSTRAP = (
+    "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+)
 VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
+
+def enter_common_patches(stack):
+    stack.enter_context(patch(
+            "cli.py.deploy.tree_uploader.SftpTreeUploader"
+            "._inject_vendor_require",
+            return_value=None,
+        )
+    )
+    stack.enter_context(patch(
+            "cli.py.deploy.token_migrator.RuntimeTokenMigrator"
+            ".migrate",
+            return_value=None,
+        )
+    )
 
 
 def load_module():
@@ -33,7 +50,10 @@ def load_module():
         RejectPolicy=object, SSHClient=object,
     ))
     path = REPO_ROOT / "scripts" / "sftp-deploy.py"
-    spec = importlib.util.spec_from_file_location("sftp_deploy_script", path)
+    spec = importlib.util.spec_from_file_location(
+        "sftp_deploy_script",
+        path,
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -62,6 +82,8 @@ class FakeClient:
 
     def put_text(self, path, content):
         self.texts[path] = content
+        self._contents[path] = content
+        self._exists.add(path)
 
     def put_file(self, _local, path):
         self.files.append(path)
@@ -90,8 +112,6 @@ def make_swap_deploy(module, run_id="run-2"):
     client.set_file("vendor-a/.meta", VENDOR_META)
     client.set_file("app-a/.deploy-run", "run-prev")
     deploy.client = client
-    deploy._inject_vendor_require = lambda _: None
-    deploy.migrate_tokens = lambda _a, _b: None
     return deploy, client
 
 
@@ -110,10 +130,18 @@ class Szenario1aTest(unittest.TestCase):
             deploy, client = make_swap_deploy(self.module)
             deploy.STAGING_DIR = Path(tmp)
             (Path(tmp) / "index.php").write_text("<?php")
-            with (
-                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
-                patch.object(deploy, "upload_file", side_effect=OSError("fail")),
-            ):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    ".upload_file",
+                    side_effect=OSError("fail"),
+                ))
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
         self.assertNotIn(STATE_FILE, client.texts)
@@ -123,10 +151,18 @@ class Szenario1aTest(unittest.TestCase):
             deploy, client = make_swap_deploy(self.module)
             deploy.STAGING_DIR = Path(tmp)
             (Path(tmp) / "index.php").write_text("<?php")
-            with (
-                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
-                patch.object(deploy, "upload_file", side_effect=OSError("fail")),
-            ):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    ".upload_file",
+                    side_effect=OSError("fail"),
+                ))
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
         self.assertNotIn("app-b/.deploy-run", client.texts)
@@ -137,7 +173,7 @@ class Szenario1bTest(unittest.TestCase):
     start:  active_app=app-a (State unverändert nach run_1-Fehler)
             app-b: partiell, kein .deploy-run
     run_2:  kein Fehler
-    expect: app-b bereinigt vor Upload, .deploy-run auf app-b geschrieben
+    expect: app-b bereinigt vor Upload, .deploy-run auf app-b
     """
 
     def setUp(self):
@@ -147,8 +183,18 @@ class Szenario1bTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             deploy, client = make_swap_deploy(self.module)
             deploy.STAGING_DIR = Path(tmp)
-            deploy.dispatch_switch = lambda _t, _a: None
-            with patch.object(self.module, "vendor_checksum", return_value=CHECKSUM):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.slot_switch.SlotSwitchDispatcher"
+                    ".dispatch",
+                    return_value=None,
+                ))
                 deploy.deploy()
         self.assertIn("app-b", client.removed_dirs)
 
@@ -156,8 +202,18 @@ class Szenario1bTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             deploy, client = make_swap_deploy(self.module)
             deploy.STAGING_DIR = Path(tmp)
-            deploy.dispatch_switch = lambda _t, _a: None
-            with patch.object(self.module, "vendor_checksum", return_value=CHECKSUM):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.slot_switch.SlotSwitchDispatcher"
+                    ".dispatch",
+                    return_value=None,
+                ))
                 deploy.deploy()
         self.assertEqual(client.texts.get("app-b/.deploy-run"), "run-2")
 
@@ -174,16 +230,28 @@ class Szenario2Test(unittest.TestCase):
     def _make_deploy(self, tmp):
         deploy, client = make_swap_deploy(self.module)
         deploy.STAGING_DIR = Path(tmp)
-        deploy.dispatch_switch = lambda _t, _a: None
         return deploy, client
 
     def test_smoke_fehler_loest_rollback_aus(self):
         with tempfile.TemporaryDirectory() as tmp:
             deploy, _ = self._make_deploy(tmp)
-            with (
-                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
-                patch.object(self.module, "smoke_check", return_value=False),
-            ):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                stack.enter_context(patch.object(
+                    self.module,
+                    "smoke_check",
+                    return_value=False,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.slot_switch.SlotSwitchDispatcher"
+                    ".dispatch",
+                    return_value=None,
+                ))
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
         self.assertEqual(deploy.deploy_phase, DeployMachine.rolled_back)
@@ -191,10 +259,23 @@ class Szenario2Test(unittest.TestCase):
     def test_rollback_stellt_alten_state_wieder_her(self):
         with tempfile.TemporaryDirectory() as tmp:
             deploy, client = self._make_deploy(tmp)
-            with (
-                patch.object(self.module, "vendor_checksum", return_value=CHECKSUM),
-                patch.object(self.module, "smoke_check", return_value=False),
-            ):
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(
+                    self.module,
+                    "vendor_checksum",
+                    return_value=CHECKSUM,
+                ))
+                stack.enter_context(patch.object(
+                    self.module,
+                    "smoke_check",
+                    return_value=False,
+                ))
+                enter_common_patches(stack)
+                stack.enter_context(patch(
+                    "cli.py.deploy.slot_switch.SlotSwitchDispatcher"
+                    ".dispatch",
+                    return_value=None,
+                ))
                 with self.assertRaises(RuntimeError):
                     deploy.deploy()
         written = client.texts.get(STATE_FILE, "")
@@ -204,7 +285,7 @@ class Szenario2Test(unittest.TestCase):
 class Szenario3Test(unittest.TestCase):
     """
     run:    Fresh-Deploy, switch=success, post_switch_smoke=fail
-    expect: MANUAL_INTERVENTION — kein vorheriger State für Rollback
+    expect: MANUAL_INTERVENTION — kein vorheriger Slot für Rollback
     """
 
     def setUp(self):
@@ -216,10 +297,6 @@ class Szenario3Test(unittest.TestCase):
         )
         client = FakeClient()
         deploy.client = client
-        deploy._inject_vendor_require = lambda _: None
-        deploy.migrate_tokens = lambda _a, _b: None
-        deploy.upload_vendor_dir = lambda _slot: None
-        deploy.publish_switch = lambda _target: None
         deploy.STAGING_DIR = Path(tmp)
         return deploy, client
 
@@ -235,9 +312,24 @@ class Szenario3Test(unittest.TestCase):
                     self.module, "smoke_check",
                     return_value=False,
                 ),
+                patch(
+                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    "._inject_vendor_require",
+                    return_value=None,
+                ),
+                patch(
+                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    ".upload_vendor_dir",
+                    return_value=None,
+                ),
+                patch(
+                    "cli.py.deploy.slot_switch.SlotPublisher"
+                    ".publish",
+                    return_value=None,
+                ),
+                self.assertRaises(RuntimeError),
             ):
-                with self.assertRaises(RuntimeError):
-                    deploy.deploy()
+                deploy.deploy()
         self.assertEqual(
             deploy.deploy_phase,
             DeployMachine.manual_intervention_required,

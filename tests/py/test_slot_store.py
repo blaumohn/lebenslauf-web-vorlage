@@ -9,13 +9,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from cli.py.deploy.exceptions import DeployConflictError
-from cli.py.deploy.sftp_deploy_state import (
-    DeploymentPlan,
+from cli.py.deploy.slot_store import (
     HtaccessSlotFile,
-    SlotMap,
     SlotStore,
     _VENDOR_SLOT_RE,
 )
+from cli.py.deploy.slots import DeploymentPlan, SlotMap
 from cli.py.deploy.sftp_deploy_templates import resource_path
 
 BOOTSTRAP_SRC = REPO_ROOT / "src" / "Http" / "bootstrap.php"
@@ -41,7 +40,7 @@ class HtaccessSlotFileTest(unittest.TestCase):
             HtaccessSlotFile.read_slot("RewriteEngine On\n")
 
     def test_generate_app_slot_content(self):
-        """generate() enthält App-Slot-Pfade und RewriteEngine-Direktive.
+        """generate() enthält App-Slot-Pfade und RewriteEngine.
         """
         content = HtaccessSlotFile.generate("a")
         self.assertIn("/app-a/public/index.php", content)
@@ -88,7 +87,8 @@ class DeploymentPlanTest(unittest.TestCase):
         active = SlotMap.from_labels(app="a", vendor="b")
         plan = DeploymentPlan.swap(active, include_vendor=True)
         self.assertEqual(
-            plan.target_slot_map, SlotMap.from_labels(app="b", vendor="a")
+            plan.target_slot_map,
+            SlotMap.from_labels(app="b", vendor="a"),
         )
 
     def test_swap_keeps_vendor_without_flag(self):
@@ -96,7 +96,8 @@ class DeploymentPlanTest(unittest.TestCase):
         active = SlotMap.from_labels(app="a", vendor="b")
         plan = DeploymentPlan.swap(active, include_vendor=False)
         self.assertEqual(
-            plan.target_slot_map, SlotMap.from_labels(app="b", vendor="b")
+            plan.target_slot_map,
+            SlotMap.from_labels(app="b", vendor="b"),
         )
 
 
@@ -147,7 +148,7 @@ class DeployResourceTest(unittest.TestCase):
 
 class DevRouterTest(unittest.TestCase):
     def test_dev_server_uses_public_docroot(self):
-        """Dev-Server startet PHP mit public/ als Webroot ohne Router."""
+        """Dev-Server nutzt public/ als Webroot ohne Router."""
         path = (
             REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
         )
@@ -233,9 +234,9 @@ class SlotStoreReadTest(unittest.TestCase):
         store = SlotStore(_full_client(**{"app-a/.deploy-run": ""}))
         self.assertEqual(store.run_id_for_app_slot("a"), "")
 
-    def test_leere_checksum_wenn_meta_fehlt(self):
+    def test_none_checksum_wenn_meta_fehlt(self):
         store = SlotStore(_full_client(**{"vendor-b/.meta": ""}))
-        self.assertEqual(store.vendor_checksum_for_slot("b"), "")
+        self.assertIsNone(store.vendor_checksum_for_slot("b"))
 
 
 def read_resource(path):

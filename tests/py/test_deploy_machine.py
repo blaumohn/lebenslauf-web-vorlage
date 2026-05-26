@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from cli.py.deploy.exceptions import DeployConflictError  # noqa: E402
 from cli.py.deploy.machine import DeployMachine  # noqa: E402
-from cli.py.deploy.sftp_deploy_state import SlotMap  # noqa: E402
+from cli.py.deploy.slots import SlotMap  # noqa: E402
 
 DEFAULT_STATE = SlotMap.from_labels(app="a", vendor="a")
 
@@ -26,8 +26,8 @@ class FakeOps:
         self.plans = []
         self.rollback_state = None
 
-    def load_state(self):
-        self._call("load_state")
+    def load_current_slot_map(self):
+        self._call("load_current_slot_map")
         return self.state
 
     def should_upload_vendor(self, _active):
