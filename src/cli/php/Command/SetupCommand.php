@@ -173,6 +173,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
     private function runCommand(array $command, OutputInterface $output, bool $interactive): bool
     {
         $process = new Process($command, $this->rootPath());
+        $process->setTimeout(null);
         if ($interactive && Process::isTtySupported()) {
             $process->setTty(true);
         }

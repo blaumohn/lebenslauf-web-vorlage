@@ -22,7 +22,7 @@ final class DeploySwitchTaskHandler implements TaskHandler
     {
         $target = SlotSwitchCommand::fromQueuedTask($task, $entryPath);
         $target->validatePreparedSlots($entryPath);
-        $this->switcher->switchTo($target);
+        $this->switcher->switchTo($target, $task->get('task_id'));
         return TaskResult::ok($this->formatResult($target));
     }
 
@@ -30,6 +30,6 @@ final class DeploySwitchTaskHandler implements TaskHandler
     {
         return "app={$command->appLabel()} "
             . "vendor={$command->vendorLabel()} "
-            . "run_id={$command->deployId()}";
+            . "pipeline_run_id={$command->pipelineRunId()}";
     }
 }

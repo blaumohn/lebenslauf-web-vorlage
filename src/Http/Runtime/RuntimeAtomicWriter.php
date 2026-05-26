@@ -61,6 +61,16 @@ final class RuntimeAtomicWriter
         throw new \RuntimeException("Dateirechte konnten nicht gesetzt werden: {$path}");
     }
 
+    public function appendLine(string $path, string $line, int $mode = 0600): void
+    {
+        $this->ensureDir(dirname($path));
+        $written = file_put_contents($path, $line . "\n", FILE_APPEND | LOCK_EX);
+        if ($written === false) {
+            throw new \RuntimeException("Zeile konnte nicht angehängt werden: {$path}");
+        }
+        $this->applyMode($path, $mode);
+    }
+
     private function safeUnlink(string $path): void
     {
         if (is_file($path)) {

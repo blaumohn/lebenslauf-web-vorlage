@@ -8,13 +8,13 @@ use Symfony\Component\Filesystem\Path;
 final class SlotSwitchCommand
 {
     private function __construct(
-        private readonly string $deployId,
+        private readonly string $pipelineRunId,
         private readonly SlotEntry $appSlot,
         private readonly SlotEntry $vendorSlot,
         private readonly string $vendorChecksum = '',
     ) {
-        if ($deployId === '') {
-            throw new \RuntimeException('Deploy-ID fehlt.');
+        if ($pipelineRunId === '') {
+            throw new \RuntimeException('Pipeline-Run-ID fehlt.');
         }
     }
 
@@ -25,16 +25,16 @@ final class SlotSwitchCommand
         $app = SlotEntry::app($task->get('app'));
         $vendor = SlotEntry::vendor($task->get('vendor'));
         $checksum = self::readVendorMeta($entryPath, $vendor->directory());
-        return new self($task->get('run_id'), $app, $vendor, $checksum);
+        return new self($task->get('pipeline_run_id'), $app, $vendor, $checksum);
     }
 
     public static function fromParams(
-        string $deployId,
+        string $pipelineRunId,
         string $app,
         string $vendor,
     ): self {
         return new self(
-            $deployId,
+            $pipelineRunId,
             SlotEntry::app($app),
             SlotEntry::vendor($vendor),
         );
@@ -61,9 +61,9 @@ final class SlotSwitchCommand
         return trim($checksum);
     }
 
-    public function deployId(): string
+    public function pipelineRunId(): string
     {
-        return $this->deployId;
+        return $this->pipelineRunId;
     }
 
     public function appLabel(): string
@@ -107,9 +107,9 @@ final class SlotSwitchCommand
             Path::join($entryPath, $markerPath),
             "App-Sentinel",
         );
-        if ($stored !== $this->deployId) {
+        if ($stored !== $this->pipelineRunId) {
             throw new \RuntimeException(
-                "run_id stimmt nicht überein: " . dirname($markerPath)
+                "pipeline_run_id stimmt nicht überein: " . dirname($markerPath)
             );
         }
     }

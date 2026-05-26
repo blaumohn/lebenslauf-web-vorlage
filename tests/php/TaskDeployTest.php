@@ -77,7 +77,7 @@ final class TaskDeployTest extends TestCase
 
         $cmd->validatePreparedSlots($this->dir);
 
-        $this->assertSame('run-42', $cmd->deployId());
+        $this->assertSame('run-42', $cmd->pipelineRunId());
     }
 
     // ── DeploySwitcher ───────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ final class TaskDeployTest extends TestCase
     {
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
 
-        $switcher->switchTo(SlotSwitchCommand::fromParams('42', 'b', 'a'));
+        $switcher->switchTo(SlotSwitchCommand::fromParams('42', 'b', 'a'), 'task-test');
 
         $this->assertFileExists($this->dir . '/.htaccess');
     }
@@ -95,14 +95,14 @@ final class TaskDeployTest extends TestCase
 
     public function testQueuedTaskFileParsesFile(): void
     {
-        $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
+        $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n");
 
         $task = QueuedTaskFile::load($file);
 
         $this->assertSame('deploy_switch', $task->type());
         $this->assertSame('b', $task->get('app'));
         $this->assertSame('a', $task->get('vendor'));
-        $this->assertSame('42', $task->get('run_id'));
+        $this->assertSame('42', $task->get('pipeline_run_id'));
     }
 
     public function testQueuedTaskFileRejectsMissingType(): void
@@ -138,7 +138,7 @@ final class TaskDeployTest extends TestCase
     {
         $this->writeVendorSlot('a');
         $this->writeAppMarker('b', '42');
-        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
         $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $result = $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -151,7 +151,7 @@ final class TaskDeployTest extends TestCase
     {
         $this->writeVendorSlot('a');
         $this->writeLegacyAppMarker('b', '42');
-        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
         $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $this->expectException(RuntimeException::class);
@@ -162,7 +162,7 @@ final class TaskDeployTest extends TestCase
     {
         $this->writeVendorSlot('a');
         $this->writeAppMarker('b', '99');
-        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n";
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
         $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $this->expectException(RuntimeException::class);
@@ -183,7 +183,7 @@ final class TaskDeployTest extends TestCase
     {
         $this->writeAppMarker('b', '42');
         $task = QueuedTaskFile::load(
-            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n")
+            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n")
         );
 
         $this->expectException(RuntimeException::class);
@@ -205,7 +205,7 @@ final class TaskDeployTest extends TestCase
         $taskDir = $this->dir . '/var/tasks';
         mkdir($taskDir, 0775, true);
         $taskFile = $taskDir . '/20260505T000000Z-deploy-switch.ini';
-        file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
+        file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n");
 
         [$count] = $this->runRunnerCapturingOutput(
             new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),

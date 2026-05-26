@@ -7,7 +7,7 @@ use App\Http\ConfigCompiled;
 require __DIR__ . '/BootstrapRuntime.php';
 
 $rootPath = BootstrapRuntime::rootPath();
-$vendorDir = BootstrapRuntime::vendorPath($rootPath);
+$vendorDir = $rootPath . '/vendor';
 
 // deploy: Diese Zeile wird im Staging durch den Vendor-Slot-Pfad ersetzt.
 // Änderung hier → _inject_vendor_require() in scripts/sftp-deploy.py anpassen.

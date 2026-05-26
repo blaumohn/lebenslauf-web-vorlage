@@ -11,11 +11,6 @@ final class BootstrapRuntime
         return dirname(__DIR__, 2);
     }
 
-    public static function vendorPath(string $rootPath): string
-    {
-        return $rootPath . '/vendor';
-    }
-
     public static function registerShutdownTrap(string $rootPath): void
     {
         $logDir = $rootPath . '/var/log';
