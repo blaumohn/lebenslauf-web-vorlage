@@ -76,56 +76,56 @@ class FakeOps:
 
 
 def test_happy_path_endet_in_cleaned_up():
-    m = DeployMachine()
-    m.run(FakeOps())
+    m = DeployMachine(FakeOps())
+    m.run()
     assert m.current_state == DeployMachine.cleaned_up
 
 
 def test_upload_fehler_fuehrt_zu_failed_safe():
-    m = DeployMachine()
-    m.run(FakeOps(fail_at="upload_app"))
+    m = DeployMachine(FakeOps(fail_at="upload_app"))
+    m.run()
     assert m.current_state == DeployMachine.failed_safe
 
 
 def test_failed_safe_verhindert_switch():
     ops = FakeOps(fail_at="upload_app")
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "switch_fresh" not in ops.called
     assert "switch_swap" not in ops.called
 
 
 def test_smoke_ok_exception_fuehrt_zu_failed_safe():
-    m = DeployMachine()
-    m.run(FakeOps(fail_at="smoke_ok"))
+    m = DeployMachine(FakeOps(fail_at="smoke_ok"))
+    m.run()
     assert m.current_state == DeployMachine.failed_safe
 
 
 def test_smoke_fehler_fuehrt_zu_rollback():
-    m = DeployMachine()
-    m.run(FakeOps(smoke=False))
+    m = DeployMachine(FakeOps(smoke=False))
+    m.run()
     assert m.current_state == DeployMachine.rolled_back
 
 
 def test_rollback_wird_nach_smoke_fehler_aufgerufen():
     ops = FakeOps(smoke=False)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "rollback" in ops.called
     assert ops.rollback_state == SlotMap.from_labels(app="a", vendor="a")
 
 
 def test_history_enthaelt_alle_zwischenphasen():
-    m = DeployMachine()
-    m.run(FakeOps())
+    m = DeployMachine(FakeOps())
+    m.run()
     assert "started" in m.history
     assert "switched" in m.history
 
 
 def test_fresh_plan_wird_bei_fehlendem_state_erstellt():
     ops = FakeOps(state=None)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     plan = ops.plans[0]
     assert plan.active_slot_map is None
     assert plan.target_slot_map == SlotMap.from_labels(app="a", vendor="a")
@@ -135,8 +135,8 @@ def test_swap_plan_verwendet_vendor_wieder():
     ops = FakeOps(
         state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=False
     )
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     plan = ops.plans[0]
     assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
     assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="a")
@@ -146,8 +146,8 @@ def test_swap_plan_wechselt_vendor_wenn_noetig():
     ops = FakeOps(
         state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=True
     )
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     plan = ops.plans[0]
     assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
     assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="b")
@@ -155,53 +155,53 @@ def test_swap_plan_wechselt_vendor_wenn_noetig():
 
 def test_fresh_deploy_ruft_switch_fresh_auf():
     ops = FakeOps(state=None)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "switch_fresh" in ops.called
     assert "switch_swap" not in ops.called
 
 
 def test_swap_deploy_ruft_switch_swap_auf():
     ops = FakeOps()
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "switch_swap" in ops.called
     assert "switch_fresh" not in ops.called
 
 
 def test_fresh_deploy_laedt_vendor_hoch():
     ops = FakeOps(state=None)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "upload_vendor" in ops.called
     assert "skip_vendor" not in ops.called
 
 
 def test_swap_ohne_vendor_ueberspringt_vendor():
     ops = FakeOps(include_vendor=False)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "skip_vendor" in ops.called
     assert "upload_vendor" not in ops.called
 
 
 def test_swap_mit_vendor_laedt_vendor_hoch():
     ops = FakeOps(include_vendor=True)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "upload_vendor" in ops.called
     assert "skip_vendor" not in ops.called
 
 
 def test_fresh_deploy_migriert_keine_tokens():
     ops = FakeOps(state=None)
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "migrate_tokens" not in ops.called
 
 
 def test_swap_migriert_tokens():
     ops = FakeOps()
-    m = DeployMachine()
-    m.run(ops)
+    m = DeployMachine(ops)
+    m.run()
     assert "migrate_tokens" in ops.called

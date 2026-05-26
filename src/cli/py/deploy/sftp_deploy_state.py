@@ -1,5 +1,7 @@
+import json
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.vendor_sentinel import VendorSentinel
@@ -8,13 +10,19 @@ HTACCESS_FILE = ".htaccess"
 BOOTSTRAP_PATH = "src/Http/bootstrap.php"
 VALID_SLOTS = ("a", "b")
 
-_APP_SLOT_RE = re.compile(r"RewriteRule \^ /app-([ab])/public/index\.php")
-_VENDOR_SLOT_RE = re.compile(r"/vendor-([ab])/autoload\.php")
+_PATTERNS_FILE = Path(__file__).parent.parent.parent.parent / "resources/slot-patterns.json"
+
+
+def _load_slot_patterns():
+    data = json.loads(_PATTERNS_FILE.read_text())
+    return re.compile(data["app"]), re.compile(data["vendor"])
+
+
+_APP_SLOT_RE, _VENDOR_SLOT_RE = _load_slot_patterns()
 
 
 # deploy: Format von generate() wird von SlotSwitchCommand.php toHtaccess()
 # erzeugt und von current_slot_map() per Regex gelesen.
-# Änderung → _APP_SLOT_RE anpassen.
 # Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
 class HtaccessSlotFile:
     @staticmethod
@@ -99,6 +107,10 @@ class SlotStore:
     def current_slot_map(self) -> SlotMap | None:
         content = self._client.read_file(HTACCESS_FILE)
         if not content:
+            if self._any_slot_dir_exists():
+                raise DeployConflictError(
+                    "Kein .htaccess, aber Slot-Verzeichnisse vorhanden"
+                )
             return None
         try:
             app = HtaccessSlotFile.read_slot(content)
@@ -117,6 +129,10 @@ class SlotStore:
     def activate_slot_map(self, slot_map: SlotMap) -> None:
         htaccess = HtaccessSlotFile.generate(slot_map.app.label)
         self._client.put_text(HTACCESS_FILE, htaccess)
+
+    def _any_slot_dir_exists(self) -> bool:
+        dirs = [f"app-{s}" for s in VALID_SLOTS] + [f"vendor-{s}" for s in VALID_SLOTS]
+        return any(self._client.dir_exists(d) for d in dirs)
 
     def vendor_slot_for_app_slot(self, app_slot: str) -> str | None:
         content = self._client.read_file(

@@ -38,27 +38,26 @@ class DeployMachine(StateMachine):
     failed_safe                  = State(final=True)
     manual_intervention_required = State(final=True)
 
-    ev_load              = started.to(state_loaded)
-    ev_select_fresh      = state_loaded.to(fresh_selected)
-    ev_select_swap       = state_loaded.to(swap_selected)
-    ev_select_swap_vendor = state_loaded.to(swap_vendor_update_selected)
-    ev_prepare = (
+    load               = started.to(state_loaded)
+    select_fresh       = state_loaded.to(fresh_selected)
+    select_swap        = state_loaded.to(swap_selected)
+    select_swap_vendor = state_loaded.to(swap_vendor_update_selected)
+    prepare = (
         fresh_selected.to(target_prepared)
         | swap_selected.to(target_prepared)
         | swap_vendor_update_selected.to(target_prepared)
     )
-    ev_upload         = target_prepared.to(app_uploaded)
-    ev_vendor_upload  = app_uploaded.to(vendor_ready)
-    ev_vendor_skip    = app_uploaded.to(vendor_ready)
-    ev_tokens_migrate = vendor_ready.to(tokens_migrated)
-    ev_tokens_skip    = vendor_ready.to(tokens_migrated)
-    ev_switch_fresh   = tokens_migrated.to(switched)
-    ev_switch_swap    = tokens_migrated.to(switched)
-    ev_verify   = switched.to(verified)
-    ev_done     = verified.to(cleaned_up)
-    ev_rollback = verified.to(rolled_back)
-
-    ev_fail = (
+    upload         = target_prepared.to(app_uploaded)
+    vendor_upload  = app_uploaded.to(vendor_ready)
+    vendor_skip    = app_uploaded.to(vendor_ready)
+    tokens_migrate = vendor_ready.to(tokens_migrated)
+    tokens_skip    = vendor_ready.to(tokens_migrated)
+    switch_fresh   = tokens_migrated.to(switched)
+    switch_swap    = tokens_migrated.to(switched)
+    verify         = switched.to(verified)
+    done           = verified.to(cleaned_up)
+    rollback       = verified.to(rolled_back)
+    fail = (
         started.to(failed_safe)
         | state_loaded.to(failed_safe)
         | fresh_selected.to(failed_safe)
@@ -71,7 +70,7 @@ class DeployMachine(StateMachine):
         | switched.to(failed_safe)
         | verified.to(failed_safe)
     )
-    ev_conflict = (
+    conflict = (
         started.to(manual_intervention_required)
         | state_loaded.to(manual_intervention_required)
         | fresh_selected.to(manual_intervention_required)
@@ -85,108 +84,126 @@ class DeployMachine(StateMachine):
         | verified.to(manual_intervention_required)
     )
 
-    def __init__(self, on_transition: Callable | None = None):
+    def __init__(self, ops: DeployOps, on_transition: Callable | None = None):
         super().__init__()
+        self._ops = ops
+        self._plan: DeploymentPlan | None = None
+        self._current_slots: SlotMap | None = None
+        self._smoke_ok: bool = False
         self._on_transition = on_transition
-        self._fresh: bool = False
-        self._vendor_upload: bool = False
         self.history: list[str] = []
 
-    def after_transition(self, event, source, target):
+    def run(self) -> None:
+        self._guarded(self._step_load)
+
+    # Zustandseintritts-Hooks steuern den Ablauf vorwärts
+
+    def on_enter_state_loaded(self) -> None:
+        self._guarded(self._step_select)
+
+    def on_enter_fresh_selected(self) -> None:
+        self._guarded(self._step_prepare)
+
+    def on_enter_swap_selected(self) -> None:
+        self._guarded(self._step_prepare)
+
+    def on_enter_swap_vendor_update_selected(self) -> None:
+        self._guarded(self._step_prepare)
+
+    def on_enter_target_prepared(self) -> None:
+        self._guarded(self._step_upload_app)
+
+    def on_enter_app_uploaded(self) -> None:
+        self._guarded(self._step_vendor)
+
+    def on_enter_vendor_ready(self) -> None:
+        self._guarded(self._step_tokens)
+
+    def on_enter_tokens_migrated(self) -> None:
+        self._guarded(self._step_switch)
+
+    def on_enter_switched(self) -> None:
+        self._guarded(self._step_verify)
+
+    def on_enter_verified(self) -> None:
+        if self._smoke_ok:
+            self.done()
+        else:
+            self._guarded(self._step_rollback)
+
+    def after_transition(self, event, source, target) -> None:
         if self._on_transition:
             self._on_transition(source, target)
         self.history.append(source.id)
 
-    def run(self, ops: DeployOps) -> None:
-        state = self._step(self.ev_load, ops.load_state)
-        plan = self._select_with_transition(ops, state)
-        if not self.current_state.final:
-            self._run_plan_steps(ops, plan)
-            self._verify_or_rollback(ops, plan, state)
+    # Schritte: Op-Aufruf, dann Transition
 
-    def _select_with_transition(self, ops, state):
-        if self.current_state.final:
-            return None
-        try:
-            plan = self._select_plan(ops, state)
-            self._fire_select_event(plan)
-            return plan
-        except DeployConflictError:
-            self.ev_conflict()
-            return None
-        except Exception:
-            self.ev_fail()
-            return None
+    def _step_load(self) -> None:
+        self._current_slots = self._ops.load_state()
+        self.load()
 
-    def _fire_select_event(self, plan):
-        if plan.active_slot_map is None:
-            self._fresh = True
-            self._vendor_upload = True
-            self.ev_select_fresh()
-        elif (
-            plan.target_slot_map.vendor
-            != plan.active_slot_map.vendor
-        ):
-            self._fresh = False
-            self._vendor_upload = True
-            self.ev_select_swap_vendor()
+    def _step_select(self) -> None:
+        self._plan = self._build_plan()
+        if self._plan.active_slot_map is None:
+            self.select_fresh()
+        elif self._plan.target_slot_map.vendor != self._plan.active_slot_map.vendor:
+            self.select_swap_vendor()
         else:
-            self._fresh = False
-            self._vendor_upload = False
-            self.ev_select_swap()
+            self.select_swap()
 
-    def _step(self, event, action):
-        if self.current_state.final:
-            return None
-        try:
-            result = action()
-            event()
-            return result
-        except DeployConflictError:
-            self.ev_conflict()
-            return None
-        except Exception:
-            self.ev_fail()
-            return None
-
-    def _run_plan_steps(self, ops: DeployOps, plan: DeploymentPlan) -> None:
-        self._step(self.ev_prepare, lambda: ops.prepare_target(plan))
-        self._step(self.ev_upload, lambda: ops.upload_app(plan))
-        if self._vendor_upload:
-            self._step(self.ev_vendor_upload, lambda: ops.upload_vendor(plan))
-        else:
-            self._step(self.ev_vendor_skip, lambda: ops.skip_vendor(plan))
-        if self._fresh:
-            self._step(self.ev_tokens_skip, lambda: None)
-        else:
-            self._step(self.ev_tokens_migrate, lambda: ops.migrate_tokens(plan))
-        if self._fresh:
-            self._step(self.ev_switch_fresh, lambda: ops.switch_fresh(plan))
-        else:
-            self._step(self.ev_switch_swap, lambda: ops.switch_swap(plan))
-
-    def _verify_or_rollback(
-        self,
-        ops: DeployOps,
-        plan: DeploymentPlan | None,
-        state: SlotMap | None,
-    ) -> None:
-        if self.current_state.final:
-            return
-        ok = self._step(self.ev_verify, ops.smoke_ok)
-        if self.current_state.final:
-            return
-        if ok:
-            self.ev_done()
-        else:
-            self._step(self.ev_rollback, lambda: ops.rollback(state))
-
-    def _select_plan(
-        self,
-        ops: DeployOps,
-        state: SlotMap | None,
-    ) -> DeploymentPlan:
-        if state is None:
+    def _build_plan(self) -> DeploymentPlan:
+        if self._current_slots is None:
             return DeploymentPlan.fresh()
-        include_vendor = ops.should_upload_vendor(state)
-        return DeploymentPlan.swap(state, include_vendor)
+        include_vendor = self._ops.should_upload_vendor(self._current_slots)
+        return DeploymentPlan.swap(self._current_slots, include_vendor)
+
+    def _step_prepare(self) -> None:
+        self._ops.prepare_target(self._plan)
+        self.prepare()
+
+    def _step_upload_app(self) -> None:
+        self._ops.upload_app(self._plan)
+        self.upload()
+
+    def _step_vendor(self) -> None:
+        if self._plan.active_slot_map is None or (
+            self._plan.target_slot_map.vendor != self._plan.active_slot_map.vendor
+        ):
+            self._ops.upload_vendor(self._plan)
+            self.vendor_upload()
+        else:
+            self._ops.skip_vendor(self._plan)
+            self.vendor_skip()
+
+    def _step_tokens(self) -> None:
+        if self._plan.active_slot_map is None:
+            self.tokens_skip()
+        else:
+            self._ops.migrate_tokens(self._plan)
+            self.tokens_migrate()
+
+    def _step_switch(self) -> None:
+        if self._plan.active_slot_map is None:
+            self._ops.switch_fresh(self._plan)
+            self.switch_fresh()
+        else:
+            self._ops.switch_swap(self._plan)
+            self.switch_swap()
+
+    def _step_verify(self) -> None:
+        self._smoke_ok = self._ops.smoke_ok()
+        self.verify()
+
+    def _step_rollback(self) -> None:
+        self._ops.rollback(self._current_slots)
+        self.rollback()
+
+    def _guarded(self, action: Callable) -> None:
+        if self.current_state.final:
+            return
+        try:
+            action()
+        except DeployConflictError:
+            self.conflict()
+        except Exception:
+            self.fail()

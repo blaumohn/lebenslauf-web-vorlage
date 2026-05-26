@@ -64,6 +64,15 @@ class SftpClient:
                 return False
             raise
 
+    def dir_exists(self, rel_path):
+        try:
+            attrs = self.sftp.stat(self._abs(rel_path))
+            return stat.S_ISDIR(attrs.st_mode)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                return False
+            raise
+
     def put_bytes(self, rel_path, data):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(data)
@@ -75,6 +84,10 @@ class SftpClient:
 
     def put_text(self, rel_path, text):
         self.put_bytes(rel_path, text.encode("utf-8"))
+
+    def append_line(self, rel_path, line):
+        with self.sftp.open(self._abs(rel_path), "a") as f:
+            f.write((line + "\n").encode("utf-8"))
 
     def put_file(self, local_path, rel_path):
         self.sftp.put(str(local_path), self._abs(rel_path))

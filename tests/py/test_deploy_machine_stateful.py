@@ -300,8 +300,8 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
     def run_scenario(self, scenario):
         self.scenario = scenario
         self.ops = ControllableOps(scenario)
-        self.machine = DeployMachine()
-        self.machine.run(self.ops)
+        self.machine = DeployMachine(self.ops)
+        self.machine.run()
 
     @invariant()
     def endet_in_erwartetem_terminalzustand(self):
@@ -380,9 +380,8 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
     scenario = make_failing_scenario(step, error_kind)
     ops = ControllableOps(scenario)
-    machine = DeployMachine()
-
-    machine.run(ops)
+    machine = DeployMachine(ops)
+    machine.run()
 
     assert machine.current_state == expected
     assert ops.calls == expected_calls(scenario)
@@ -414,9 +413,8 @@ def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
 )
 def test_machine_entscheidet_deployment_plan(scenario, active, target):
     ops = ControllableOps(scenario)
-    machine = DeployMachine()
-
-    machine.run(ops)
+    machine = DeployMachine(ops)
+    machine.run()
 
     assert ops.plans[0].active_slot_map == active
     assert ops.plans[0].target_slot_map == target

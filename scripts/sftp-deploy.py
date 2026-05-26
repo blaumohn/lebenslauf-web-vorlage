@@ -78,8 +78,8 @@ class SftpDeploy:
 
     def deploy(self):
         ops = SftpDeployOps(self)
-        machine = DeployMachine(on_transition=self._log_phase)
-        machine.run(ops)
+        machine = DeployMachine(ops, on_transition=self._log_phase)
+        machine.run()
         self.deploy_phase = machine.current_state
         self._log_deploy_result(machine.current_state)
         self._raise_if_failed(machine.current_state)
@@ -185,32 +185,25 @@ class SftpDeploy:
             self._dispatch_via_task(target)
         else:
             self.log(reason)
-            self.upload_deploy_state(target)
+            self._switch_via_sftp(target, active)
 
     def _system_invalid_reason(self, active):
-        stored = self._read_vendor_checksum(active)
-        if stored is None or stored != vendor_checksum():
-            return (
-                "Warnung: Vendor-Sentinel stimmt nicht überein — "
-                "vorheriger Deploy möglicherweise unvollständig, "
-                "Switch direkt via SFTP"
-            )
         if not self.client.file_exists(
             f"{active.app.dir}/.deploy-run"
         ):
-            return (
-                "Warnung: App-Sentinel fehlt — "
-                "Switch direkt via SFTP"
-            )
+            return "Warnung: App-Sentinel fehlt — Switch direkt via SFTP"
         if not TaskDispatch(self.cfg, logger=self.log).http_reachable():
             return "App nicht erreichbar — Switch direkt via SFTP"
         return None
+
+    def _switch_via_sftp(self, target, active):
+        self.upload_deploy_state(target)
 
     def _dispatch_via_task(self, target):
         task = Task("deploy_switch", {
             "app": target.app.label,
             "vendor": target.vendor.label,
-            "run_id": self.run_id,
+            "pipeline_run_id": self.run_id,
         })
         TaskDispatch(self.cfg, logger=self.log).submit(task)
         self.log(

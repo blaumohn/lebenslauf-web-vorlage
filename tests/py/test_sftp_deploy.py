@@ -64,6 +64,9 @@ class FakeClient:
     def file_exists(self, path):
         return path in self._file_exists_set
 
+    def dir_exists(self, _path):
+        return False
+
     def remove_file(self, path):
         self.texts.pop(path, None)
         self._file_contents.pop(path, None)
@@ -208,7 +211,7 @@ class DispatchSwitchTest(unittest.TestCase):
         self.assertEqual(task.type, "deploy_switch")
         self.assertEqual(task.params["app"], "b")
         self.assertEqual(task.params["vendor"], "a")
-        self.assertEqual(task.params["run_id"], "run-42")
+        self.assertEqual(task.params["pipeline_run_id"], "run-42")
         self.assertNotIn(STATE_FILE, deploy.client.texts)
 
     def test_falls_back_to_sftp_when_http_unreachable(self):
@@ -250,10 +253,10 @@ class SystemInvalidReasonTest(unittest.TestCase):
     MATRIX = [
         # (name, vendor_ok, app_ok, http_ok, expect_none, fragment)
         ("all_ok",           True,  True,  True,  True,  None),
-        ("vendor_mismatch",  False, True,  True,  False, "Vendor-Sentinel"),
+        ("vendor_mismatch",  False, True,  True,  True,  None),
         ("no_app_sentinel",  True,  False, True,  False, "App-Sentinel"),
         ("http_down",        True,  True,  False, False, "nicht erreichbar"),
-        ("vendor_wins_over_http", False, True, False, False, "Vendor-Sentinel"),
+        ("vendor_wins_over_http", False, True, False, False, "nicht erreichbar"),
     ]
 
     def test_matrix(self):

@@ -168,14 +168,18 @@ _VENDOR_META = f"[vendor]\nchecksum = {_CHECKSUM}\n\n"
 
 
 class _FakeClient:
-    def __init__(self, files):
+    def __init__(self, files, dirs=None):
         self._files = files
+        self._dirs = set(dirs or [])
 
     def read_file(self, path):
         return self._files.get(path, "")
 
     def put_text(self, path, content):
         self._files[path] = content
+
+    def dir_exists(self, path):
+        return path in self._dirs
 
 
 def _full_client(**overrides):
