@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 import requests.exceptions
 
+from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.machine import DeployMachine
 from cli.py.deploy.sftp_deploy_state import (
     DeploymentPlan,
@@ -365,7 +366,9 @@ class SftpDeployOps:
         )
 
     def upload_vendor(self, plan):
-        self._deploy.upload_vendor_dir(plan.target_slot_map.vendor.dir)
+        self._deploy.upload_vendor_dir(
+            plan.target_slot_map.vendor.dir
+        )
 
     def skip_vendor(self, plan):
         self._deploy._log_vendor_decision(plan)
@@ -388,12 +391,42 @@ class SftpDeployOps:
     def smoke_ok(self):
         return smoke_check(self._deploy.cfg, self._deploy.log)
 
-    def rollback(self, state):
+    def app_uploaded(self, plan) -> bool:
+        store = SlotStore(self._deploy.client)
+        run_id = store.run_id_for_app_slot(
+            plan.target_slot_map.app.label
+        )
+        return run_id == self._deploy.run_id
+
+    def vendor_ready(self, plan) -> bool:
+        store = SlotStore(self._deploy.client)
+        stored = store.vendor_checksum_for_slot(
+            plan.target_slot_map.vendor.label
+        )
+        return stored == vendor_checksum()
+
+    def switched(self, plan) -> bool:
+        try:
+            current = SlotStore(
+                self._deploy.client
+            ).current_slot_map()
+        except DeployConflictError:
+            return False
+        return (
+            current is not None
+            and current == plan.target_slot_map
+        )
+
+    def abort_before_switch(self, plan, state) -> None:
+        self._deploy.log(
+            "Abbruch vor Switch — aktiver Slot unberührt"
+        )
+
+    def rollback_after_switch(self, plan, state) -> None:
         if state is None:
-            self._deploy.log(
-                "Rollback: kein vorheriger State vorhanden"
+            raise DeployConflictError(
+                "Rollback nicht möglich: kein vorheriger State"
             )
-            return
         SlotStore(self._deploy.client).activate_slot_map(state)
         self._deploy.log(
             f"Rollback: {state.app.dir}, "

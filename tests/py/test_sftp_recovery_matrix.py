@@ -57,6 +57,9 @@ class FakeClient:
     def file_exists(self, path):
         return path in self._exists
 
+    def dir_exists(self, _path):
+        return False
+
     def put_text(self, path, content):
         self.texts[path] = content
 
@@ -196,6 +199,49 @@ class Szenario2Test(unittest.TestCase):
                     deploy.deploy()
         written = client.texts.get(STATE_FILE, "")
         self.assertIn("/app-a/", written)
+
+
+class Szenario3Test(unittest.TestCase):
+    """
+    run:    Fresh-Deploy, switch=success, post_switch_smoke=fail
+    expect: MANUAL_INTERVENTION — kein vorheriger State für Rollback
+    """
+
+    def setUp(self):
+        self.module = load_module()
+
+    def _make_fresh_deploy(self, tmp):
+        deploy = self.module.SftpDeploy(
+            {}, "run-1", logger=lambda _: None
+        )
+        client = FakeClient()
+        deploy.client = client
+        deploy._inject_vendor_require = lambda _: None
+        deploy.migrate_tokens = lambda _a, _b: None
+        deploy.upload_vendor_dir = lambda _slot: None
+        deploy.publish_switch = lambda _target: None
+        deploy.STAGING_DIR = Path(tmp)
+        return deploy, client
+
+    def test_fresh_smoke_fehler_loest_manual_aus(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy, _ = self._make_fresh_deploy(tmp)
+            with (
+                patch.object(
+                    self.module, "vendor_checksum",
+                    return_value=CHECKSUM,
+                ),
+                patch.object(
+                    self.module, "smoke_check",
+                    return_value=False,
+                ),
+            ):
+                with self.assertRaises(RuntimeError):
+                    deploy.deploy()
+        self.assertEqual(
+            deploy.deploy_phase,
+            DeployMachine.manual_intervention_required,
+        )
 
 
 if __name__ == "__main__":

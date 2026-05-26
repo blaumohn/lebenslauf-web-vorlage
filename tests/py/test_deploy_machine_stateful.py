@@ -21,6 +21,9 @@ from cli.py.deploy.sftp_deploy_state import SlotMap  # noqa: E402
 OBSERVE_STEPS = (
     "load_state",
     "should_upload_vendor",
+    "app_uploaded",
+    "vendor_ready",
+    "switched",
 )
 
 FAIL_STEPS = (
@@ -33,7 +36,7 @@ FAIL_STEPS = (
     "switch_fresh",
     "switch_swap",
     "smoke_ok",
-    "rollback",
+    "rollback_after_switch",
 )
 
 _PHASE_FLOW_SUFFIX = (
@@ -44,6 +47,8 @@ _PHASE_FLOW_SUFFIX = (
     "switched",
     "verified",
 )
+
+POST_SWITCH_STEPS = {"smoke_ok"}
 
 
 def _select_phase_id(scenario):
@@ -91,13 +96,14 @@ class DeployScenario:
 
 
 def expected_execute_steps(scenario):
-    steps = ["prepare_target", "upload_app"]
+    steps = ["prepare_target", "app_uploaded", "upload_app"]
     if scenario.state is None or scenario.include_vendor:
-        steps.append("upload_vendor")
+        steps.extend(["vendor_ready", "upload_vendor"])
     else:
         steps.append("skip_vendor")
     if scenario.state is not None:
         steps.append("migrate_tokens")
+    steps.append("switched")
     if scenario.state is None:
         steps.append("switch_fresh")
     else:
@@ -146,8 +152,23 @@ class ControllableOps:
         self._call("smoke_ok")
         return self.scenario.smoke
 
-    def rollback(self, state):
-        self._call("rollback")
+    def app_uploaded(self, plan) -> bool:
+        self._call("app_uploaded")
+        return False
+
+    def vendor_ready(self, plan) -> bool:
+        self._call("vendor_ready")
+        return False
+
+    def switched(self, plan) -> bool:
+        self._call("switched")
+        return False
+
+    def abort_before_switch(self, plan, state) -> None:
+        self._call("abort_before_switch")
+
+    def rollback_after_switch(self, plan, state) -> None:
+        self._call("rollback_after_switch")
         self.rollback_state = state
 
     def _call_with_plan(self, name, plan):
@@ -185,21 +206,39 @@ def plan_selection_calls(scenario):
     return ["should_upload_vendor"]
 
 
+def _pre_switch_result(scenario, calls):
+    idx = terminal_call_index(scenario, calls)
+    base = calls[:idx]
+    if scenario.error_kind == "conflict":
+        return base
+    return base + ["abort_before_switch"]
+
+
+def _post_switch_result(scenario, calls):
+    idx = terminal_call_index(scenario, calls)
+    base = calls[:idx]
+    if scenario.error_kind == "conflict":
+        return base
+    return base + ["rollback_after_switch"]
+
+
 def expected_calls(scenario):
     calls = ["load_state"]
     if stops_at(scenario, calls):
-        return calls
+        return _pre_switch_result(scenario, calls)
     calls.extend(plan_selection_calls(scenario))
     if stops_at(scenario, calls):
-        return calls
+        return _pre_switch_result(scenario, calls)
     calls.extend(expected_execute_steps(scenario))
     if stops_at(scenario, calls):
-        return calls[: terminal_call_index(scenario, calls)]
+        return _pre_switch_result(scenario, calls)
     calls.append("smoke_ok")
     if stops_at(scenario, calls):
-        return calls[: terminal_call_index(scenario, calls)]
+        return _post_switch_result(scenario, calls)
     if not scenario.smoke:
-        calls.append("rollback")
+        calls.append("rollback_after_switch")
+        if stops_at(scenario, calls):
+            return calls
     return calls
 
 
@@ -225,6 +264,8 @@ def expected_phase(scenario):
 def expected_error_phase(scenario):
     if scenario.error_kind == "conflict":
         return DeployMachine.manual_intervention_required
+    if scenario.fail_at in POST_SWITCH_STEPS:
+        return DeployMachine.rolled_back
     return DeployMachine.failed_safe
 
 
@@ -249,15 +290,12 @@ def make_failing_scenario(step, error_kind):
     state = DEFAULT_STATE
     include_vendor = False
     smoke = True
-    if step in (
-        "upload_vendor",
-        "switch_fresh",
-    ):
+    if step in ("upload_vendor", "switch_fresh", "vendor_ready"):
         state = None
     if step == "skip_vendor":
         state = DEFAULT_STATE
         include_vendor = False
-    if step == "rollback":
+    if step == "rollback_after_switch":
         smoke = False
     return make_scenario(
         state=state,
@@ -306,7 +344,9 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
     @invariant()
     def endet_in_erwartetem_terminalzustand(self):
         assert self.machine.current_state in TERMINAL_PHASES
-        assert self.machine.current_state == expected_phase(self.scenario)
+        assert self.machine.current_state == expected_phase(
+            self.scenario
+        )
 
     @invariant()
     def history_folgt_phasenordnung(self):
@@ -330,11 +370,11 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def switch_nur_nach_vorphasen(self):
-        switched = (
+        switch_called = (
             "switch_fresh" in self.ops.calls
             or "switch_swap" in self.ops.calls
         )
-        if not switched:
+        if not switch_called:
             return
         required = expected_execute_steps(self.scenario)[:-1]
         assert all(step in self.ops.completed for step in required)
@@ -349,24 +389,18 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
         )
 
     @invariant()
-    def rollback_nur_nach_smoke_fehler(self):
-        if "rollback" not in self.ops.calls:
+    def rollback_nur_nach_smoke_problem(self):
+        if "rollback_after_switch" not in self.ops.calls:
             return
         assert "smoke_ok" in self.ops.calls
-        assert not self.scenario.smoke
-        if "rollback" in self.ops.completed:
-            assert self.ops.rollback_state == self.scenario.state
-
-    @invariant()
-    def cleanup_nur_nach_erfolgreichem_smoke(self):
-        cleaned = (
-            "cleanup_fresh" in self.ops.calls
-            or "cleanup_swap" in self.ops.calls
+        smoke_failed = not self.scenario.smoke
+        smoke_raised = (
+            self.scenario.fail_at == "smoke_ok"
+            and self.scenario.error_kind != "conflict"
         )
-        if not cleaned:
-            return
-        assert "smoke_ok" in self.ops.calls
-        assert self.scenario.smoke
+        assert smoke_failed or smoke_raised
+        if "rollback_after_switch" in self.ops.completed:
+            assert self.ops.rollback_state == self.scenario.state
 
 
 @pytest.mark.parametrize("step", FAIL_STEPS)
@@ -383,14 +417,21 @@ def test_jeder_schritt_kann_fehlschlagen(step, error_kind, expected):
     machine = DeployMachine(ops)
     machine.run()
 
-    assert machine.current_state == expected
+    if step == "smoke_ok" and error_kind == "runtime":
+        assert machine.current_state == DeployMachine.rolled_back
+    else:
+        assert machine.current_state == expected
     assert ops.calls == expected_calls(scenario)
 
 
 @pytest.mark.parametrize(
     ("scenario", "active", "target"),
     [
-        (make_scenario(state=None), None, SlotMap.from_labels(app="a", vendor="a")),
+        (
+            make_scenario(state=None),
+            None,
+            SlotMap.from_labels(app="a", vendor="a"),
+        ),
         (
             make_scenario(include_vendor=False),
             SlotMap.from_labels(app="a", vendor="a"),

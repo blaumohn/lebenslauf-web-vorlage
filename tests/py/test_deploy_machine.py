@@ -55,13 +55,28 @@ class FakeOps:
     def switch_swap(self, plan):
         self._call_with_plan("switch_swap", plan)
 
-    def rollback(self, state):
-        self._call("rollback")
-        self.rollback_state = state
-
     def smoke_ok(self) -> bool:
         self._call("smoke_ok")
         return self.smoke
+
+    def app_uploaded(self, plan) -> bool:
+        self._call("app_uploaded")
+        return False
+
+    def vendor_ready(self, plan) -> bool:
+        self._call("vendor_ready")
+        return False
+
+    def switched(self, plan) -> bool:
+        self._call("switched")
+        return False
+
+    def abort_before_switch(self, plan, state) -> None:
+        self._call("abort_before_switch")
+
+    def rollback_after_switch(self, plan, state) -> None:
+        self._call("rollback_after_switch")
+        self.rollback_state = state
 
     def _call_with_plan(self, name, plan):
         self.plans.append(plan)
@@ -95,8 +110,15 @@ def test_failed_safe_verhindert_switch():
     assert "switch_swap" not in ops.called
 
 
-def test_smoke_ok_exception_fuehrt_zu_failed_safe():
+def test_smoke_ok_exception_loest_rollback_aus():
     m = DeployMachine(FakeOps(fail_at="smoke_ok"))
+    m.run()
+    assert m.current_state == DeployMachine.rolled_back
+
+
+def test_rollback_fehler_fuehrt_zu_failed_safe():
+    ops = FakeOps(fail_at="rollback_after_switch", smoke=False)
+    m = DeployMachine(ops)
     m.run()
     assert m.current_state == DeployMachine.failed_safe
 
@@ -111,8 +133,16 @@ def test_rollback_wird_nach_smoke_fehler_aufgerufen():
     ops = FakeOps(smoke=False)
     m = DeployMachine(ops)
     m.run()
-    assert "rollback" in ops.called
+    assert "rollback_after_switch" in ops.called
     assert ops.rollback_state == SlotMap.from_labels(app="a", vendor="a")
+
+
+def test_abort_wird_bei_pre_switch_fehler_aufgerufen():
+    ops = FakeOps(fail_at="upload_app")
+    m = DeployMachine(ops)
+    m.run()
+    assert "abort_before_switch" in ops.called
+    assert "rollback_after_switch" not in ops.called
 
 
 def test_history_enthaelt_alle_zwischenphasen():
@@ -128,29 +158,41 @@ def test_fresh_plan_wird_bei_fehlendem_state_erstellt():
     m.run()
     plan = ops.plans[0]
     assert plan.active_slot_map is None
-    assert plan.target_slot_map == SlotMap.from_labels(app="a", vendor="a")
+    assert plan.target_slot_map == SlotMap.from_labels(
+        app="a", vendor="a"
+    )
 
 
 def test_swap_plan_verwendet_vendor_wieder():
     ops = FakeOps(
-        state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=False
+        state=SlotMap.from_labels(app="a", vendor="a"),
+        include_vendor=False,
     )
     m = DeployMachine(ops)
     m.run()
     plan = ops.plans[0]
-    assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
-    assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="a")
+    assert plan.active_slot_map == SlotMap.from_labels(
+        app="a", vendor="a"
+    )
+    assert plan.target_slot_map == SlotMap.from_labels(
+        app="b", vendor="a"
+    )
 
 
 def test_swap_plan_wechselt_vendor_wenn_noetig():
     ops = FakeOps(
-        state=SlotMap.from_labels(app="a", vendor="a"), include_vendor=True
+        state=SlotMap.from_labels(app="a", vendor="a"),
+        include_vendor=True,
     )
     m = DeployMachine(ops)
     m.run()
     plan = ops.plans[0]
-    assert plan.active_slot_map == SlotMap.from_labels(app="a", vendor="a")
-    assert plan.target_slot_map == SlotMap.from_labels(app="b", vendor="b")
+    assert plan.active_slot_map == SlotMap.from_labels(
+        app="a", vendor="a"
+    )
+    assert plan.target_slot_map == SlotMap.from_labels(
+        app="b", vendor="b"
+    )
 
 
 def test_fresh_deploy_ruft_switch_fresh_auf():
@@ -205,3 +247,45 @@ def test_swap_migriert_tokens():
     m = DeployMachine(ops)
     m.run()
     assert "migrate_tokens" in ops.called
+
+
+def test_idempotenz_ueberspringt_app_upload():
+    class IdempotentOps(FakeOps):
+        def app_uploaded(self, plan) -> bool:
+            self._call("app_uploaded")
+            return True
+
+    ops = IdempotentOps()
+    m = DeployMachine(ops)
+    m.run()
+    assert "app_uploaded" in ops.called
+    assert "upload_app" not in ops.called
+    assert m.current_state == DeployMachine.cleaned_up
+
+
+def test_idempotenz_ueberspringt_vendor_upload():
+    class IdempotentOps(FakeOps):
+        def vendor_ready(self, plan) -> bool:
+            self._call("vendor_ready")
+            return True
+
+    ops = IdempotentOps(state=None)
+    m = DeployMachine(ops)
+    m.run()
+    assert "vendor_ready" in ops.called
+    assert "upload_vendor" not in ops.called
+    assert m.current_state == DeployMachine.cleaned_up
+
+
+def test_idempotenz_ueberspringt_switch():
+    class IdempotentOps(FakeOps):
+        def switched(self, plan) -> bool:
+            self._call("switched")
+            return True
+
+    ops = IdempotentOps()
+    m = DeployMachine(ops)
+    m.run()
+    assert "switched" in ops.called
+    assert "switch_swap" not in ops.called
+    assert m.current_state == DeployMachine.cleaned_up
