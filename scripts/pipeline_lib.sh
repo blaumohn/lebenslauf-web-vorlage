@@ -99,15 +99,7 @@ no_changes_since_deploy() {
 }
 
 deploy() {
-  local slot_before
-  slot_before="$(read_vendor_slot_sftp)"
-  VENDOR_SLOT_BEFORE="$slot_before"
-  export VENDOR_SLOT_BEFORE
   sftp_upload
-}
-
-read_vendor_slot_sftp() {
-  cli python "$PIPELINE" --phase deploy scripts/sftp-read-vendor-slot.py
 }
 
 sftp_upload() {

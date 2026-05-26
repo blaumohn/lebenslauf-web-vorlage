@@ -15,7 +15,6 @@ require_env_nonempty PIPELINE CI_WORK_BASE
 
 main() {
   local test_case="${1:-}"
-  local vendor_slot_before=""
 
   WORK_REPO_DIR="$(clone_work_dir)"
   cd "$WORK_REPO_DIR"
@@ -32,8 +31,7 @@ main() {
   run_step "Abhängigkeiten installieren" composer install:ci
 
   run_pipeline
-  vendor_slot_before="${VENDOR_SLOT_BEFORE:-}"
-  run_post_deploy_checks "$test_case" "$vendor_slot_before"
+  run_post_deploy_checks "$test_case"
 }
 
 setup_deploy_test_case() {
@@ -47,26 +45,43 @@ setup_deploy_test_case() {
 }
 
 run_post_deploy_checks() {
-  local test_case="$1" vendor_slot_before="$2"
+  local test_case="$1"
   if [[ "$PIPELINE" != "preview" ]]; then
     return
   fi
-  run_preview_test_case_checks "$test_case" "$vendor_slot_before"
+  run_preview_test_case_checks "$test_case"
   run_smtp_smoke
   run_contact_smoke
 }
 
+read_deploy_history() {
+  cli python "$PIPELINE" --phase deploy scripts/sftp-read-deploy-history.py
+}
+
 run_preview_test_case_checks() {
-  local test_case="$1" vendor_slot_before="$2" root_url
-  if [[ "$test_case" == "test-push-deploy" ]]; then
-    root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-    smoke_http_page_contains "${root_url%/}/ci-diff-test.html" "ci-diff-test"
-    check_vendor_not_reuploaded "$vendor_slot_before"
-  fi
-  if [[ "$test_case" == "test-composer-lock-changed" ]]; then
-    check_vendor_reuploaded "$vendor_slot_before"
-  fi
-  return 0
+  local test_case="$1" history
+  case "$test_case" in
+    test-push-deploy)
+      history="$(read_deploy_history)"
+      run_push_deploy_preview_checks "$history"
+      ;;
+    test-composer-lock-changed)
+      history="$(read_deploy_history)"
+      run_composer_lock_preview_checks "$history"
+      ;;
+  esac
+}
+
+run_push_deploy_preview_checks() {
+  local history="$1" root_url
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  smoke_http_page_contains "${root_url%/}/ci-diff-test.html" "ci-diff-test"
+  check_vendor_not_reuploaded "$history"
+}
+
+run_composer_lock_preview_checks() {
+  local history="$1"
+  check_vendor_reuploaded "$history"
 }
 
 run_smtp_smoke() {
@@ -114,33 +129,30 @@ file_put_contents($path, $json . PHP_EOL);
 '
 }
 
-read_vendor_slot() {
-  cli python "$PIPELINE" --phase deploy scripts/sftp-read-vendor-slot.py
+json_get() {
+  local field="$1"
+  jq -r --arg field "$field" '.[$field] // ""'
 }
 
-verify_deploy_state() {
-  DEPLOY_RUN_ID="$PIPELINE_RUN_ID" \
-    cli python "$PIPELINE" --phase deploy scripts/sftp-verify-deploy.py
+history_field() {
+  local history="$1" field="$2"
+  printf '%s\n' "$history" | json_get "$field"
 }
 
 check_vendor_not_reuploaded() {
-  local vendor_slot_before="$1" vendor_after
-  if ! vendor_after="$(verify_deploy_state)"; then
-    echo "[vendor-check] Fehler: Deploy-State konnte nicht gelesen werden" >&2
-    return 1
-  fi
-  [[ "$vendor_slot_before" == "$vendor_after" ]] \
-    || { echo "[vendor-check] Fehler: Vendor wurde neu hochgeladen — erwartet kein Wechsel, tatsächlich: ${vendor_slot_before} → ${vendor_after}" >&2; return 1; }
+  local history="$1" before after
+  before="$(history_field "$history" vendor_before)"
+  after="$(history_field "$history" vendor_after)"
+  [[ "$before" == "$after" ]] \
+    || { echo "[vendor-check] Fehler: Vendor wurde neu hochgeladen — erwartet kein Wechsel, tatsächlich: ${before} → ${after}" >&2; return 1; }
 }
 
 check_vendor_reuploaded() {
-  local vendor_slot_before="$1" vendor_after
-  if ! vendor_after="$(verify_deploy_state)"; then
-    echo "[vendor-check] Fehler: Deploy-State konnte nicht gelesen werden" >&2
-    return 1
-  fi
-  [[ "$vendor_slot_before" != "$vendor_after" ]] \
-    || { echo "[vendor-check] Fehler: Vendor nicht neu hochgeladen — erwartet Wechsel von ${vendor_after}, tatsächlich kein Wechsel" >&2; return 1; }
+  local history="$1" before after
+  before="$(history_field "$history" vendor_before)"
+  after="$(history_field "$history" vendor_after)"
+  [[ "$before" != "$after" ]] \
+    || { echo "[vendor-check] Fehler: Vendor nicht neu hochgeladen — erwartet Wechsel von ${before}, tatsächlich kein Wechsel" >&2; return 1; }
 }
 
 clone_work_dir() {
