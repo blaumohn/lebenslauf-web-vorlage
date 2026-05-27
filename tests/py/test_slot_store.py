@@ -17,10 +17,10 @@ from cli.py.deploy.slot_store import (
 from cli.py.deploy.slots import DeploymentPlan, SlotMap
 from cli.py.deploy.sftp_deploy_templates import resource_path
 
-BOOTSTRAP_SRC = REPO_ROOT / "src" / "Http" / "bootstrap.php"
-VENDOR_INJECT_LINE = "require $vendorDir . '/autoload.php';"
+INDEX_PHP_SRC = REPO_ROOT / "public" / "index.php"
+VENDOR_INJECT_LINE = "$vendorDir  = $appSlot . '/vendor';"
 VENDOR_INJECTED = (
-    "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';"
+    "$vendorDir  = dirname(__DIR__, 2) . '/vendor-a';"
 )
 
 
@@ -50,14 +50,14 @@ class HtaccessSlotFileTest(unittest.TestCase):
 
 class BootstrapInjectTest(unittest.TestCase):
     def test_inject_line_once(self):
-        """bootstrap.php enthält die Inject-Zielzeile genau einmal."""
-        content = BOOTSTRAP_SRC.read_text(encoding="utf-8")
+        """public/index.php enthält die Inject-Zielzeile genau einmal."""
+        content = INDEX_PHP_SRC.read_text(encoding="utf-8")
         self.assertEqual(
             content.count(VENDOR_INJECT_LINE),
             1,
             f"Zeile '{VENDOR_INJECT_LINE}' muss genau einmal"
-            " vorkommen — Änderung → _inject_vendor_require()"
-            " in sftp-deploy.py anpassen",
+            " vorkommen — Änderung → _inject_vendor_dir()"
+            " in tree_uploader.py anpassen",
         )
 
     def test_vendor_regex_matches_injected(self):
@@ -108,7 +108,7 @@ class DeployResourceTest(unittest.TestCase):
             REPO_ROOT / "public" / "index.php"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            "require dirname(__DIR__) . '/src/Http/bootstrap.php'",
+            "require $appSlot . '/src/Http/bootstrap.php'",
             content,
         )
 
@@ -163,7 +163,7 @@ _CHECKSUM = "abc123def456abcd"
 _RUN_ID = "run-42"
 _HTACCESS_A = HtaccessSlotFile.generate("a")
 _BOOTSTRAP_B = (
-    "require dirname(__DIR__, 3) . '/vendor-b/autoload.php';\n"
+    "$vendorDir  = dirname(__DIR__, 2) . '/vendor-b';\n"
 )
 _VENDOR_META = f"[vendor]\nchecksum = {_CHECKSUM}\n\n"
 
@@ -186,7 +186,7 @@ class _FakeClient:
 def _full_client(**overrides):
     files = {
         ".htaccess": _HTACCESS_A,
-        "app-a/src/Http/bootstrap.php": _BOOTSTRAP_B,
+        "app-a/public/index.php": _BOOTSTRAP_B,
         "app-a/.deploy-run": _RUN_ID,
         "vendor-b/.meta": _VENDOR_META,
     }
@@ -225,7 +225,7 @@ class SlotStoreReadTest(unittest.TestCase):
 
     def test_konflikt_bei_fehlendem_bootstrap(self):
         client = _full_client(
-            **{"app-a/src/Http/bootstrap.php": ""}
+            **{"app-a/public/index.php": ""}
         )
         with self.assertRaises(DeployConflictError):
             SlotStore(client).current_slot_map()

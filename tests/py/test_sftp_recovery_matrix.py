@@ -26,14 +26,14 @@ CHECKSUM = "abc123def456abcd"
 STATE_FILE = ".htaccess"
 ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
 ACTIVE_BOOTSTRAP = (
-    "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+    "$vendorDir  = dirname(__DIR__, 2) . '/vendor-a';\n"
 )
 VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 
 def enter_common_patches(stack):
     stack.enter_context(patch(
             "cli.py.deploy.tree_uploader.SftpTreeUploader"
-            "._inject_vendor_require",
+            "._inject_vendor_dir",
             return_value=None,
         )
     )
@@ -108,7 +108,7 @@ def make_swap_deploy(module, run_id="run-2"):
     deploy = module.SftpDeploy({}, run_id, logger=lambda _: None)
     client = FakeClient()
     client.set_file(".htaccess", ACTIVE_HTACCESS)
-    client.set_file("app-a/src/Http/bootstrap.php", ACTIVE_BOOTSTRAP)
+    client.set_file("app-a/public/index.php", ACTIVE_BOOTSTRAP)
     client.set_file("vendor-a/.meta", VENDOR_META)
     client.set_file("app-a/.deploy-run", "run-prev")
     deploy.client = client
@@ -312,7 +312,7 @@ class Szenario3Test(unittest.TestCase):
                 ),
                 patch(
                     "cli.py.deploy.tree_uploader.SftpTreeUploader"
-                    "._inject_vendor_require",
+                    "._inject_vendor_dir",
                     return_value=None,
                 ),
                 patch(

@@ -90,8 +90,8 @@ class ContactSmokeTest(unittest.TestCase):
         from cli.py.deploy.slot_store import HtaccessSlotFile
         files = {
             ".htaccess": HtaccessSlotFile.generate("b"),
-            "app-b/src/Http/bootstrap.php": (
-                "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+            "app-b/public/index.php": (
+                "$vendorDir  = dirname(__DIR__, 2) . '/vendor-a';\n"
             ),
         }
         sftp = FakeSftpClient(files)

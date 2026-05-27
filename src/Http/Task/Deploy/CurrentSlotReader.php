@@ -26,11 +26,11 @@ final class CurrentSlotReader
         if ($appLabel === null) {
             return null;
         }
-        $bootstrap = $this->readFile("app-{$appLabel}/src/Http/bootstrap.php");
-        if ($bootstrap === null) {
+        $indexPhp = $this->readFile("app-{$appLabel}/public/index.php");
+        if ($indexPhp === null) {
             return null;
         }
-        $vendorLabel = $this->matchPattern($bootstrap, $this->vendorPattern);
+        $vendorLabel = $this->matchPattern($indexPhp, $this->vendorPattern);
         if ($vendorLabel === null) {
             return null;
         }

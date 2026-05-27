@@ -1,4 +1,4 @@
 {
-    "app": "RewriteRule \\^ /app-([ab])/public/index\\.php",
-    "vendor": "/vendor-([ab])/autoload\\.php"
+    "app": "(?m)^[\\t ]*RewriteRule[\\t ]+\\^[\\t ]+/app-([ab])/public/index\\.php[\\t ]+\\[L,QSA\\][\\t ]*$",
+    "vendor": "(?m)^[\\t ]*\\$vendorDir[\\t ]*=[\\t ]*dirname\\(.*\\)[\\t ]*\\.[\\t ]*'/vendor-([ab])';[\\t ]*$"
 }

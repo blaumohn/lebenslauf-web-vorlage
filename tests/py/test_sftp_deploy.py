@@ -31,9 +31,9 @@ VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 STATE_FILE = ".htaccess"
 ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
 ACTIVE_BOOTSTRAP = (
-    "require dirname(__DIR__, 3) . '/vendor-a/autoload.php';\n"
+    "$vendorDir  = dirname(__DIR__, 2) . '/vendor-a';\n"
 )
-VENDOR_INJECT_LINE = "require $vendorDir . '/autoload.php';"
+VENDOR_INJECT_LINE = "$vendorDir  = $appSlot . '/vendor';"
 
 
 def load_sftp_deploy_module():
@@ -153,7 +153,7 @@ class FakeDispatchHttpError:
 
 
 def write_staging_bootstrap(staging_dir):
-    path = Path(staging_dir) / "src" / "Http" / "bootstrap.php"
+    path = Path(staging_dir) / "public" / "index.php"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(VENDOR_INJECT_LINE, encoding="utf-8")
 
@@ -310,7 +310,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
         if active:
             client.set_file(".htaccess", ACTIVE_HTACCESS)
             client.set_file(
-                "app-a/src/Http/bootstrap.php",
+                "app-a/public/index.php",
                 ACTIVE_BOOTSTRAP,
             )
             client.set_file("vendor-a/.meta", VENDOR_META)

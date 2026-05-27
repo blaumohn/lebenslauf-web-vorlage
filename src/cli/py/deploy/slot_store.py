@@ -8,7 +8,7 @@ from cli.py.deploy.slots import VALID_SLOTS, SlotEntry, SlotMap
 from cli.py.deploy.vendor_sentinel import VendorSentinel
 
 HTACCESS_FILE = ".htaccess"
-BOOTSTRAP_PATH = "src/Http/bootstrap.php"
+INDEX_PHP_PATH = "public/index.php"
 
 _PATTERNS_FILE = (
     Path(__file__).parent.parent.parent.parent
@@ -67,7 +67,7 @@ class SlotStore:
         vendor = self.vendor_slot_for_app_slot(app)
         if vendor is None:
             raise DeployConflictError(
-                f"bootstrap.php in app-{app}/ fehlt oder enthält"
+                f"index.php in app-{app}/public/ fehlt oder enthält"
                 " keinen Vendor-Slot"
             )
         return SlotMap(
@@ -96,7 +96,7 @@ class SlotStore:
 
     def vendor_slot_for_app_slot(self, app_slot: str) -> str | None:
         content = self._client.read_file(
-            f"app-{app_slot}/{BOOTSTRAP_PATH}"
+            f"app-{app_slot}/{INDEX_PHP_PATH}"
         )
         if not content:
             return None

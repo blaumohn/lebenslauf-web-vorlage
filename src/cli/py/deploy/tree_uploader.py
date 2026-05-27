@@ -29,7 +29,7 @@ class SftpTreeUploader:
         self.log = logger
 
     def upload_app_tree(self, app_dir: str, vendor_dir: str) -> None:
-        self._inject_vendor_require(vendor_dir)
+        self._inject_vendor_dir(vendor_dir)
         stats = UploadStats()
         started_at = time.monotonic()
         self.log(f"Upload App-Slot: {app_dir}")
@@ -103,23 +103,20 @@ class SftpTreeUploader:
         self.client.remove_dir(slot_dir)
         self.client.ensure_dir(slot_dir)
 
-    def _inject_vendor_require(self, vendor_dir: str) -> None:
-        bootstrap = self.staging_dir / "src/Http/bootstrap.php"
-        original = bootstrap.read_text(encoding="utf-8")
-        old = "require $vendorDir . '/autoload.php';"
-        new = (
-            "require dirname(__DIR__, 3) . "
-            f"'/{vendor_dir}/autoload.php';"
-        )
+    def _inject_vendor_dir(self, vendor_dir: str) -> None:
+        index_php = self.staging_dir / "public/index.php"
+        original = index_php.read_text(encoding="utf-8")
+        old = "$vendorDir  = $appSlot . '/vendor';"
+        new = f"$vendorDir  = dirname(__DIR__, 2) . '/{vendor_dir}';"
         if old not in original:
             raise RuntimeError(
-                f"bootstrap.php: Zeile '{old}' nicht gefunden — "
+                f"index.php: Zeile '{old}' nicht gefunden — "
                 "Vendor-Inject fehlgeschlagen. "
                 "Wenn diese Zeile geändert wurde, muss auch "
-                "_inject_vendor_require() angepasst werden. "
+                "_inject_vendor_dir() angepasst werden. "
                 "Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/"
             )
-        bootstrap.write_text(
+        index_php.write_text(
             original.replace(old, new, 1), encoding="utf-8"
         )
 
