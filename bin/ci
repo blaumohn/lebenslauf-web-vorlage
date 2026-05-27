@@ -29,7 +29,6 @@ main() {
   fi
 
   run_step "Abhängigkeiten installieren" composer install:ci
-
   run_pipeline
   run_post_deploy_checks "$test_case"
 }
@@ -37,9 +36,10 @@ main() {
 setup_deploy_test_case() {
   local test_case="$1"
   case "$test_case" in
-    test-admin-deploy)          printf '\n' ;;
+    test-admin-deploy)          ;;
     test-push-deploy)           setup_push_deploy_test ;;
     test-composer-lock-changed) setup_composer_lock_test ;;
+    test-rollback)              setup_rollback_test ;;
     *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
   esac
 }
@@ -50,6 +50,7 @@ run_post_deploy_checks() {
     return
   fi
   run_preview_test_case_checks "$test_case"
+  [[ "$test_case" == "test-rollback" ]] && return
   run_smtp_smoke
   run_contact_smoke
 }
@@ -68,6 +69,9 @@ run_preview_test_case_checks() {
     test-composer-lock-changed)
       history="$(read_deploy_history)"
       run_composer_lock_preview_checks "$history"
+      ;;
+    test-rollback)
+      run_rollback_preview_checks
       ;;
   esac
 }
@@ -96,6 +100,26 @@ test_no_diff_deploy() {
   local last_deploy_commit="$1"
   git diff --quiet "$last_deploy_commit" HEAD \
     || { echo "[no-diff-check] Deploy-Skip bei leerem Diff fehlgeschlagen" >&2; return 1; }
+}
+
+setup_rollback_test() {
+  local last_deploy_commit
+  last_deploy_commit="$(git rev-parse HEAD)"
+  printf 'rollback-sentinel\n' > public/rollback-sentinel.html
+  git add public/rollback-sentinel.html
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "test: rollback-sentinel ci-test" >&2
+  printf '%s\n' "$last_deploy_commit"
+}
+
+run_rollback_preview_checks() {
+  local root_url url
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  url="${root_url%/}/rollback-sentinel.html"
+  if curl --fail --silent --show-error "$url" > /dev/null 2>&1; then
+    echo "[rollback-check] Fehler: Sentinel erreichbar — Rollback nicht erfolgt" >&2
+    return 1
+  fi
 }
 
 setup_push_deploy_test() {

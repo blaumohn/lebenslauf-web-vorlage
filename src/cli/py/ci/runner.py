@@ -8,9 +8,10 @@ USAGE = "Usage: runner.py <pipeline>"
 logger = logging.getLogger(__name__)
 
 PREVIEW_TEST_CASES = (
-    "test-admin-deploy",
-    "test-push-deploy",
-    "test-composer-lock-changed",
+    ("test-admin-deploy",          None),
+    ("test-push-deploy",           None),
+    ("test-composer-lock-changed", None),
+    ("test-rollback",              '{"APP_ROOT_URL":"http://smoke-unreachable"}'),
 )
 
 
@@ -75,19 +76,23 @@ def start_helpers() -> None:
 
 
 def run_tests() -> None:
-    for test_case in PREVIEW_TEST_CASES:
-        env = preview_test_env(test_case)
+    for test_case, overrides in PREVIEW_TEST_CASES:
+        env = preview_test_env(test_case, overrides)
         print(f"[runner] Testfall: {test_case}", flush=True)
         compose(
-            "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}", CI_SERVICE_PREVIEW,
+            "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}",
+            CI_SERVICE_PREVIEW,
             env=env,
             label=f"Testfall: {test_case}",
         )
         print(f"[runner] Testfall OK: {test_case}", flush=True)
 
 
-def preview_test_env(test_case: str) -> dict[str, str]:
-    return runner_env(f"ci-{test_case}")
+def preview_test_env(test_case: str, overrides: str | None = None) -> dict[str, str]:
+    env = runner_env(f"ci-{test_case}")
+    if overrides is not None:
+        env["SFTP_DEPLOY_OVERRIDES"] = overrides
+    return env
 
 
 def build_ci_run_id(test_case: str) -> str:

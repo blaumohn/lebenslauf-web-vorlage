@@ -76,7 +76,7 @@ class SftpDeploy:
     def deploy(self):
         machine = DeployMachine(
             self._build_ops(),
-            on_transition=self._log_phase,
+            on_transition=self._log_deploy_state,
         )
         machine.run()
         self.deploy_phase = machine.current_state
@@ -119,8 +119,8 @@ class SftpDeploy:
             publisher,
         )
 
-    def _log_phase(self, source, target):
-        self.log(f"Phase: {source.id} → {target.id}")
+    def _log_deploy_state(self, source, target):
+        self.log(f"Deploy-State: {source.id} → {target.id}")
 
     def _log_deploy_result(self, state):
         if state == DeployMachine.manual_intervention_required:
@@ -131,11 +131,13 @@ class SftpDeploy:
             self.log(
                 "Deploy fehlgeschlagen — aktiver Deploy unberührt"
             )
+        elif state == DeployMachine.rolled_back:
+            self.log("Deploy zurückgerollt — vorheriger Slot aktiv")
         elif state == DeployMachine.cleaned_up:
             self.log("Deploy abgeschlossen")
 
     def _raise_if_failed(self, state):
-        if state == DeployMachine.cleaned_up:
+        if state in (DeployMachine.cleaned_up, DeployMachine.rolled_back):
             return
         if state == DeployMachine.manual_intervention_required:
             raise RuntimeError("Manueller Eingriff erforderlich")

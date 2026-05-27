@@ -252,8 +252,7 @@ class Szenario2Test(unittest.TestCase):
                     ".dispatch",
                     return_value=None,
                 ))
-                with self.assertRaises(RuntimeError):
-                    deploy.deploy()
+                deploy.deploy()
         self.assertEqual(deploy.deploy_phase, DeployMachine.rolled_back)
 
     def test_rollback_stellt_alten_state_wieder_her(self):
@@ -276,8 +275,7 @@ class Szenario2Test(unittest.TestCase):
                     ".dispatch",
                     return_value=None,
                 ))
-                with self.assertRaises(RuntimeError):
-                    deploy.deploy()
+                deploy.deploy()
         written = client.texts.get(STATE_FILE, "")
         self.assertIn("/app-a/", written)
 
