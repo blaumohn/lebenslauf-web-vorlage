@@ -4,7 +4,7 @@ import sys
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 
-HISTORY_FILE = "var/deploy-history.ndjson"
+HISTORY_FILE = "log/deploy-history.ndjson"
 
 
 def main():

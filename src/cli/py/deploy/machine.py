@@ -146,10 +146,7 @@ class DeployMachine(StateMachine):
         self._guarded(self._step_verify)
 
     def on_enter_verified(self) -> None:
-        if self._smoke_ok:
-            self.done()
-        else:
-            self._recover_post_switch()
+        self.done()
 
     def after_transition(self, event, source, target) -> None:
         _ = event
@@ -238,6 +235,8 @@ class DeployMachine(StateMachine):
 
     def _step_verify(self) -> None:
         self._smoke_ok = self._ops.smoke_ok()
+        if not self._smoke_ok:
+            raise RuntimeError("Smoke-Check fehlgeschlagen")
         self.verify()
 
     def _guarded(self, action: Callable) -> None:

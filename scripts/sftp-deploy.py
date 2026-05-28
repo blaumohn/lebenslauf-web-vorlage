@@ -45,8 +45,12 @@ def smoke_check(cfg, log) -> bool:
         return True
     try:
         resp = requests.get(url, timeout=10, allow_redirects=True)
-        return resp.status_code == 200
-    except requests.exceptions.RequestException:
+        if resp.status_code != 200:
+            log(f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}")
+            return False
+        return True
+    except requests.exceptions.RequestException as exc:
+        log(f"Smoke fehlgeschlagen: {exc}")
         return False
 
 

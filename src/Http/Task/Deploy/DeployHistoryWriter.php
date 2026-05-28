@@ -6,7 +6,7 @@ use App\Http\Runtime\RuntimeAtomicWriter;
 
 final class DeployHistoryWriter
 {
-    private const HISTORY_FILE = 'var/deploy-history.ndjson';
+    private const HISTORY_FILE = 'log/deploy-history.ndjson';
 
     public function __construct(
         private readonly RuntimeAtomicWriter $writer,
