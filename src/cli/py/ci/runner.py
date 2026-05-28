@@ -1,7 +1,9 @@
 import logging
 import sys
 
-from cli.py.util.compose_runner import build_run_id, compose, run, runner_env
+from cli.py.ci import log_filter
+from cli.py.util.compose_runner import build_run_id, compose, compose_cmd, run, runner_env
+from cli.py.util.log import Logger
 
 CI_SERVICE_PREVIEW = "ci-preview"
 USAGE = "Usage: runner.py <pipeline>"
@@ -14,9 +16,13 @@ PREVIEW_TEST_CASES = (
     ("test-rollback",              '{"APP_ROOT_URL":"http://smoke-unreachable"}'),
 )
 
+SUPPRESS_ERROR_TYPES: dict[str, set[str]] = {
+    "test-rollback": {"ConnectionError"},
+}
+
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    Logger("ci")
     pipeline = resolve_pipeline(sys.argv[1:])
     if pipeline is None:
         logger.error(USAGE)
@@ -77,21 +83,43 @@ def start_helpers() -> None:
 
 def run_tests() -> None:
     for test_case, overrides in PREVIEW_TEST_CASES:
+        run_test_case(test_case, overrides)
+
+
+def run_test_case(test_case: str, overrides: str | None) -> None:
+    suppress_types = SUPPRESS_ERROR_TYPES.get(test_case, set())
+    print(f"[runner] Testfall: {test_case}", flush=True)
+    if suppress_types:
         env = preview_test_env(test_case, overrides)
-        print(f"[runner] Testfall: {test_case}", flush=True)
-        compose(
-            "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}",
-            CI_SERVICE_PREVIEW,
-            env=env,
-            label=f"Testfall: {test_case}",
+        cmd = compose_cmd("run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}", CI_SERVICE_PREVIEW)
+        returncode = log_filter.run_filtered(cmd, env, suppress_types)
+    else:
+        returncode = _compose_test(test_case, overrides).returncode
+    if returncode != 0:
+        raise RuntimeError(
+            f"[runner] Fehlgeschlagen: Testfall: {test_case} "
+            f"(Exit-Code: {returncode})"
         )
-        print(f"[runner] Testfall OK: {test_case}", flush=True)
+    print(f"[runner] Testfall OK: {test_case}", flush=True)
+
+
+def _compose_test(test_case: str, overrides: str | None):
+    env = preview_test_env(test_case, overrides)
+    return compose(
+        "run", "--rm", "--no-deps", "-e", f"CI_TEST_CASE={test_case}",
+        CI_SERVICE_PREVIEW,
+        env=env,
+        label=f"Testfall: {test_case}",
+        check=False,
+    )
 
 
 def preview_test_env(test_case: str, overrides: str | None = None) -> dict[str, str]:
     env = runner_env(f"ci-{test_case}")
     if overrides is not None:
         env["SFTP_DEPLOY_OVERRIDES"] = overrides
+    if test_case in SUPPRESS_ERROR_TYPES:
+        env["LOG_FORMAT"] = "json"
     return env
 
 

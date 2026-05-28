@@ -18,10 +18,7 @@ from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
 from cli.py.util.envvar import env
-
-
-def log(message):
-    print(f"[sftp] {message}", flush=True)
+from cli.py.util.log import Logger
 
 
 def format_target(cfg):
@@ -35,36 +32,33 @@ def vendor_checksum() -> str:
     return ComposerInputChecksum.from_repo()
 
 
-def smoke_check(cfg, log) -> bool:
+def smoke_check(cfg, log) -> None:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
         log(
             "Warnung: APP_ROOT_URL nicht konfiguriert — "
             "Smoke übersprungen"
         )
-        return True
-    try:
-        resp = requests.get(url, timeout=10, allow_redirects=True)
-        if resp.status_code != 200:
-            log(f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}")
-            return False
-        return True
-    except requests.exceptions.RequestException as exc:
-        log(f"Smoke fehlgeschlagen: {exc}")
-        return False
+        return
+    resp = requests.get(url, timeout=10, allow_redirects=True)
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}"
+        )
 
 
 def main():
+    logger = Logger("sftp")
     cfg = PipelineCfg("deploy")
     run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
-    log(f"Verbinde zu {format_target(cfg)}")
-    SftpDeploy(cfg, run_id).start()
+    logger(f"Verbinde zu {format_target(cfg)}")
+    SftpDeploy(cfg, run_id, logger=logger).start()
 
 
 class SftpDeploy:
     STAGING_DIR = Path("var/deploy")
 
-    def __init__(self, cfg, run_id, logger=log):
+    def __init__(self, cfg, run_id, logger: Logger):
         self.cfg = cfg
         self.run_id = run_id
         self.log = logger
@@ -81,6 +75,7 @@ class SftpDeploy:
         machine = DeployMachine(
             self._build_ops(),
             on_transition=self._log_deploy_state,
+            on_error=self.log.error,
         )
         machine.run()
         self.deploy_phase = machine.current_state

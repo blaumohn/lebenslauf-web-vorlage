@@ -15,6 +15,10 @@ def runner_env(prefix: str) -> dict[str, str]:
     return env
 
 
+def compose_cmd(*args) -> list[str]:
+    return ["docker", "compose", "-f", COMPOSE_FILE, *args]
+
+
 def compose(*args, check=True, label: str = "", env=None, capture_output=False) -> subprocess.CompletedProcess:
     cmd = ["docker", "compose", "-f", COMPOSE_FILE, *args]
     return run(cmd, check=check, label=label, env=env, capture_output=capture_output)

@@ -22,6 +22,11 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from cli.py.deploy.machine import DeployMachine  # noqa: E402
 from cli.py.deploy.slot_store import HtaccessSlotFile  # noqa: E402
 
+class FakeLogger:
+    def __call__(self, _): pass
+    def error(self, _): pass
+
+
 CHECKSUM = "abc123def456abcd"
 STATE_FILE = ".htaccess"
 ACTIVE_HTACCESS = HtaccessSlotFile.generate("a")
@@ -105,7 +110,7 @@ class FakeClient:
 
 
 def make_swap_deploy(module, run_id="run-2"):
-    deploy = module.SftpDeploy({}, run_id, logger=lambda _: None)
+    deploy = module.SftpDeploy({}, run_id, logger=FakeLogger())
     client = FakeClient()
     client.set_file(".htaccess", ACTIVE_HTACCESS)
     client.set_file("app-a/public/index.php", ACTIVE_BOOTSTRAP)
@@ -244,7 +249,7 @@ class Szenario2Test(unittest.TestCase):
                 stack.enter_context(patch.object(
                     self.module,
                     "smoke_check",
-                    return_value=False,
+                    side_effect=RuntimeError("Smoke fehlgeschlagen"),
                 ))
                 enter_common_patches(stack)
                 stack.enter_context(patch(
@@ -267,7 +272,7 @@ class Szenario2Test(unittest.TestCase):
                 stack.enter_context(patch.object(
                     self.module,
                     "smoke_check",
-                    return_value=False,
+                    side_effect=RuntimeError("Smoke fehlgeschlagen"),
                 ))
                 enter_common_patches(stack)
                 stack.enter_context(patch(
@@ -291,7 +296,7 @@ class Szenario3Test(unittest.TestCase):
 
     def _make_fresh_deploy(self, tmp):
         deploy = self.module.SftpDeploy(
-            {}, "run-1", logger=lambda _: None
+            {}, "run-1", logger=FakeLogger()
         )
         client = FakeClient()
         deploy.client = client
@@ -308,7 +313,7 @@ class Szenario3Test(unittest.TestCase):
                 ),
                 patch.object(
                     self.module, "smoke_check",
-                    return_value=False,
+                    side_effect=RuntimeError("Smoke fehlgeschlagen"),
                 ),
                 patch(
                     "cli.py.deploy.tree_uploader.SftpTreeUploader"

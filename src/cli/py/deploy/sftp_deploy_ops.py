@@ -76,8 +76,8 @@ class SftpDeployOps:
             plan.active_slot_map,
         )
 
-    def smoke_ok(self) -> bool:
-        return self.smoke_check(self.cfg, self.log)
+    def smoke_ok(self) -> None:
+        self.smoke_check(self.cfg, self.log)
 
     def app_uploaded(self, plan: DeploymentPlan) -> bool:
         run_id = self.slot_store.run_id_for_app_slot(

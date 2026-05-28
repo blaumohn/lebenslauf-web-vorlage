@@ -148,9 +148,10 @@ class ControllableOps:
     def switch_swap(self, plan):
         self._call_with_plan("switch_swap", plan)
 
-    def smoke_ok(self) -> bool:
+    def smoke_ok(self) -> None:
         self._call("smoke_ok")
-        return self.scenario.smoke
+        if not self.scenario.smoke:
+            raise RuntimeError("Smoke-Check fehlgeschlagen")
 
     def app_uploaded(self, plan) -> bool:
         self._call("app_uploaded")

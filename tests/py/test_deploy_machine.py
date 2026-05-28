@@ -55,9 +55,10 @@ class FakeOps:
     def switch_swap(self, plan):
         self._call_with_plan("switch_swap", plan)
 
-    def smoke_ok(self) -> bool:
+    def smoke_ok(self) -> None:
         self._call("smoke_ok")
-        return self.smoke
+        if not self.smoke:
+            raise RuntimeError("Smoke-Check fehlgeschlagen")
 
     def app_uploaded(self, plan) -> bool:
         self._call("app_uploaded")
@@ -289,3 +290,40 @@ def test_idempotenz_ueberspringt_switch():
     assert "switched" in ops.called
     assert "switch_swap" not in ops.called
     assert m.current_state == DeployMachine.cleaned_up
+
+
+def test_on_error_wird_bei_pre_switch_fehler_gemeldet():
+    errors = []
+    ops = FakeOps(fail_at="upload_app")
+    m = DeployMachine(ops, on_error=errors.append)
+    m.run()
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+
+
+def test_on_error_wird_bei_conflict_gemeldet():
+    errors = []
+    ops = FakeOps(fail_at="conflict:load_current_slot_map")
+    m = DeployMachine(ops, on_error=errors.append)
+    m.run()
+    assert len(errors) == 1
+    assert isinstance(errors[0], DeployConflictError)
+
+
+def test_on_error_meldet_beide_fehler_bei_post_switch_rollback_fehler():
+    errors = []
+    ops = FakeOps(smoke=False, fail_at="rollback_after_switch")
+    m = DeployMachine(ops, on_error=errors.append)
+    m.run()
+    assert len(errors) == 2
+    assert m.current_state == DeployMachine.failed_safe
+
+
+def test_on_error_meldet_conflict_in_rollback():
+    errors = []
+    ops = FakeOps(smoke=False, fail_at="conflict:rollback_after_switch")
+    m = DeployMachine(ops, on_error=errors.append)
+    m.run()
+    assert len(errors) == 2
+    assert isinstance(errors[1], DeployConflictError)
+    assert m.current_state == DeployMachine.manual_intervention_required

@@ -19,6 +19,7 @@ x-preview-env: &preview-env
   DEBUG: "$DEBUG"
   PIPELINE_RUN_ID: "$PIPELINE_RUN_ID"
   SFTP_DEPLOY_OVERRIDES: "${SFTP_DEPLOY_OVERRIDES:-}"
+  LOG_FORMAT: "${LOG_FORMAT:-}"
 
 x-preview-runner: &preview-runner
   <<: *ci-base

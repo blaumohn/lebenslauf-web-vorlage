@@ -8,6 +8,7 @@ from cli.py.dev.watchers import css
 from cli.py.dev.watchers.file_watcher import FileWatcher
 from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
 from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.util.log import Logger
 from cli.py.util.run_helpers import run
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ DEV_PIPELINE = "dev"
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    Logger("dev", level=logging.INFO)
     try:
         args = parse_args()
         root_path = resolve_root_path()

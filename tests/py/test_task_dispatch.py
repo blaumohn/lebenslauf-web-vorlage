@@ -84,12 +84,42 @@ class HttpTriggerTest(unittest.TestCase):
             with self.assertRaises(requests.exceptions.HTTPError):
                 dispatch.TaskDispatch(cfg)._http_trigger()
 
+    def test_loggt_http_fehler_mit_url_und_status(self):
+        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        exc = fake_http_error(500, "<b>PHP error</b>")
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = exc
+
+        with patch.object(dispatch.requests, "get", return_value=mock_resp):
+            with self.assertLogs("cli.py.task.dispatch", level="ERROR") as cm:
+                with self.assertRaises(requests.exceptions.HTTPError):
+                    dispatch.TaskDispatch(cfg)._http_trigger()
+
+        self.assertTrue(any("500" in line for line in cm.output), cm.output)
+        self.assertTrue(
+            any("http://preview-web/tasks/dispatch" in line for line in cm.output),
+            cm.output,
+        )
+
     def test_reraises_connection_error_after_logging(self):
         cfg = {"APP_ROOT_URL": "http://preview-web/"}
 
         with patch.object(dispatch.requests, "get", side_effect=requests.exceptions.ConnectionError("refused")):
             with self.assertRaises(requests.exceptions.RequestException):
                 dispatch.TaskDispatch(cfg)._http_trigger()
+
+    def test_loggt_verbindungsfehler_mit_url(self):
+        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+
+        with patch.object(dispatch.requests, "get", side_effect=requests.exceptions.ConnectionError("refused")):
+            with self.assertLogs("cli.py.task.dispatch", level="ERROR") as cm:
+                with self.assertRaises(requests.exceptions.RequestException):
+                    dispatch.TaskDispatch(cfg)._http_trigger()
+
+        self.assertTrue(
+            any("http://preview-web/tasks/dispatch" in line for line in cm.output),
+            cm.output,
+        )
 
     def test_reraises_timeout_after_logging(self):
         cfg = {"APP_ROOT_URL": "http://preview-web/"}

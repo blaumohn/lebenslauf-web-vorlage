@@ -26,6 +26,11 @@ from cli.py.deploy.token_migrator import (  # noqa: E402
 )
 from cli.py.deploy.tree_uploader import SftpTreeUploader  # noqa: E402
 
+class FakeLogger:
+    def __call__(self, _): pass
+    def error(self, _): pass
+
+
 CHECKSUM = "abc123def456abcd"
 VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 STATE_FILE = ".htaccess"
@@ -305,7 +310,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
         FakeDispatch.submitted = []
 
     def _make_deploy(self, module, active=False):
-        deploy = module.SftpDeploy({}, "run-1", logger=lambda _: None)
+        deploy = module.SftpDeploy({}, "run-1", logger=FakeLogger())
         client = FakeClient()
         if active:
             client.set_file(".htaccess", ACTIVE_HTACCESS)

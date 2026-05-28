@@ -18,7 +18,7 @@ class DeployOps(Protocol):
     def migrate_tokens(self, plan: DeploymentPlan) -> None: ...
     def switch_fresh(self, plan: DeploymentPlan) -> None: ...
     def switch_swap(self, plan: DeploymentPlan) -> None: ...
-    def smoke_ok(self) -> bool: ...
+    def smoke_ok(self) -> None: ...
     def app_uploaded(self, plan: DeploymentPlan) -> bool: ...
     def vendor_ready(self, plan: DeploymentPlan) -> bool: ...
     def switched(self, plan: DeploymentPlan) -> bool: ...
@@ -104,14 +104,15 @@ class DeployMachine(StateMachine):
         self,
         ops: DeployOps,
         on_transition: Callable | None = None,
+        on_error: Callable | None = None,
     ):
         super().__init__()
         self._ops = ops
         self._plan: DeploymentPlan | None = None
         self._current_slot_map: SlotMap | None = None
-        self._smoke_ok: bool = False
         self._post_switch: bool = False
         self._on_transition = on_transition
+        self._on_error = on_error
         self.history: list[str] = []
 
     def run(self) -> None:
@@ -234,9 +235,7 @@ class DeployMachine(StateMachine):
             self._ops.switch_swap(self._plan)
 
     def _step_verify(self) -> None:
-        self._smoke_ok = self._ops.smoke_ok()
-        if not self._smoke_ok:
-            raise RuntimeError("Smoke-Check fehlgeschlagen")
+        self._ops.smoke_ok()
         self.verify()
 
     def _guarded(self, action: Callable) -> None:
@@ -244,9 +243,11 @@ class DeployMachine(StateMachine):
             return
         try:
             action()
-        except DeployConflictError:
+        except DeployConflictError as exc:
+            self._report_error(exc)
             self.conflict()
-        except Exception:
+        except Exception as exc:
+            self._report_error(exc)
             if self._post_switch:
                 self._recover_post_switch()
             else:
@@ -265,7 +266,13 @@ class DeployMachine(StateMachine):
                 self._plan, self._current_slot_map
             )
             self.rollback()
-        except DeployConflictError:
+        except DeployConflictError as exc:
+            self._report_error(exc)
             self.conflict()
-        except Exception:
+        except Exception as exc:
+            self._report_error(exc)
             self.fail()
+
+    def _report_error(self, exc: Exception) -> None:
+        if self._on_error:
+            self._on_error(exc)
