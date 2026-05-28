@@ -158,15 +158,6 @@ variable-groups:
       meta:
         desc: "Zielverzeichnis auf dem SFTP-Server"
         example: "/home/user/public"
-    SFTP_WEBROOT:
-      sources: [local, cli]
-      meta:
-        desc: "Webroot-Unterordner unter SFTP_SERVER_DIR (vom Hosting vorgegeben)"
-        notes: >-
-          Muss dem vom Hosting konfigurierten DocumentRoot-Unterordner entsprechen.
-          Häufige Werte: public_html (cPanel), httpdocs (Plesk), public, www.
-          Immer explizit setzen — kein universeller Default möglich.
-        example: "public_html"
     SFTP_PORT:
       default: "22"
       meta:

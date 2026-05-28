@@ -70,7 +70,6 @@ final class ConfigCommandTest extends TestCase
             'SMTP_PASS'          => 'testpass',
             'SMTP_FROM_EMAIL'    => 'from@example.invalid',
             'SFTP_SERVER_DIR'    => '/deploy/preview',
-            'SFTP_WEBROOT'       => 'public_html',
             'SFTP_HOST'          => 'sftp.example.invalid',
             'SFTP_USER'          => 'sftpuser',
             'SFTP_PASS'          => 'sftppass',
