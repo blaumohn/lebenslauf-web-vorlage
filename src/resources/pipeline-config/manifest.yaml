@@ -36,11 +36,11 @@ variable-groups:
         example: ".local/lebenslauf"
     LEBENSLAUF_YAML_PFAD:
       meta:
-        desc: "Pfad zur Lebenslauf-YAML-Quelldatei (leer = Standard im Datenpfad)"
+        desc: "Pfad zur Lebenslauf-YAML-Quelldatei oder -Verzeichnis"
         notes: >-
-          Leer bedeutet: nutze den Datenpfad als Verzeichnis und lese dort
-          alle daten-<profil>.yaml-Dateien.
-        example: ""
+          Zeigt entweder auf eine einzelne YAML-Datei oder auf ein Verzeichnis
+          mit daten-<profil>.yaml-Dateien.
+        example: ".local/lebenslauf"
     LEBENSLAUF_PUBLIC_PROFILE:
       meta:
         desc: "Profilname für den öffentlichen Lebenslauf"
@@ -113,6 +113,7 @@ variable-groups:
           SMTP_FROM_NAME.
         example: "smtp.example.invalid"
     SMTP_PORT:
+      default: "587"
       meta:
         desc: "SMTP-Port"
         notes: >-
@@ -132,6 +133,7 @@ variable-groups:
           Nur relevant bei echtem SMTP-Betrieb zusammen mit SMTP_HOST und
           SMTP_USER. Gehört nicht in versionierte Beispielkonfigurationen.
     SMTP_ENCRYPTION:
+      default: "tls"
       meta:
         desc: "SMTP-Verschlüsselung (tls oder none)"
         notes: >-
