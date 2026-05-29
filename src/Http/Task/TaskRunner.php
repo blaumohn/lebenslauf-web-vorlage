@@ -55,13 +55,15 @@ final class TaskRunner
     /** @return array{0: TaskResult, 1: string} */
     private function executeTask(string $filePath, string $taskName): array
     {
+        $taskId = '';
         try {
             $task = QueuedTaskFile::load($filePath);
+            $taskId = $task->get('task_id');
             $result = $this->resolveHandler($task->type())->handle($task, $this->appRoot);
-            return [$result, $task->get('task_id')];
+            return [$result, $taskId];
         } catch (\Throwable $e) {
             $this->logger->error("Task fehlgeschlagen: {$taskName}", ['exception' => $e]);
-            return [TaskResult::fail($e->getMessage()), ''];
+            return [TaskResult::fail($e->getMessage()), $taskId];
         }
     }
 

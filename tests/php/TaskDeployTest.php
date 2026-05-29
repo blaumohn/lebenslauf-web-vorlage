@@ -234,6 +234,28 @@ final class TaskDeployTest extends TestCase
         $this->assertFileExists($this->dir . '/var/state/tokens/' . $profile . '.txt');
     }
 
+    public function testTaskRunnerWritesErrorResultWhenHandlerThrows(): void
+    {
+        $taskId = bin2hex(random_bytes(16));
+        $taskDir = $this->dir . '/var/tasks';
+        $resultDir = $this->dir . '/var/tasks/results';
+        mkdir($taskDir, 0775, true);
+        mkdir($resultDir, 0775, true);
+        $taskFile = $taskDir . '/20260529T000000Z-cv-token-rotation.ini';
+        file_put_contents(
+            $taskFile,
+            "[task]\ntype=cv_token_rotation\ntask_id={$taskId}\nprofile=unbekannt\ncount=1\n"
+        );
+
+        $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+        );
+
+        $resultFile = $resultDir . '/' . $taskId . '.result';
+        $this->assertFileExists($resultFile);
+        $this->assertStringStartsWith('error:', (string) file_get_contents($resultFile));
+    }
+
     public function testTaskRunnerSendsErrorMailForUnknownType(): void
     {
         $taskDir = $this->dir . '/var/tasks';
