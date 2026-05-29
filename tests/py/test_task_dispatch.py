@@ -14,6 +14,7 @@ sys.modules.setdefault("paramiko", types.SimpleNamespace(RejectPolicy=object, SS
 
 from cli.py.task import dispatch  # noqa: E402
 from cli.py.task.task import Task  # noqa: E402
+from cli.py.deploy.slots import SlotMap  # noqa: E402
 
 
 def fake_ok_response(status_code=200):
@@ -141,25 +142,40 @@ class HttpTriggerTest(unittest.TestCase):
         self.assertEqual(dispatch._with_scheme("example.com/sub"), "https://example.com/sub")
 
 
+class AppRootTest(unittest.TestCase):
+    def test_returns_active_app_dir(self):
+        client = MagicMock()
+        slot_map = SlotMap.from_labels(app="b", vendor="a")
+        with patch.object(dispatch.SlotStore, "current_slot_map", return_value=slot_map):
+            result = dispatch.TaskDispatch({})._resolve_app_root(client)
+        self.assertEqual(result, "app-b")
+
+    def test_raises_when_no_active_slot(self):
+        client = MagicMock()
+        with patch.object(dispatch.SlotStore, "current_slot_map", return_value=None):
+            with self.assertRaises(RuntimeError):
+                dispatch.TaskDispatch({})._resolve_app_root(client)
+
+
 class EnqueueTest(unittest.TestCase):
     def _make_task(self):
         return Task("deploy_switch", {"app": "a", "vendor": "b", "run_id": "42"})
 
     def test_creates_file_in_task_dir(self):
         client = MagicMock()
-        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task(), "app-a")
         path_arg = client.put_text.call_args.args[0]
-        self.assertTrue(path_arg.startswith("var/tasks/"), path_arg)
+        self.assertTrue(path_arg.startswith("app-a/var/tasks/"), path_arg)
         self.assertTrue(path_arg.endswith("-deploy_switch.ini"), path_arg)
 
     def test_ensures_task_dir_exists(self):
         client = MagicMock()
-        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
-        client.ensure_dir.assert_called_once_with("var/tasks")
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task(), "app-a")
+        client.ensure_dir.assert_called_once_with("app-a/var/tasks")
 
     def test_writes_valid_ini_content(self):
         client = MagicMock()
-        dispatch.TaskDispatch({})._enqueue(client, self._make_task())
+        dispatch.TaskDispatch({})._enqueue(client, self._make_task(), "app-a")
         content = client.put_text.call_args.args[1]
         self.assertIn("[task]", content)
         self.assertIn("type = deploy_switch", content)
@@ -168,8 +184,8 @@ class EnqueueTest(unittest.TestCase):
     def test_calls_logger_with_file_path(self):
         client = MagicMock()
         logged = []
-        dispatch.TaskDispatch({}, logger=logged.append)._enqueue(client, self._make_task())
-        self.assertTrue(any("var/tasks" in m for m in logged), logged)
+        dispatch.TaskDispatch({}, logger=logged.append)._enqueue(client, self._make_task(), "app-a")
+        self.assertTrue(any("app-a/var/tasks" in m for m in logged), logged)
 
 
 class LoggerTest(unittest.TestCase):

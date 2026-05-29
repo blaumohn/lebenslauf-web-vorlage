@@ -6,11 +6,12 @@ import requests.exceptions
 
 from cli.py.task.task import Task
 from cli.py.deploy.sftp_lib import SftpClient
+from cli.py.deploy.slot_store import SlotStore
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.util.poll import poll_until
 
-TASK_DIR = "var/tasks"
-RESULT_DIR = "var/tasks/results"
+_TASK_SUBDIR = "var/tasks"
+_RESULT_SUBDIR = "var/tasks/results"
 TASK_TRIGGER_PATH = "/tasks/dispatch"
 POLL_INTERVAL_S = 2
 POLL_TIMEOUT_S = 60
@@ -40,31 +41,21 @@ class TaskDispatch:
 
     def submit(self, task: Task) -> None:
         with SftpClient(self._deploy) as client:
-            self._enqueue(client, task)
+            app_root = self._resolve_app_root(client)
+            self._enqueue(client, task, app_root)
             self._http_trigger()
-            self._await_result(client, task)
+            self._await_result(client, task, app_root)
 
-    def _await_result(self, client, task: Task) -> None:
-        result_path = f"{RESULT_DIR}/{task.task_id}.result"
+    def _resolve_app_root(self, client) -> str:
+        slot_map = SlotStore(client).current_slot_map()
+        if slot_map is None:
+            raise RuntimeError("Kein aktiver Slot — TaskDispatch nicht möglich")
+        return slot_map.app.dir
 
-        def check_result():
-            return self._check_result(client, result_path)
-
-        poll_until(check_result, timeout_s=POLL_TIMEOUT_S, interval_s=POLL_INTERVAL_S,
-                   label=task.task_id[:8])
-        self._log(f"Task bestätigt: {task.task_id[:8]}")
-
-    def _check_result(self, client, result_path: str) -> str | None:
-        content = client.read_file(result_path).strip()
-        if content == "ok":
-            return content
-        if content:
-            raise RuntimeError(f"Task fehlgeschlagen: {content}")
-        return None
-
-    def _enqueue(self, client, task: Task) -> None:
-        rel_path = f"{TASK_DIR}/{task.filename()}"
-        client.ensure_dir(TASK_DIR)
+    def _enqueue(self, client, task: Task, app_root: str) -> None:
+        task_dir = f"{app_root}/{_TASK_SUBDIR}"
+        rel_path = f"{task_dir}/{task.filename()}"
+        client.ensure_dir(task_dir)
         client.put_text(rel_path, task.to_ini())
         self._log(f"Aufgabe via SFTP geschrieben: {rel_path}")
 
@@ -85,6 +76,24 @@ class TaskDispatch:
         except requests.exceptions.RequestException as exc:
             _logger.error("HTTP-Auslöser nicht erreichbar: %s\n  Fehler: %s", url, exc)
             raise
+
+    def _await_result(self, client, task: Task, app_root: str) -> None:
+        result_path = f"{app_root}/{_RESULT_SUBDIR}/{task.task_id}.result"
+
+        def check_result():
+            return self._check_result(client, result_path)
+
+        poll_until(check_result, timeout_s=POLL_TIMEOUT_S, interval_s=POLL_INTERVAL_S,
+                   label=task.task_id[:8])
+        self._log(f"Task bestätigt: {task.task_id[:8]}")
+
+    def _check_result(self, client, result_path: str) -> str | None:
+        content = client.read_file(result_path).strip()
+        if content == "ok":
+            return content
+        if content:
+            raise RuntimeError(f"Task fehlgeschlagen: {content}")
+        return None
 
 
 def _with_scheme(url: str) -> str:
