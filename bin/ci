@@ -19,6 +19,7 @@ main() {
   WORK_REPO_DIR="$(clone_work_dir)"
   cd "$WORK_REPO_DIR"
   apply_working_state
+  commit_working_state
   export PATH="$WORK_REPO_DIR/bin:$PATH"
 
   . scripts/pipeline_lib.sh
@@ -199,6 +200,13 @@ clone_work_dir() {
 apply_working_state() {
   apply_tracked_working_diff
   copy_untracked_working_files
+}
+
+commit_working_state() {
+  [[ -z "$(git status --porcelain)" ]] && return 0
+  git add -A
+  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
+    commit -m "tmp: lokaler Arbeitsstand"
 }
 
 apply_tracked_working_diff() {
