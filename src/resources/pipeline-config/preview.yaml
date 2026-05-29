@@ -5,7 +5,6 @@ app:
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: src/resources/fixtures/lebenslauf
-  LEBENSLAUF_YAML_PFAD: src/resources/fixtures/lebenslauf
   LEBENSLAUF_PUBLIC_PROFILE: gueltig
   LEBENSLAUF_LANG_DEFAULT: de
   LEBENSLAUF_LANGS: "de,en"

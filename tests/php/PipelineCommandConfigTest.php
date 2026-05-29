@@ -40,6 +40,20 @@ final class PipelineCommandConfigTest extends TestCase
         self::assertSame('cli', $report['sources']['APP_BASE_PATH'] ?? null);
     }
 
+    public function testBuildCommandAcceptsDataPathOverride(): void
+    {
+        $command = new PipelineCommandConfigTestCommand($this->context());
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute([
+            'pipeline'    => 'dev',
+            '--overrides' => json_encode(['LEBENSLAUF_DATEN_PFAD' => '.local/alt-cv']),
+        ]);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('config=.local/alt-cv', $tester->getDisplay());
+    }
+
     public function testCiCommandOnlyAcceptsPipelineArgument(): void
     {
         $definition = (new CiCommand($this->context()))->getDefinition();

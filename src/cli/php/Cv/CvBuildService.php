@@ -4,6 +4,7 @@ namespace App\Cli\Cv;
 
 use App\Cli\ConfigValues;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
@@ -11,21 +12,19 @@ final class CvBuildService
 {
     private string $rootPath;
     private ConfigValues $config;
-    private ContentSourceResolver $resolver;
     private CvUploadService $uploader;
 
     public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
         $this->rootPath = rtrim($appRoot, DIRECTORY_SEPARATOR);
-        $this->resolver = new ContentSourceResolver($config, $appRoot);
         $this->uploader = new CvUploadService($config, $appRoot);
     }
 
     public function build(OutputInterface $output): void
     {
         $targets = $this->resolveTargets();
-        $jsonPath = $this->resolver->jsonPath();
+        $jsonPath = $this->jsonPath();
         $this->ensureDir(dirname($jsonPath));
 
         foreach ($targets as $target) {
@@ -35,8 +34,16 @@ final class CvBuildService
 
     private function resolveTargets(): array
     {
-        $publicProfile = $this->publicProfile();
-        return $this->resolver->resolveTargets($publicProfile);
+        $dataPath = $this->dataPath();
+        if (!is_dir($dataPath)) {
+            throw new \RuntimeException("CV data directory not found: {$dataPath}");
+        }
+
+        $targets = $this->collectTargetsFromDir($dataPath);
+        if ($targets === []) {
+            throw new \RuntimeException("No daten-*.yaml files found in: {$dataPath}");
+        }
+        return $targets;
     }
 
     private function buildTarget(array $target, string $jsonPath, OutputInterface $output): void
@@ -80,12 +87,53 @@ final class CvBuildService
         return $json;
     }
 
-    private function publicProfile(): string
+    private function dataPath(): string
     {
-        $value = trim($this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
-        return $value === '' ? 'default' : $value;
+        $value = $this->config->get('LEBENSLAUF_DATEN_PFAD');
+        if ($value === '') {
+            throw new \RuntimeException('Missing config: LEBENSLAUF_DATEN_PFAD');
+        }
+        if (Path::isAbsolute($value)) {
+            return $value;
+        }
+        return Path::join($this->rootPath, $value);
     }
 
+    private function collectTargetsFromDir(string $dataPath): array
+    {
+        $entries = scandir($dataPath);
+        if ($entries === false) {
+            return [];
+        }
+
+        $targets = [];
+        foreach ($entries as $entry) {
+            $target = $this->targetFromEntry($dataPath, $entry);
+            if ($target !== null) {
+                $targets[] = $target;
+            }
+        }
+        return $targets;
+    }
+
+    private function targetFromEntry(string $dataPath, mixed $entry): ?array
+    {
+        if (!is_string($entry)) {
+            return null;
+        }
+        if (!preg_match('/^daten[-.](.+)\\.yaml$/i', $entry, $matches)) {
+            return null;
+        }
+        return [
+            'profile' => $matches[1],
+            'yaml' => Path::join($dataPath, $entry),
+        ];
+    }
+
+    private function jsonPath(): string
+    {
+        return Path::join($this->rootPath, 'var', 'tmp', 'lebenslauf.json');
+    }
 
     private function ensureDir(string $path): void
     {

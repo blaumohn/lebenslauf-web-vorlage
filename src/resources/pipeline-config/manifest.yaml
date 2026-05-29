@@ -33,13 +33,8 @@ variable-groups:
     LEBENSLAUF_DATEN_PFAD:
       meta:
         desc: "Pfad zum Lebenslauf-Datenverzeichnis"
-        example: ".local/lebenslauf"
-    LEBENSLAUF_YAML_PFAD:
-      meta:
-        desc: "Pfad zur Lebenslauf-YAML-Quelldatei oder -Verzeichnis"
         notes: >-
-          Zeigt entweder auf eine einzelne YAML-Datei oder auf ein Verzeichnis
-          mit daten-<profil>.yaml-Dateien.
+          Zeigt auf ein Verzeichnis mit daten-<profil>.yaml-Dateien.
         example: ".local/lebenslauf"
     LEBENSLAUF_PUBLIC_PROFILE:
       meta:

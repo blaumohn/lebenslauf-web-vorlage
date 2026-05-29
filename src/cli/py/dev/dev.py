@@ -67,7 +67,7 @@ def setup_watchers(supervisor, root_path):
     start_css_watch(supervisor)
     file_watcher = FileWatcher()
     cfg = PipelineCfg("build")
-    yaml_path, yaml_dir = resolve_yaml_inputs(root_path, cfg)
+    data_path = resolve_yaml_input(root_path, cfg)
 
     def build_fn(build_root):
         run_cv_build(build_root)
@@ -75,8 +75,7 @@ def setup_watchers(supervisor, root_path):
     schedule_yaml(
         file_watcher,
         root_path,
-        yaml_path,
-        yaml_dir,
+        data_path,
         build_fn
     )
     schedule_twig(file_watcher, root_path, build_fn)
@@ -101,13 +100,9 @@ def start_css_watch(supervisor):
         supervisor.start(f"css-{index}", cmd)
 
 
-def resolve_yaml_inputs(root_path, cfg: PipelineCfg):
-    yaml_path = cfg.get("LEBENSLAUF_YAML_PFAD")
-    yaml_dir = cfg.get("LEBENSLAUF_DATEN_PFAD")
-    return (
-        resolve_path(root_path, yaml_path),
-        resolve_path(root_path, yaml_dir),
-    )
+def resolve_yaml_input(root_path, cfg: PipelineCfg):
+    data_path = cfg.get("LEBENSLAUF_DATEN_PFAD")
+    return resolve_path(root_path, data_path)
 
 
 def resolve_path(root_path, value):
