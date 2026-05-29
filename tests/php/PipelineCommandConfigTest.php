@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Cli\CliContext;
 use App\Cli\Command\BasePipelinePhaseCommand;
 use App\Cli\Command\CiCommand;
 use PipelineConfigSpec\PipelineConfig;
@@ -14,7 +15,7 @@ final class PipelineCommandConfigTest extends TestCase
 {
     public function testBasePipelineCommandResolvesPipelineAndConfigEarly(): void
     {
-        $command = new PipelineCommandConfigTestCommand();
+        $command = new PipelineCommandConfigTestCommand($this->context());
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute([
@@ -41,10 +42,15 @@ final class PipelineCommandConfigTest extends TestCase
 
     public function testCiCommandOnlyAcceptsPipelineArgument(): void
     {
-        $definition = (new CiCommand())->getDefinition();
+        $definition = (new CiCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertFalse($definition->hasArgument('args'));
+    }
+
+    private function context(): CliContext
+    {
+        return new CliContext(dirname(__DIR__, 2));
     }
 }
 

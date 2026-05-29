@@ -8,6 +8,6 @@ trait PythonRunnerAware
 {
     protected function pythonRunner(): PythonRunner
     {
-        return new PythonRunner($this->rootPath());
+        return new PythonRunner($this->appRoot());
     }
 }

@@ -15,7 +15,7 @@ final class TaskRunner
     /** @param TaskHandler[] $handlers */
     public function __construct(
         private readonly array $handlers,
-        private readonly string $entryPath,
+        private readonly string $appRoot,
         private readonly MailService $mailService,
         private readonly LoggerInterface $logger,
         private readonly RuntimeAtomicWriter $writer,
@@ -23,7 +23,7 @@ final class TaskRunner
 
     public function runPending(): int
     {
-        $taskDir = $this->entryPath . '/' . self::TASK_DIR;
+        $taskDir = $this->appRoot . '/' . self::TASK_DIR;
         $files = $this->pendingFiles($taskDir);
         foreach ($files as $file) {
             $this->processTask($file);
@@ -57,7 +57,7 @@ final class TaskRunner
     {
         try {
             $task = QueuedTaskFile::load($filePath);
-            $result = $this->resolveHandler($task->type())->handle($task, $this->entryPath);
+            $result = $this->resolveHandler($task->type())->handle($task, $this->appRoot);
             return [$result, $task->get('task_id')];
         } catch (\Throwable $e) {
             $this->logger->error("Task fehlgeschlagen: {$taskName}", ['exception' => $e]);
@@ -71,7 +71,7 @@ final class TaskRunner
             return;
         }
         $content = $result->success ? 'ok' : 'error: ' . $result->body;
-        $path = $this->entryPath . '/' . self::RESULT_DIR . '/' . $taskId . '.result';
+        $path = $this->appRoot . '/' . self::RESULT_DIR . '/' . $taskId . '.result';
         $this->writer->writeText($path, $content, 0644);
     }
 

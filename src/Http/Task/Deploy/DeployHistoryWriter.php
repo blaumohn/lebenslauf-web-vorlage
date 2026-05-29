@@ -10,7 +10,7 @@ final class DeployHistoryWriter
 
     public function __construct(
         private readonly RuntimeAtomicWriter $writer,
-        private readonly string $entryPath,
+        private readonly string $deployRoot,
     ) {
     }
 
@@ -26,7 +26,7 @@ final class DeployHistoryWriter
             'vendor_after'    => $event->vendorAfter,
             'outcome'         => 'ok',
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-        $path = $this->entryPath . '/' . self::HISTORY_FILE;
+        $path = $this->deployRoot . '/' . self::HISTORY_FILE;
         $this->writer->appendLine($path, $entry, 0644);
     }
 

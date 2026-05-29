@@ -24,7 +24,7 @@ final class ConfigCompiledTest extends TestCase
 
         self::assertSame('dev', $config->pipeline());
         self::assertSame('runtime', $config->phase());
-        self::assertSame('/public', $config->basePath());
+        self::assertSame('/public', $config->get('APP_BASE_PATH'));
     }
 
     public function testThrowsWhenPipelinePhaseIsMissing(): void
@@ -54,7 +54,7 @@ final class ConfigCompiledTest extends TestCase
         new ConfigCompiled($root);
     }
 
-    public function testLogDirIsInsideRootForDevPipeline(): void
+    public function testThrowsWhenKeyMissing(): void
     {
         $root = $this->createRoot();
         $this->writeConfig($root, [
@@ -64,20 +64,10 @@ final class ConfigCompiledTest extends TestCase
 
         $config = new ConfigCompiled($root);
 
-        self::assertSame($root . '/var/log', $config->logDir());
-    }
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Config-Schlüssel fehlt: MISSING_KEY');
 
-    public function testLogDirIsAtEntryLevelForNonDevPipeline(): void
-    {
-        $root = $this->createRoot();
-        $this->writeConfig($root, [
-            'pipeline_phase' => ['pipeline' => 'preview', 'phase' => 'runtime'],
-            'values' => [],
-        ]);
-
-        $config = new ConfigCompiled($root);
-
-        self::assertSame(dirname($root) . '/log', $config->logDir());
+        $config->get('MISSING_KEY');
     }
 
     private function createRoot(): string

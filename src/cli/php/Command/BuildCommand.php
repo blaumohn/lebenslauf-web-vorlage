@@ -76,7 +76,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
             return Command::FAILURE;
         }
 
-        $service = new CvUploadService($this->commandConfig());
+        $service = new CvUploadService($this->commandConfig(), $this->appRoot());
         try {
             $service->upload($cvProfile, $jsonPath, $output);
         } catch (\RuntimeException $exception) {
@@ -89,7 +89,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
 
     private function runCvBuild(ConfigValues $config, OutputInterface $output): bool
     {
-        $builder = new CvBuildService($config);
+        $builder = new CvBuildService($config, $this->appRoot());
 
         try {
             $builder->build($output);
@@ -113,7 +113,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
 
     private function runCssBuild(OutputInterface $output): int
     {
-        $process = new Process(['npm', 'run', 'build:css'], $this->rootPath());
+        $process = new Process(['npm', 'run', 'build:css'], $this->appRoot());
         $process->run(function (string $type, string $buffer) use ($output): void {
             $output->write($buffer);
         });

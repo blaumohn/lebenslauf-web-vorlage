@@ -4,16 +4,13 @@ namespace App\Cli\Command;
 
 use App\Cli\ConfigValues;
 use PipelineConfigSpec\PipelineConfig;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-abstract class BasePipelineCommand extends Command
+abstract class BasePipelineCommand extends BaseCliCommand
 {
-    use RootPathAware;
-
     private ?string $pipelineName = null;
     private array $overrides = [];
 
@@ -110,12 +107,12 @@ abstract class BasePipelineCommand extends Command
 
     private function configService(): PipelineConfig
     {
-        return new PipelineConfig($this->rootPath(), $this->configDir());
+        return new PipelineConfig($this->appRoot(), $this->configDir());
     }
 
     private function configValues(array $values): ConfigValues
     {
-        return new ConfigValues($this->rootPath(), $values);
+        return new ConfigValues($values);
     }
 
     private function resolveStringArg(InputInterface $input, string $name): ?string

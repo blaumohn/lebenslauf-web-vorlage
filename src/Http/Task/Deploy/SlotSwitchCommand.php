@@ -20,11 +20,11 @@ final class SlotSwitchCommand
 
     public static function fromQueuedTask(
         QueuedTask $task,
-        string $entryPath,
+        string $deployRoot,
     ): self {
         $app = SlotEntry::app($task->get('app'));
         $vendor = SlotEntry::vendor($task->get('vendor'));
-        $checksum = self::readVendorMeta($entryPath, $vendor->directory());
+        $checksum = self::readVendorMeta($deployRoot, $vendor->directory());
         return new self($task->get('pipeline_run_id'), $app, $vendor, $checksum);
     }
 
@@ -41,10 +41,10 @@ final class SlotSwitchCommand
     }
 
     private static function readVendorMeta(
-        string $entryPath,
+        string $deployRoot,
         string $vendorDir,
     ): string {
-        $path = Path::join($entryPath, $vendorDir, '.meta');
+        $path = Path::join($deployRoot, $vendorDir, '.meta');
         if (!is_file($path)) {
             throw new \RuntimeException(
                 "Vendor-Sentinel fehlt: {$path}"
@@ -81,10 +81,10 @@ final class SlotSwitchCommand
         return $this->appSlot->runMarkerPath();
     }
 
-    public function validatePreparedSlots(string $entryPath): void
+    public function validatePreparedSlots(string $deployRoot): void
     {
-        $this->validateAppSlot($entryPath);
-        $this->validateVendorSlot($entryPath);
+        $this->validateAppSlot($deployRoot);
+        $this->validateVendorSlot($deployRoot);
     }
 
     // deploy: Dieses Format wird von HtaccessSlotFile.read_slot() per Regex gelesen.
@@ -100,11 +100,11 @@ final class SlotSwitchCommand
             . "RewriteRule ^ /app-{$app}/public/index.php [L,QSA]\n";
     }
 
-    private function validateAppSlot(string $entryPath): void
+    private function validateAppSlot(string $deployRoot): void
     {
         $markerPath = $this->appRunMarkerPath();
         $stored = $this->readSentinel(
-            Path::join($entryPath, $markerPath),
+            Path::join($deployRoot, $markerPath),
             "App-Sentinel",
         );
         if ($stored !== $this->pipelineRunId) {
@@ -114,10 +114,10 @@ final class SlotSwitchCommand
         }
     }
 
-    private function validateVendorSlot(string $entryPath): void
+    private function validateVendorSlot(string $deployRoot): void
     {
         $path = Path::join(
-            $entryPath,
+            $deployRoot,
             $this->vendorSlot->directory(),
             '.meta',
         );

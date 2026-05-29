@@ -48,7 +48,7 @@ abstract class FeatureTestCase extends TestCase
     protected function app(): App
     {
         $config = new ConfigCompiled($this->root);
-        return AppBuilder::build($config);
+        return AppBuilder::build($config, $this->root, dirname($this->root));
     }
 
     protected function projectRoot(): string

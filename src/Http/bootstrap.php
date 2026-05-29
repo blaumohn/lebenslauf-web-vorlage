@@ -6,13 +6,14 @@ use App\Http\ConfigCompiled;
 
 require_once __DIR__ . '/AppHttpClassLoader.php';
 
-function run_bootstrap(string $appSlot, string $vendorDir): void
+function run_bootstrap(string $appRoot, string $vendorDir): void
 {
+    $deployRoot = dirname($appRoot);
     require $vendorDir . '/autoload.php';
-    register_app_http_autoload($appSlot . '/src/Http');
+    register_app_http_autoload($appRoot . '/src/Http');
 
-    $config = new ConfigCompiled($appSlot);
-    $app = AppBuilder::build($config);
+    $config = new ConfigCompiled($appRoot);
+    $app = AppBuilder::build($config, $appRoot, $deployRoot);
     $app->run();
 }
 

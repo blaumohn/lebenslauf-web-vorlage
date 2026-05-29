@@ -270,7 +270,7 @@ final class TaskDeployTest extends TestCase
     private function buildDeploySwitchHandler(): DeploySwitchTaskHandler
     {
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
-        return new DeploySwitchTaskHandler($switcher);
+        return new DeploySwitchTaskHandler($switcher, $this->dir);
     }
 
     private function buildTokenRotationHandler(): CvTokenRotationTaskHandler

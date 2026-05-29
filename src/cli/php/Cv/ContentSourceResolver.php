@@ -8,24 +8,22 @@ use Symfony\Component\Filesystem\Path;
 final class ContentSourceResolver
 {
     private ConfigValues $config;
+    private string $appRoot;
 
-    public function __construct(ConfigValues $config)
+    public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
+        $this->appRoot = rtrim($appRoot, DIRECTORY_SEPARATOR);
     }
 
     public function dataDir(): string
     {
-        return $this->resolvePath($this->configValue('LEBENSLAUF_DATEN_PFAD'));
+        return $this->resolvePath($this->config->get('LEBENSLAUF_DATEN_PFAD'));
     }
 
     public function yamlPath(): string
     {
-        $value = $this->configValue('LEBENSLAUF_YAML_PFAD');
-        if ($value !== '') {
-            return $this->resolvePath($value);
-        }
-        return $this->dataDir();
+        return $this->resolvePath($this->config->get('LEBENSLAUF_YAML_PFAD'));
     }
 
     public function jsonPath(): string
@@ -119,12 +117,7 @@ final class ContentSourceResolver
 
     private function defaultJsonPath(): string
     {
-        return Path::join($this->config->rootPath(), 'var', 'tmp', 'lebenslauf.json');
-    }
-
-    private function configValue(string $key): string
-    {
-        return trim((string) $this->config->get($key, ''));
+        return Path::join($this->appRoot, 'var', 'tmp', 'lebenslauf.json');
     }
 
     private function resolvePath(string $value): string
@@ -135,7 +128,7 @@ final class ContentSourceResolver
         if (Path::isAbsolute($value)) {
             return $value;
         }
-        return Path::join($this->config->rootPath(), $value);
+        return Path::join($this->appRoot, $value);
     }
 
     private function isYamlDir(string $yamlPath): bool

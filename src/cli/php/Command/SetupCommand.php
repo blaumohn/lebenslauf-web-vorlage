@@ -55,7 +55,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function runSetupSteps(InputInterface $input, OutputInterface $output): bool
     {
-        $resolver = new PythonResolver($this->rootPath());
+        $resolver = new PythonResolver($this->appRoot());
         if (!$this->ensureVenv($resolver, $input, $output)) {
             return false;
         }
@@ -98,7 +98,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function sampleContentCopier(): SampleContentCopier
     {
-        return new SampleContentCopier($this->rootPath());
+        return new SampleContentCopier($this->appRoot());
     }
 
     private function installPythonDeps(InputInterface $input, OutputInterface $output): bool
@@ -123,20 +123,20 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function requirementsPath(): string
     {
-        return Path::join($this->rootPath(), 'requirements.txt');
+        return Path::join($this->appRoot(), 'requirements.txt');
     }
 
     private function venvPythonPath(): ?string
     {
         if (PHP_OS_FAMILY === 'Windows') {
             $candidates = [
-                Path::join($this->rootPath(), '.venv', 'Scripts', 'python.exe'),
-                Path::join($this->rootPath(), '.venv', 'Scripts', 'python3.exe'),
+                Path::join($this->appRoot(), '.venv', 'Scripts', 'python.exe'),
+                Path::join($this->appRoot(), '.venv', 'Scripts', 'python3.exe'),
             ];
         } else {
             $candidates = [
-                Path::join($this->rootPath(), '.venv', 'bin', 'python3'),
-                Path::join($this->rootPath(), '.venv', 'bin', 'python'),
+                Path::join($this->appRoot(), '.venv', 'bin', 'python3'),
+                Path::join($this->appRoot(), '.venv', 'bin', 'python'),
             ];
         }
         foreach ($candidates as $candidate) {
@@ -172,7 +172,7 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     private function runCommand(array $command, OutputInterface $output, bool $interactive): bool
     {
-        $process = new Process($command, $this->rootPath());
+        $process = new Process($command, $this->appRoot());
         $process->setTimeout(null);
         if ($interactive && Process::isTtySupported()) {
             $process->setTty(true);

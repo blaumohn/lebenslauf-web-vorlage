@@ -20,12 +20,12 @@ final class ContactSubmitAction
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $trustProxy = $this->context->config->getBool('TRUST_PROXY', false);
+        $trustProxy = (bool) $this->context->config->get('TRUST_PROXY');
         $ip = $this->context->ipResolver->resolve($request, $trustProxy);
         $ipHash = $this->context->ipHashService->hashIp($ip);
 
-        $window = $this->context->config->requireInt('RATE_LIMIT_WINDOW_SECONDS');
-        $maxPost = $this->context->config->requireInt('CONTACT_MAX_POST');
+        $window = (int) $this->context->config->get('RATE_LIMIT_WINDOW_SECONDS');
+        $maxPost = (int) $this->context->config->get('CONTACT_MAX_POST');
 
         if (!$this->context->rateLimiter->allow('contact_post_' . $ipHash, $maxPost, $window)) {
             return $this->renderRateLimit($response);
@@ -146,7 +146,7 @@ final class ContactSubmitAction
         if ($ts === null) {
             return false;
         }
-        $ttl = $this->context->config->requireInt('CAPTCHA_TTL_SECONDS');
+        $ttl = (int) $this->context->config->get('CAPTCHA_TTL_SECONDS');
         if ((time() - $ts) > $ttl) {
             return false;
         }

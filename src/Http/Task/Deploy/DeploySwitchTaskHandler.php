@@ -10,6 +10,7 @@ final class DeploySwitchTaskHandler implements TaskHandler
 {
     public function __construct(
         private readonly DeploySwitcher $switcher,
+        private readonly string $deployRoot,
     ) {
     }
 
@@ -18,10 +19,10 @@ final class DeploySwitchTaskHandler implements TaskHandler
         return $type === 'deploy_switch';
     }
 
-    public function handle(QueuedTask $task, string $entryPath): TaskResult
+    public function handle(QueuedTask $task, string $appRoot): TaskResult
     {
-        $target = SlotSwitchCommand::fromQueuedTask($task, $entryPath);
-        $target->validatePreparedSlots($entryPath);
+        $target = SlotSwitchCommand::fromQueuedTask($task, $this->deployRoot);
+        $target->validatePreparedSlots($this->deployRoot);
         $this->switcher->switchTo($target, $task->get('task_id'));
         return TaskResult::ok($this->formatResult($target));
     }

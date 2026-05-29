@@ -14,12 +14,12 @@ final class CvBuildService
     private ContentSourceResolver $resolver;
     private CvUploadService $uploader;
 
-    public function __construct(ConfigValues $config)
+    public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
-        $this->rootPath = $config->rootPath();
-        $this->resolver = new ContentSourceResolver($config);
-        $this->uploader = new CvUploadService($config);
+        $this->rootPath = rtrim($appRoot, DIRECTORY_SEPARATOR);
+        $this->resolver = new ContentSourceResolver($config, $appRoot);
+        $this->uploader = new CvUploadService($config, $appRoot);
     }
 
     public function build(OutputInterface $output): void
@@ -82,7 +82,7 @@ final class CvBuildService
 
     private function publicProfile(): string
     {
-        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
+        $value = trim($this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
         return $value === '' ? 'default' : $value;
     }
 

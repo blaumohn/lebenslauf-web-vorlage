@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Cli\Application;
+use App\Cli\CliContext;
 use App\Cli\Command\BuildCommand;
 use App\Cli\Command\CaptchaCommand;
 use App\Cli\Command\IpHashCommand;
@@ -15,7 +16,7 @@ final class CliCommandDefinitionTest extends TestCase
 {
     public function testBuildCommandDefinition(): void
     {
-        $definition = (new BuildCommand())->getDefinition();
+        $definition = (new BuildCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertTrue($definition->hasArgument('task'));
@@ -37,7 +38,7 @@ final class CliCommandDefinitionTest extends TestCase
 
     public function testCaptchaCommandDefinition(): void
     {
-        $definition = (new CaptchaCommand())->getDefinition();
+        $definition = (new CaptchaCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertTrue($definition->hasArgument('action'));
@@ -57,7 +58,7 @@ final class CliCommandDefinitionTest extends TestCase
 
     public function testIpHashCommandDefinition(): void
     {
-        $definition = (new IpHashCommand())->getDefinition();
+        $definition = (new IpHashCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('action'));
     }
@@ -73,14 +74,14 @@ final class CliCommandDefinitionTest extends TestCase
 
     public function testStartCommandDefinition(): void
     {
-        $definition = (new StartCommand())->getDefinition();
+        $definition = (new StartCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
     }
 
     public function testSetupCommandDefinition(): void
     {
-        $definition = (new SetupCommand())->getDefinition();
+        $definition = (new SetupCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertTrue($definition->hasArgument('action'));
@@ -89,7 +90,12 @@ final class CliCommandDefinitionTest extends TestCase
 
     private function tester(string $name): CommandTester
     {
-        $command = (new Application())->find($name);
+        $command = (new Application($this->context()))->find($name);
         return new CommandTester($command);
+    }
+
+    private function context(): CliContext
+    {
+        return new CliContext(dirname(__DIR__, 2));
     }
 }

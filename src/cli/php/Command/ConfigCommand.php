@@ -153,6 +153,6 @@ final class ConfigCommand extends BasePipelineCommand
         if (Path::isAbsolute($path)) {
             return $path;
         }
-        return Path::join($this->rootPath(), $path);
+        return Path::join($this->appRoot(), $path);
     }
 }

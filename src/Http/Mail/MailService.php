@@ -11,11 +11,11 @@ final class MailService
 
     public function send(MailMessage $message): bool
     {
-        $to = $this->config->requireString('MAIL_TO_EMAIL');
+        $to = $this->config->get('MAIL_TO_EMAIL');
         if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
             throw new \RuntimeException('MAIL_TO_EMAIL ist keine gültige E-Mail-Adresse.');
         }
-        if ($this->config->requireBool('MAIL_STDOUT')) {
+        if ((bool) $this->config->get('MAIL_STDOUT')) {
             return $this->sendToStdout($message, $to);
         }
         return $this->createMailer($message, $to)->send();
@@ -23,7 +23,7 @@ final class MailService
 
     private function sendToStdout(MailMessage $message, string $to): bool
     {
-        $appName = $this->config->requireString('SMTP_FROM_NAME');
+        $appName = $this->config->get('SMTP_FROM_NAME');
         $payload = "=== MAIL ===\n"
             . "To: {$to}\n"
             . "Subject: {$message->subject($appName)}\n\n"
@@ -39,10 +39,10 @@ final class MailService
 
     private function createMailer(MailMessage $message, string $to): PHPMailer
     {
-        $appName = $this->config->requireString('SMTP_FROM_NAME');
+        $appName = $this->config->get('SMTP_FROM_NAME');
         $mailer = new PHPMailer(true);
         $this->configureSmtp($mailer);
-        $mailer->setFrom($this->config->requireString('SMTP_FROM_EMAIL'), $appName);
+        $mailer->setFrom($this->config->get('SMTP_FROM_EMAIL'), $appName);
         $mailer->addAddress($to);
         $mailer->Subject = $message->subject($appName);
         $mailer->Body = $message->body;
@@ -51,17 +51,13 @@ final class MailService
 
     private function configureSmtp(PHPMailer $mailer): void
     {
-        $smtpHost = (string) $this->config->get('SMTP_HOST');
-        if ($smtpHost === '') {
-            return;
-        }
         $mailer->isSMTP();
-        $mailer->Host = $smtpHost;
+        $mailer->Host = $this->config->get('SMTP_HOST');
         $mailer->Port = (int) $this->config->get('SMTP_PORT');
         $mailer->SMTPAuth = true;
-        $mailer->Username = (string) $this->config->get('SMTP_USER');
-        $mailer->Password = (string) $this->config->get('SMTP_PASS');
-        $encryption = (string) $this->config->get('SMTP_ENCRYPTION');
+        $mailer->Username = $this->config->get('SMTP_USER');
+        $mailer->Password = $this->config->get('SMTP_PASS');
+        $encryption = $this->config->get('SMTP_ENCRYPTION');
         $mailer->SMTPSecure = match ($encryption) {
             'none' => '',
             'tls' => PHPMailer::ENCRYPTION_STARTTLS,

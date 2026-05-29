@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Cli\Application;
+use App\Cli\CliContext;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -79,7 +80,12 @@ final class ConfigCommandTest extends TestCase
 
     private function tester(): CommandTester
     {
-        $command = (new Application())->find('config');
+        $command = (new Application($this->context()))->find('config');
         return new CommandTester($command);
+    }
+
+    private function context(): CliContext
+    {
+        return new CliContext(dirname(__DIR__, 2));
     }
 }

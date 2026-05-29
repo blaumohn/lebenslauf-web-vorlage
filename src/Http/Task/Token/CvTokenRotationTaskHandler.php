@@ -18,7 +18,7 @@ final class CvTokenRotationTaskHandler implements TaskHandler
         return $type === 'cv_token_rotation';
     }
 
-    public function handle(QueuedTask $task, string $entryPath): TaskResult
+    public function handle(QueuedTask $task, string $appRoot): TaskResult
     {
         $profile = $task->get('profile');
         $count = max(1, (int) $task->get('count'));

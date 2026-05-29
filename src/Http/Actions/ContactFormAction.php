@@ -30,15 +30,15 @@ final class ContactFormAction
 
     private function resolveIpHash(ServerRequestInterface $request): string
     {
-        $trustProxy = $this->context->config->getBool('TRUST_PROXY', false);
+        $trustProxy = (bool) $this->context->config->get('TRUST_PROXY');
         $ip = $this->context->ipResolver->resolve($request, $trustProxy);
         return $this->context->ipHashService->hashIp($ip);
     }
 
     private function isRateLimited(string $ipHash): bool
     {
-        $window = $this->context->config->requireInt('RATE_LIMIT_WINDOW_SECONDS');
-        $maxGet = $this->context->config->requireInt('CAPTCHA_MAX_GET');
+        $window = (int) $this->context->config->get('RATE_LIMIT_WINDOW_SECONDS');
+        $maxGet = (int) $this->context->config->get('CAPTCHA_MAX_GET');
         return !$this->context->rateLimiter->allow('contact_get_' . $ipHash, $maxGet, $window);
     }
 

@@ -9,7 +9,7 @@ final class CurrentSlotReader
     private string $appPattern;
     private string $vendorPattern;
 
-    public function __construct(private readonly string $entryPath)
+    public function __construct(private readonly string $deployRoot)
     {
         $patterns = $this->loadPatterns();
         $this->appPattern    = '#' . $patterns['app']    . '#';
@@ -52,7 +52,7 @@ final class CurrentSlotReader
 
     private function readFile(string $relPath): ?string
     {
-        $full = $this->entryPath . '/' . $relPath;
+        $full = $this->deployRoot . '/' . $relPath;
         if (!is_file($full)) {
             return null;
         }

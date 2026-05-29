@@ -6,5 +6,5 @@ interface TaskHandler
 {
     public function canHandle(string $type): bool;
 
-    public function handle(QueuedTask $task, string $entryPath): TaskResult;
+    public function handle(QueuedTask $task, string $appRoot): TaskResult;
 }

@@ -52,8 +52,12 @@ final class MailServiceTest extends TestCase
             'MAIL_STDOUT' => '0',
             'MAIL_TO_EMAIL' => 'a@example.invalid',
             'SMTP_HOST' => 'smtp.example.invalid',
+            'SMTP_PORT' => '587',
+            'SMTP_USER' => 'user',
+            'SMTP_PASS' => 'pass',
             'SMTP_ENCRYPTION' => 'ssl',
             'SMTP_FROM_NAME' => 'TestApp',
+            'SMTP_FROM_EMAIL' => 'from@example.invalid',
         ]);
         $service = new MailService(new ConfigCompiled($this->root));
         $message = new MailMessage(module: 'Test', title: 'Test', body: 'Text');

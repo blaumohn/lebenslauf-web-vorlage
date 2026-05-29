@@ -9,9 +9,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'ci', description: 'Führt die CI-Pipeline aus.')]
-final class CiCommand extends Command
+final class CiCommand extends BaseCliCommand
 {
-    use RootPathAware;
     use PythonRunnerAware;
 
     private const SCRIPT = 'src/cli/py/ci/runner.py';
