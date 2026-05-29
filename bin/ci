@@ -51,8 +51,9 @@ run_post_deploy_checks() {
   fi
   run_preview_test_case_checks "$test_case"
   [[ "$test_case" == "test-rollback" ]] && return
-  run_smtp_smoke
-  run_contact_smoke
+  run_step "SMTP-Smoke"    run_smtp_smoke
+  run_step "Contact-Smoke" run_contact_smoke
+  run_step "Token-Smoke"   run_token_smoke
 }
 
 read_deploy_history() {
@@ -94,6 +95,15 @@ run_smtp_smoke() {
 
 run_contact_smoke() {
   cli python "$PIPELINE" --phase deploy --phase runtime tests/ci/contact_smoke.py
+}
+
+run_token_smoke() {
+  local root_url token
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  token="$(cli token "$PIPELINE" rotate gueltig)"
+  smoke_http_page_contains \
+    "${root_url%/}/cv?token=${token}&profile=gueltig" \
+    "</html>"
 }
 
 test_no_diff_deploy() {
