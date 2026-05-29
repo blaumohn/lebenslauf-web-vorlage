@@ -2,6 +2,7 @@
 
 namespace App\Cli\Command;
 
+use App\Cli\Token\LocalTokenRotation;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -29,8 +30,11 @@ final class TokenCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $phases = $this->pipelineHasPhase('deploy') ? ['deploy'] : [];
-        $values = $phases !== [] ? $this->getValuesByPhase($phases, $output) : [];
+        if (!$this->pipelineHasPhase('deploy')) {
+            return $this->rotateLocally($input, $output);
+        }
+
+        $values = $this->getValuesByPhase(['deploy'], $output);
         if ($values === null) {
             return Command::FAILURE;
         }
@@ -40,6 +44,26 @@ final class TokenCommand extends BasePipelineCommand
             $values,
             $this->buildRotateArgs($input)
         );
+    }
+
+    private function rotateLocally(InputInterface $input, OutputInterface $output): int
+    {
+        $profile = trim((string) $input->getArgument('profile'));
+        if ($profile === '') {
+            $output->writeln('<error>Profil ist erforderlich für lokale Rotation.</error>');
+            return Command::FAILURE;
+        }
+        $count = max(1, (int) $input->getArgument('count'));
+        try {
+            $tokens = (new LocalTokenRotation())->rotate($this->appRoot(), $profile, $count);
+        } catch (\InvalidArgumentException $e) {
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
+            return Command::FAILURE;
+        }
+        foreach ($tokens as $token) {
+            $output->writeln($token);
+        }
+        return Command::SUCCESS;
     }
 
     private function buildRotateArgs(InputInterface $input): array
