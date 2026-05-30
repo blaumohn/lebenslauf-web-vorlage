@@ -108,9 +108,10 @@ class SftpTreeUploader:
         original = index_php.read_text(encoding="utf-8")
         old = "$vendorDir  = $appSlot . '/vendor';"
         new = f"$vendorDir  = dirname(__DIR__, 2) . '/{vendor_dir}';"
-        if old not in original:
+        count = original.count(old)
+        if count != 1:
             raise RuntimeError(
-                f"index.php: Zeile '{old}' nicht gefunden — "
+                f"index.php: Inject-Marker {count}× gefunden, erwartet genau 1 — "
                 "Vendor-Inject fehlgeschlagen. "
                 "Wenn diese Zeile geändert wurde, muss auch "
                 "_inject_vendor_dir() angepasst werden. "
