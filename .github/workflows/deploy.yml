@@ -1,16 +1,16 @@
-name: Preview-CD gemeinsam
+name: Deploy
 
 on:
-  workflow_call:
-    inputs:
-      last-deploy-commit:
-        required: true
-        type: string
+  push:
+    branches:
+      - preview
+      - prod
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: preview
+    environment: ${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,11 +29,11 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Preview-Pipeline ausführen und deployen
+      - name: Pipeline ausführen und deployen
         shell: bash
         env:
           PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-          LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}
+          LAST_DEPLOY_COMMIT: ${{ github.event.before }}
           PIPELINE: ${{ vars.PIPELINE }}
         run: |
           bin/cd << EOF

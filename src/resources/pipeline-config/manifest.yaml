@@ -218,3 +218,11 @@ pipelines:
       app:
         - APP_ROOT_URL
       sftp: "*"
+
+  prod:
+    runtime:
+      smtp: "*"
+    deploy:
+      app:
+        - APP_ROOT_URL
+      sftp: "*"

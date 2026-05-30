@@ -6,35 +6,29 @@ WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 
 
 class CiWorkflowTest(unittest.TestCase):
-    def test_preview_deploy_uses_reusable_workflow(self):
-        workflow = read_workflow("preview-deploy.yml")
-        reusable = "uses: ./.github/workflows/preview-cd.yml"
-        last_commit = "last-deploy-commit: ${{ github.event.before }}"
+    def test_deploy_triggers_on_preview_and_prod(self):
+        workflow = read_workflow("deploy.yml")
 
-        self.assertIn(reusable, workflow)
-        self.assertIn(last_commit, workflow)
-        self.assertNotIn("bin/cd << EOF", workflow)
+        self.assertIn("- preview", workflow)
+        self.assertIn("- prod", workflow)
+        self.assertNotIn("workflow_call:", workflow)
+        self.assertIn("bin/cd << EOF", workflow)
 
-    def test_admin_uses_reusable_workflow_for_reset_preview(self):
-        workflow = read_workflow("admin.yml")
-        reusable = "uses: ./.github/workflows/preview-cd.yml"
+    def test_deploy_uses_branch_as_environment(self):
+        workflow = read_workflow("deploy.yml")
 
-        self.assertIn("if: inputs.command == 'reset-preview'", workflow)
-        self.assertIn(reusable, workflow)
-        self.assertIn('last-deploy-commit: ""', workflow)
-        self.assertNotIn("bin/cd << EOF", workflow)
+        self.assertIn("environment: ${{ github.ref_name }}", workflow)
 
-    def test_reusable_preview_cd_exports_pipeline_run_id(self):
-        workflow = read_workflow("preview-cd.yml")
+    def test_deploy_exports_pipeline_run_id(self):
+        workflow = read_workflow("deploy.yml")
         run_id = (
             "PIPELINE_RUN_ID: "
             "${{ github.run_id }}-${{ github.run_attempt }}"
         )
 
-        self.assertIn("workflow_call:", workflow)
         self.assertIn(run_id, workflow)
         self.assertIn(
-            "LAST_DEPLOY_COMMIT: ${{ inputs.last-deploy-commit }}",
+            "LAST_DEPLOY_COMMIT: ${{ github.event.before }}",
             workflow,
         )
         self.assertIn("bin/cd << EOF", workflow)
