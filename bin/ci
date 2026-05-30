@@ -8,6 +8,7 @@ fi
 
 SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$SOURCE_REPO_DIR/scripts/shell_env.sh"
+. "$SOURCE_REPO_DIR/scripts/ci_clone_lib.sh"
 
 require_env_nonempty PIPELINE CI_WORK_BASE
 
@@ -16,10 +17,8 @@ require_env_nonempty PIPELINE CI_WORK_BASE
 main() {
   local test_case="${1:-}"
 
-  WORK_REPO_DIR="$(clone_work_dir)"
+  WORK_REPO_DIR="$(prepare_repo_dir)"
   cd "$WORK_REPO_DIR"
-  apply_working_state
-  commit_working_state
   export PATH="$WORK_REPO_DIR/bin:$PATH"
 
   . scripts/pipeline_lib.sh
@@ -188,47 +187,6 @@ check_vendor_reuploaded() {
   after="$(history_field "$history" vendor_after)"
   [[ "$before" != "$after" ]] \
     || { echo "[vendor-check] Fehler: Vendor nicht neu hochgeladen — erwartet Wechsel von ${before}, tatsächlich kein Wechsel" >&2; return 1; }
-}
-
-clone_work_dir() {
-  local work_dir
-  work_dir="$(mktemp -d "$CI_WORK_BASE/ci-XXXXXX")"
-  git clone --local --no-hardlinks "$SOURCE_REPO_DIR" "$work_dir"
-  echo "$work_dir"
-}
-
-apply_working_state() {
-  apply_tracked_working_diff
-  copy_untracked_working_files
-}
-
-commit_working_state() {
-  [[ -z "$(git status --porcelain)" ]] && return 0
-  git add -A
-  git -c user.name="CI Test" -c user.email="ci@test.invalid" \
-    commit -m "tmp: lokaler Arbeitsstand"
-}
-
-apply_tracked_working_diff() {
-  local diff
-  diff="$(git -C "$SOURCE_REPO_DIR" -c safe.directory="$SOURCE_REPO_DIR" diff --binary HEAD)"
-  if [[ -z "$diff" ]]; then
-    return 0
-  fi
-  echo "$diff" | git apply --whitespace=nowarn
-}
-
-copy_untracked_working_files() {
-  git -C "$SOURCE_REPO_DIR" -c safe.directory="$SOURCE_REPO_DIR" ls-files --others --exclude-standard \
-    | while IFS= read -r f; do
-        copy_untracked_working_file "$f"
-      done
-}
-
-copy_untracked_working_file() {
-  local file="$1"
-  mkdir -p "$(dirname "$file")"
-  cp "$SOURCE_REPO_DIR/$file" "$file"
 }
 
 main "$@"

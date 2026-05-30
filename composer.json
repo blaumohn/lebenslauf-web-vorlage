@@ -73,7 +73,7 @@
     "lint:phpcs": "phpcs",
     "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
     "lint:python": ".venv/bin/python tools/lint-python.py",
-    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh",
+    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/readme-dev-user-flow.sh",
     "lint:structured": "python3 tools/lint-structured-files.py",
     "lint:line-length": ".venv/bin/python tools/lint-line-length.py",
     "test": [

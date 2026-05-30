@@ -41,14 +41,20 @@ def resolve_pipeline(args) -> str | None:
     return pipeline
 
 
+CI_SERVICE_DEV = "ci-dev"
+CI_README_DEV_UX_CMD = ("bash", "/repo/tests/ci/readme-dev-user-flow.sh")
+
+
 def run_dev() -> int:
+    rc = compose(
+        "up", "--remove-orphans", "--build",
+        "--exit-code-from", CI_SERVICE_DEV, CI_SERVICE_DEV,
+        check=False,
+    ).returncode
+    if rc != 0:
+        return rc
     return compose(
-        "up",
-        "--remove-orphans",
-        "--build",
-        "--exit-code-from",
-        "ci-dev",
-        "ci-dev",
+        "run", "--rm", "--no-deps", CI_SERVICE_DEV, *CI_README_DEV_UX_CMD,
         check=False,
     ).returncode
 
