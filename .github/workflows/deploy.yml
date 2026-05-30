@@ -34,7 +34,7 @@ jobs:
         env:
           PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           LAST_DEPLOY_COMMIT: ${{ github.event.before }}
-          PIPELINE: ${{ vars.PIPELINE }}
+          PIPELINE: ${{ github.ref_name }}
         run: |
           bin/cd << EOF
           app:
