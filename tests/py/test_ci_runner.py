@@ -31,20 +31,20 @@ class CiRunnerTest(unittest.TestCase):
 
         self.assertRegex(env["PIPELINE_RUN_ID"], r"^local-deploy-[0-9a-f]{32}$")
 
-    def test_preview_test_env_sets_new_github_run_id(self):
-        first = runner.preview_test_env("test-push-deploy")
-        second = runner.preview_test_env("test-push-deploy")
+    def test_pipeline_test_env_sets_new_run_id(self):
+        first = runner.pipeline_test_env("preview", "test-push-deploy")
+        second = runner.pipeline_test_env("preview", "test-push-deploy")
 
         self.assertIn("PIPELINE_RUN_ID", first)
         self.assertNotEqual(first["PIPELINE_RUN_ID"], second["PIPELINE_RUN_ID"])
 
-    def test_preview_test_env_setzt_log_format_fuer_typen_unterdrückung(self):
-        env = runner.preview_test_env("test-rollback")
+    def test_pipeline_test_env_setzt_log_format_fuer_typen_unterdrückung(self):
+        env = runner.pipeline_test_env("preview", "test-rollback")
 
         self.assertEqual(env["LOG_FORMAT"], "json")
 
-    def test_preview_test_env_kein_log_format_ohne_unterdrückung(self):
-        env = runner.preview_test_env("test-push-deploy")
+    def test_pipeline_test_env_kein_log_format_ohne_unterdrückung(self):
+        env = runner.pipeline_test_env("preview", "test-push-deploy")
 
         self.assertNotIn("LOG_FORMAT", env)
 

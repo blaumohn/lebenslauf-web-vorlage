@@ -34,12 +34,12 @@ def fake_http_error(status_code=500, body="Server Error"):
 
 class HttpTriggerTest(unittest.TestCase):
     def test_sends_get_to_task_trigger_path(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
 
         with patch.object(dispatch.requests, "get", return_value=fake_ok_response()) as mock_get:
             dispatch.TaskDispatch(cfg)._http_trigger()
 
-        mock_get.assert_called_once_with("http://preview-web/tasks/dispatch", timeout=10)
+        mock_get.assert_called_once_with("http://ci-web/tasks/dispatch", timeout=10)
 
     def test_adds_https_scheme_when_missing(self):
         cfg = {"APP_ROOT_URL": "s1094367114.online.de"}
@@ -52,14 +52,14 @@ class HttpTriggerTest(unittest.TestCase):
         )
 
     def test_strips_trailing_slash_before_path(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web"}
+        cfg = {"APP_ROOT_URL": "http://ci-web"}
 
         with patch.object(dispatch.requests, "get", return_value=fake_ok_response()) as mock_get:
             dispatch.TaskDispatch(cfg)._http_trigger()
 
         url = mock_get.call_args.args[0]
         self.assertFalse(url.count("//") > 1, "Doppelter Schrägstrich im Pfad")
-        self.assertEqual(url, "http://preview-web/tasks/dispatch")
+        self.assertEqual(url, "http://ci-web/tasks/dispatch")
 
     def test_skips_trigger_when_root_url_empty(self):
         with patch.object(dispatch.requests, "get") as mock_get:
@@ -76,7 +76,7 @@ class HttpTriggerTest(unittest.TestCase):
         mock_get.assert_not_called()
 
     def test_reraises_http_error_after_logging(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
         exc = fake_http_error(500, "<b>PHP error</b>")
         mock_resp = MagicMock()
         mock_resp.raise_for_status.side_effect = exc
@@ -86,7 +86,7 @@ class HttpTriggerTest(unittest.TestCase):
                 dispatch.TaskDispatch(cfg)._http_trigger()
 
     def test_loggt_http_fehler_mit_url_und_status(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
         exc = fake_http_error(500, "<b>PHP error</b>")
         mock_resp = MagicMock()
         mock_resp.raise_for_status.side_effect = exc
@@ -98,19 +98,19 @@ class HttpTriggerTest(unittest.TestCase):
 
         self.assertTrue(any("500" in line for line in cm.output), cm.output)
         self.assertTrue(
-            any("http://preview-web/tasks/dispatch" in line for line in cm.output),
+            any("http://ci-web/tasks/dispatch" in line for line in cm.output),
             cm.output,
         )
 
     def test_reraises_connection_error_after_logging(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
 
         with patch.object(dispatch.requests, "get", side_effect=requests.exceptions.ConnectionError("refused")):
             with self.assertRaises(requests.exceptions.RequestException):
                 dispatch.TaskDispatch(cfg)._http_trigger()
 
     def test_loggt_verbindungsfehler_mit_url(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
 
         with patch.object(dispatch.requests, "get", side_effect=requests.exceptions.ConnectionError("refused")):
             with self.assertLogs("cli.py.task.dispatch", level="ERROR") as cm:
@@ -118,12 +118,12 @@ class HttpTriggerTest(unittest.TestCase):
                     dispatch.TaskDispatch(cfg)._http_trigger()
 
         self.assertTrue(
-            any("http://preview-web/tasks/dispatch" in line for line in cm.output),
+            any("http://ci-web/tasks/dispatch" in line for line in cm.output),
             cm.output,
         )
 
     def test_reraises_timeout_after_logging(self):
-        cfg = {"APP_ROOT_URL": "http://preview-web/"}
+        cfg = {"APP_ROOT_URL": "http://ci-web/"}
 
         with patch.object(dispatch.requests, "get", side_effect=requests.exceptions.Timeout("timed out")):
             with self.assertRaises(requests.exceptions.RequestException):

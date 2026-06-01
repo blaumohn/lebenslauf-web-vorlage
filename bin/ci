@@ -45,7 +45,7 @@ setup_deploy_test_case() {
 
 run_post_deploy_checks() {
   local test_case="$1"
-  if [[ "$PIPELINE" != "preview" ]]; then
+  if [[ "$PIPELINE" == "dev" ]]; then
     return
   fi
   run_deploy_test_case_checks "$test_case"
