@@ -8,7 +8,7 @@ SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 . "$SOURCE_REPO_DIR/scripts/ci_clone_lib.sh"
 . "$SOURCE_REPO_DIR/scripts/pipeline_output.sh"
 
-require_env_nonempty CI_WORK_BASE
+require_nonempty CI_WORK_BASE
 
 main() {
   local staging_dir user_work_dir git_daemon_pid dev_server_pid LEBENSLAUF_WEB_VORLAGE_REPO

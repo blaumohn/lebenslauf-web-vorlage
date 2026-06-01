@@ -1,3 +1,4 @@
+import argparse
 import json
 import smtplib
 import ssl
@@ -13,15 +14,23 @@ CI_CA_FILE = "tests/ci/ca.crt"
 
 
 def main():
+    args = parse_args()
+    cafile = CI_CA_FILE if args.ci_ca_cert else None
     try:
         cfg = PipelineCfg("runtime")
         await_mailpit()
-        assert_bad_password_rejected(cfg)
-        send_test_mail(cfg)
+        assert_bad_password_rejected(cfg, cafile)
+        send_test_mail(cfg, cafile)
         check_mail_received()
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ci-ca-cert", action="store_true", default=False)
+    return parser.parse_args()
 
 
 def await_mailpit():
@@ -35,10 +44,10 @@ def await_mailpit():
     raise RuntimeError(f"[smtp-smoke] Mailpit nicht erreichbar: {MAILPIT_API_URL}")
 
 
-def assert_bad_password_rejected(cfg):
+def assert_bad_password_rejected(cfg, cafile):
     smtp = smtplib.SMTP(cfg["SMTP_HOST"], int(cfg["SMTP_PORT"]), timeout=10)
     smtp.ehlo()
-    smtp.starttls(context=ssl.create_default_context(cafile=CI_CA_FILE))
+    smtp.starttls(context=ssl.create_default_context(cafile=cafile))
     smtp.ehlo()
     try:
         smtp.login(cfg["SMTP_USER"], "wrong-" + cfg["SMTP_PASS"])
@@ -50,9 +59,9 @@ def assert_bad_password_rejected(cfg):
     raise RuntimeError("Falsches SMTP-Passwort wurde akzeptiert.")
 
 
-def send_test_mail(cfg):
+def send_test_mail(cfg, cafile):
     message = build_message(cfg, subject="[SMTP-Smoke] Testmail", body="SMTP-Smoke-Test erfolgreich.")
-    with SmtpClient(cfg, cafile=CI_CA_FILE) as client:
+    with SmtpClient(cfg, cafile=cafile) as client:
         client.send_message(message)
     print("[smtp-smoke] Testmail gesendet.")
 

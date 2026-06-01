@@ -10,26 +10,25 @@ SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$SOURCE_REPO_DIR/scripts/shell_env.sh"
 . "$SOURCE_REPO_DIR/scripts/ci_clone_lib.sh"
 
-require_env_nonempty PIPELINE CI_WORK_BASE
+require_nonempty PIPELINE CI_WORK_BASE
 
-[ "$PIPELINE" != dev ] && require_env_nonempty PIPELINE_RUN_ID
+[ "$PIPELINE" != dev ] && require_nonempty PIPELINE_RUN_ID
 
 main() {
-  local test_case="${1:-}"
+  local test_case="${1:-}" deploy_dir=
 
   WORK_REPO_DIR="$(prepare_repo_dir)"
   cd "$WORK_REPO_DIR"
   export PATH="$WORK_REPO_DIR/bin:$PATH"
-
   . scripts/pipeline_lib.sh
 
   if [[ "$PIPELINE" != "dev" ]]; then
-    LAST_DEPLOY_COMMIT="$(setup_deploy_test_case "$test_case")"
-    DEPLOY_DIR="var/deploy"
+    setup_deploy_test_case "$test_case"
+    deploy_dir="var/deploy"
   fi
 
   run_step "Abhängigkeiten installieren" composer install:ci
-  run_pipeline
+  run_pipeline "$deploy_dir" --ci-ca-cert
   run_post_deploy_checks "$test_case"
 }
 
@@ -90,7 +89,7 @@ run_composer_lock_checks() {
 }
 
 run_smtp_smoke() {
-  cli python "$PIPELINE" --phase runtime tests/ci/smtp-smoke.py
+  cli python "$PIPELINE" --phase runtime -- tests/ci/smtp-smoke.py --ci-ca-cert
 }
 
 run_contact_smoke() {
@@ -106,20 +105,11 @@ run_token_smoke() {
     "</html>"
 }
 
-test_no_diff_deploy() {
-  local last_deploy_commit="$1"
-  git diff --quiet "$last_deploy_commit" HEAD \
-    || { echo "[no-diff-check] Deploy-Skip bei leerem Diff fehlgeschlagen" >&2; return 1; }
-}
-
 setup_rollback_test() {
-  local last_deploy_commit
-  last_deploy_commit="$(git rev-parse HEAD)"
   printf 'rollback-sentinel\n' > public/rollback-sentinel.html
   git add public/rollback-sentinel.html
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
     commit -m "test: rollback-sentinel ci-test" >&2
-  printf '%s\n' "$last_deploy_commit"
 }
 
 run_rollback_checks() {
@@ -133,24 +123,17 @@ run_rollback_checks() {
 }
 
 setup_push_deploy_test() {
-  local last_deploy_commit
-  last_deploy_commit="$(git rev-parse HEAD)"
-  test_no_diff_deploy "$last_deploy_commit"
   printf '<!-- ci-diff-test -->\n' > public/ci-diff-test.html
   git add public/ci-diff-test.html
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
     commit -m "test: diff-deploy ci-test" >&2
-  printf '%s\n' "$last_deploy_commit"
 }
 
 setup_composer_lock_test() {
-  local last_deploy_commit
-  last_deploy_commit="$(git rev-parse HEAD)"
   mutate_composer_lock_for_vendor_test
   git add composer.lock
   git -c user.name="CI Test" -c user.email="ci@test.invalid" \
     commit -m "test: diff-deploy composer-lock-changed ci-test" >&2
-  printf '%s\n' "$last_deploy_commit"
 }
 
 mutate_composer_lock_for_vendor_test() {

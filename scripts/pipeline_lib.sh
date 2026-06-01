@@ -1,20 +1,26 @@
 . scripts/pipeline_output.sh
 
 run_pipeline() {
-  local is_dev=
+  local deploy_dir is_dev= ci_ca_cert_arg=
 
-  require_env_nonempty PIPELINE
+  if [[ $PIPELINE == dev ]]; then
+    is_dev=1
+  else
+    deploy_dir="${1:?deploy_dir fehlt}"
+    [[ "${2:-}" == "--ci-ca-cert" ]] && ci_ca_cert_arg="$2"
+  fi
+
+  require_nonempty PIPELINE
 
   write_pipeline_config_from_stdin
 
-  [[ $PIPELINE == dev ]] && is_dev=1
-
-  if [[ ! $is_dev ]]; then
-    require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
-  fi
-
   pipeline_report_start
   run_step "Setup ($PIPELINE)" pipeline_setup "$is_dev"
+
+  if [[ ! $is_dev ]]; then
+    run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check $ci_ca_cert_arg
+  fi
+
   run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
   # run_step "Tests" run_unit_and_feature_tests
 
@@ -24,9 +30,9 @@ run_pipeline() {
     return
   fi
 
-  run_step "Deploy-Artefakt" prepare_deploy
-  run_step "HTTP-Smoke Artefakt" with_dev_server "$DEPLOY_DIR/public" run_http_smoke_checks
-  run_step "SFTP-Deploy" deploy
+  run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
+  run_step "HTTP-Smoke Artefakt" with_dev_server "$deploy_dir/public" run_http_smoke_checks
+  run_step "SFTP-Deploy"         deploy
   run_step "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
 }
 
@@ -61,20 +67,22 @@ run_unit_and_feature_tests() {
 }
 
 prepare_deploy() {
-  prepare_deploy_dir
-  verify_artifact
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  prepare_deploy_dir "$deploy_dir"
+  verify_artifact "$deploy_dir"
 }
 
 prepare_deploy_dir() {
-  rm -rf "$DEPLOY_DIR"
-  mkdir -p "$DEPLOY_DIR/var/cache"
-  mkdir -p "$DEPLOY_DIR/src"
-  cp -a public vendor "$DEPLOY_DIR/"
-  cp -a src/Http src/resources "$DEPLOY_DIR/src/"
-  cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
-  cp -a var/config "$DEPLOY_DIR/var/"
-  copy_slot_htaccess "src" "$DEPLOY_DIR/src/.htaccess"
-  copy_slot_htaccess "var" "$DEPLOY_DIR/var/.htaccess"
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  rm -rf "$deploy_dir"
+  mkdir -p "$deploy_dir/var/cache"
+  mkdir -p "$deploy_dir/src"
+  cp -a public vendor "$deploy_dir/"
+  cp -a src/Http src/resources "$deploy_dir/src/"
+  cp -a var/cache/html "$deploy_dir/var/cache/"
+  cp -a var/config "$deploy_dir/var/"
+  copy_slot_htaccess "src" "$deploy_dir/src/.htaccess"
+  copy_slot_htaccess "var" "$deploy_dir/var/.htaccess"
 }
 
 copy_slot_htaccess() {
@@ -83,19 +91,30 @@ copy_slot_htaccess() {
 }
 
 verify_artifact() {
-  test -f "$DEPLOY_DIR/public/index.php"
-  test -f "$DEPLOY_DIR/public/.htaccess"
-  test -f "$DEPLOY_DIR/src/Http/bootstrap.php"
-  test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
-  test -f "$DEPLOY_DIR/src/.htaccess"
-  test -f "$DEPLOY_DIR/var/.htaccess"
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  test -f "$deploy_dir/public/index.php"
+  test -f "$deploy_dir/public/.htaccess"
+  test -f "$deploy_dir/src/Http/bootstrap.php"
+  test -f "$deploy_dir/var/cache/html/cv-public.html"
+  test -f "$deploy_dir/src/.htaccess"
+  test -f "$deploy_dir/var/.htaccess"
 }
 
 no_changes_since_deploy() {
-  [[ -z "${LAST_DEPLOY_COMMIT:-}" ]] && return 1
-  local diff
-  diff="$(git diff --name-only "$LAST_DEPLOY_COMMIT" HEAD)"
-  [[ -z "$diff" ]]
+  local last_deploy_commit="${1:?last_deploy_commit fehlt}"
+  is_first_deploy_commit "$last_deploy_commit" && return 1
+  diff=$(git diff --name-only "$last_deploy_commit" HEAD) || return 1
+  [ -z "$diff" ]
+}
+
+is_first_deploy_commit() {
+  local zero_sha
+  zero_sha="$(printf '%040d' 0)"
+  [[ "$1" == "$zero_sha" ]]
+}
+
+run_smtp_credentials_check() {
+  cli python "$PIPELINE" --phase runtime -- scripts/smtp-credentials-check.py "$@"
 }
 
 deploy() {
