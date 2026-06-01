@@ -24,7 +24,7 @@ final class ConfigCompiledTest extends TestCase
 
         self::assertSame('dev', $config->pipeline());
         self::assertSame('runtime', $config->phase());
-        self::assertSame('/public', $config->basePath());
+        self::assertSame('/public', $config->get('APP_BASE_PATH'));
     }
 
     public function testThrowsWhenPipelinePhaseIsMissing(): void
@@ -52,6 +52,22 @@ final class ConfigCompiledTest extends TestCase
         $this->expectExceptionMessage('Compiled config values ungueltig');
 
         new ConfigCompiled($root);
+    }
+
+    public function testThrowsWhenKeyMissing(): void
+    {
+        $root = $this->createRoot();
+        $this->writeConfig($root, [
+            'pipeline_phase' => ['pipeline' => 'dev', 'phase' => 'runtime'],
+            'values' => [],
+        ]);
+
+        $config = new ConfigCompiled($root);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Config-Schlüssel fehlt: MISSING_KEY');
+
+        $config->get('MISSING_KEY');
     }
 
     private function createRoot(): string

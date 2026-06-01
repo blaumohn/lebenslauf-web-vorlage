@@ -1,10 +1,10 @@
 app:
-  APP_BASE_PATH: ""
+  APP_BASE_PATH: "/"
   TRUST_PROXY: 0
+  APP_LOG_CHANNEL: stderr
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: .local/lebenslauf
-  LEBENSLAUF_YAML_PFAD: ""
   LEBENSLAUF_PUBLIC_PROFILE: default
   LEBENSLAUF_LANG_DEFAULT: de
   LEBENSLAUF_LANGS: "de,en"
@@ -25,4 +25,3 @@ rate_limit:
 
 smtp:
   SMTP_FROM_NAME: Lebenslauf
-

@@ -45,7 +45,7 @@ final class CvTokenRotationFeatureTest extends FeatureTestCase
 
     private function placeTask(string $profile, int $count): void
     {
-        $taskDir = dirname($this->root) . '/var/tasks';
+        $taskDir = $this->root . '/var/tasks';
         mkdir($taskDir, 0775, true);
         file_put_contents(
             $taskDir . '/token-rotation.ini',

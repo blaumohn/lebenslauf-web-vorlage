@@ -5,7 +5,8 @@ function main(): int
 {
     require __DIR__ . '/../vendor/autoload.php';
 
-    $app = new App\Cli\Application();
+    $context = new App\Cli\CliContext(dirname(__DIR__));
+    $app = new App\Cli\Application($context);
     return $app->run();
 }
 

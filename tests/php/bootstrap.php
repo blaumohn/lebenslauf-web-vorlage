@@ -10,6 +10,12 @@ if (is_file($autoload)) {
     require_once $autoload;
 }
 
+$deployState = __DIR__
+    . '/../../src/resources/deploy-root/webroot/deploy-state.php';
+if (is_file($deployState)) {
+    require_once $deployState;
+}
+
 $featureTestCase = __DIR__ . '/Feature/FeatureTestCase.php';
 if (is_file($featureTestCase)) {
     require_once $featureTestCase;

@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Cli\CliContext;
 use App\Cli\Command\BasePipelinePhaseCommand;
 use App\Cli\Command\CiCommand;
-use PipelineConfigSpec\PipelineConfigService;
+use PipelineConfigSpec\PipelineConfig;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -14,7 +15,7 @@ final class PipelineCommandConfigTest extends TestCase
 {
     public function testBasePipelineCommandResolvesPipelineAndConfigEarly(): void
     {
-        $command = new PipelineCommandConfigTestCommand();
+        $command = new PipelineCommandConfigTestCommand($this->context());
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute([
@@ -29,7 +30,7 @@ final class PipelineCommandConfigTest extends TestCase
     public function testBuildPhaseCliOverrideIsAccepted(): void
     {
         $rootPath = dirname(__DIR__, 2);
-        $service = new PipelineConfigService($rootPath, 'src/resources/pipeline-config');
+        $service = new PipelineConfig($rootPath, 'src/resources/pipeline-config');
 
         $report = $service->describe('dev', 'build', [
             'APP_BASE_PATH' => '/test-path',
@@ -39,12 +40,31 @@ final class PipelineCommandConfigTest extends TestCase
         self::assertSame('cli', $report['sources']['APP_BASE_PATH'] ?? null);
     }
 
+    public function testBuildCommandAcceptsDataPathOverride(): void
+    {
+        $command = new PipelineCommandConfigTestCommand($this->context());
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute([
+            'pipeline'    => 'dev',
+            '--overrides' => json_encode(['LEBENSLAUF_DATEN_PFAD' => '.local/alt-cv']),
+        ]);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('config=.local/alt-cv', $tester->getDisplay());
+    }
+
     public function testCiCommandOnlyAcceptsPipelineArgument(): void
     {
-        $definition = (new CiCommand())->getDefinition();
+        $definition = (new CiCommand($this->context()))->getDefinition();
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertFalse($definition->hasArgument('args'));
+    }
+
+    private function context(): CliContext
+    {
+        return new CliContext(dirname(__DIR__, 2));
     }
 }
 

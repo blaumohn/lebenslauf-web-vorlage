@@ -1,65 +1,83 @@
-# Lebenslauf Vorlage (PHP)
+# Lebenslauf-Web-Vorlage (PHP)
 
 Deutsch | [English](README.en.md)
 
-PHP-Vorlage für eine Lebenslauf-Site auf Shared-Hosting: öffentliche
-Ansicht mit geschwärzten Kontaktdaten, privater Zugang per Token,
-Build- und Deployment-Ablauf inklusive.
-Es baut auf der früheren statischen Vorlage aus [lebenslauf-vorlage](https://github.com/blaumohn/lebenslauf-vorlage) für Inhalt und i18n auf und ergänzt sie um den heutigen dynamischen PHP-Bereich.
-[Vollständige Dokumentation → docs.template.ysdani.com](https://docs.template.ysdani.com/de/)
+[Projekt einschätzen](#projekt-einschätzen) · [Schnellstart](#schnellstart) · [Überblick](#überblick) · [Private Ansicht einrichten](#private-ansicht-einrichten) · [Technische Besonderheiten](#technische-besonderheiten)
 
-## Einrichten
+---
 
-1. **Abhängigkeiten laden** — PHP-Pakete installieren, darunter das CLI.
+## Projekt einschätzen
+<small>*Vollständiger Abschnitt: [Projekt einschätzen](https://docs.template.ysdani.com/de/getting-started/projektprofil/)*</small>
 
-   ```bash
-   composer install
-   ```
+> PHP-Seitenstarter für persönliche Websites auf Shared Hosting —
+> entwickelt und betrieben als eigenes Projekt.
+> Öffentliche Ansicht mit geschwärzten Kontaktdaten,
+> token-gesicherte private Vollansicht ohne Login,
+> fertige Dev- und CI/CD-Pipeline.
+>
+> **Demo:** [preview.ysdani.com](https://preview.ysdani.com)
+>
+> Das Projekt entstand als konkreter Liefernachweis: von der Anforderung
+> über Architekturentscheidungen bis zum produktiven Deployment.
+> Die öffentliche Dokumentation macht Entscheidungen, Abläufe und
+> Qualitätsnachweise transparent nachvollziehbar.
 
-2. **Projekt einrichten** — Verzeichnisse anlegen, npm-Pakete und
-   die Python-Umgebung unter `.venv/` einrichten. Setzt Schritt 1 voraus.
+---
 
-   ```bash
-   php bin/cli setup dev --with-sample-content
-   ```
+## Schnellstart
+<small>*Vollständiger Abschnitt: [Schnellstart](https://docs.template.ysdani.com/de/getting-started/schnellstart/)*</small>
 
-   `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu
-   überschreiben.
+> ```bash
+> composer install
+> php bin/cli setup dev --with-sample-content
+> php bin/cli build dev
+> composer run dev
+> ```
+>
+> `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu überschreiben.
+> `composer run dev` kompiliert die Runtime-Konfiguration und startet den Entwicklungsserver.
 
-   Python-Werkzeuge des Repos werden über `.venv/bin/python` ausgeführt.
+---
 
-3. **Lebenslauf bauen** — Beispieldaten in HTML-Ansichten rendern.
+## Überblick
+<small>*Vollständiger Abschnitt: [Überblick](https://docs.template.ysdani.com/de/getting-started/ueberblick/)*</small>
 
-   ```bash
-   php bin/cli build dev
-   ```
+> Betriebsfertiger PHP-Seitenstarter für Shared Hosting: öffentliche Ansicht
+> mit geschwärzten Kontaktdaten, token-gesicherte private Vollansicht ohne Login,
+> i18n-Lebenslauf-Inhalt in YAML und fertige Dev- und CI/CD-Pipelines.
+>
+> - **Öffentliche Sicht** — Lebenslauf mit geschwärzten Kontaktdaten
+> - **Private Sicht** — vollständige Ansicht per URL-Token (`/cv?token=…`), kein Login nötig
+> - **i18n YAML-Inhalt** — Lebenslauf-Daten in Deutsch und Englisch
+> - **Fertige Pipelines** — lokale Entwicklung mit Docker, CI-Prüfung und SFTP-Deployment
+> - **Sicherheitsschicht** — Rate-Limit, CAPTCHA und IP-Salt-Rotation für das Kontaktformular
 
-4. **Starten** — Runtime-Config kompilieren und Entwicklungsserver starten.
+---
 
-   ```bash
-   composer run dev
-   ```
+## Private Ansicht einrichten
+<small>*Vollständiger Abschnitt: [Private Ansicht einrichten](https://docs.template.ysdani.com/de/getting-started/private-ansicht/)*</small>
 
-Eigene Daten und Konfiguration (E-Mail, SMTP, Deployment):
-[Dokumentation → docs.template.ysdani.com](https://docs.template.ysdani.com/de/getting-started/)
+> Die private Ansicht zeigt den vollständigen Lebenslauf per URL-Token — kein Login, kein Account.
+> Einrichtung nach `composer run dev`:
+>
+> 1. **Token erzeugen** — `php bin/cli token rotate preview`
+> 2. **`.local/preview.yaml` anlegen** — `APP_ROOT_URL` und Deployment-Werte setzen.
+>    Datei mit `chmod 600` sichern: nur vertrauenswürdige Benutzer dürfen sie lesen.
+> 3. **GitHub Secrets/Vars setzen** — Pflichtfelder aus `src/resources/pipeline-config/manifest.yaml`,
+>    Abschnitt `pipelines.preview`, im GitHub-Environment `preview`.
+> 4. **CI lokal prüfen** — `composer run ci:preview`
+> 5. **Aufrufen** — `https://domain/cv?token=<token>`
 
-## CI lokal prüfen
+---
 
-Die lokale CI läuft containerisiert mit getrennten Einstiegen für
-`dev` und `preview`:
+## Technische Besonderheiten
+<small>*Vollständiger Abschnitt: [Technische Besonderheiten](https://docs.template.ysdani.com/de/getting-started/technische-besonderheiten/)*</small>
 
-```bash
-composer run ci:dev
-composer run ci:preview
-```
+> - **Zwei-Baum-Deploy** — atomares Deployment ohne Ausfallzeit auf Shared Hosting,
+>   ohne Blue-Green-Infrastruktur (vendor-a/b + app-a/b)
+> - **Pipeline-Spec** — sprachenneutrale Konfiguration über PHP-, Python- und Shell-Grenzen,
+>   Einweg-Datenfluss, maschinenlesbare YAML-Spezifikation
+> - **Pipeline-Phasen-Modell** — App kennt ihren eigenen Laufzeitzustand (setup, build, runtime, deploy);
+>   trennt CLI- von HTTP-Laufzeit-Komplexität
 
-Für den Preview-Lauf wird der Compose-Stack nach Ende von `ci-preview`
-automatisch beendet und anschließend heruntergefahren, damit der
-langlebige Hilfsdienst `sftp-server` den Lauf nicht offen hält.
-
-Optional richtet ein versionierter Pre-Push-Hook diesen Lauf lokal vor
-jedem Push ein:
-
-```bash
-sh scripts/install-hooks.sh
-```
+---

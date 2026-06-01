@@ -1,0 +1,28 @@
+app:
+  APP_BASE_PATH: "/"
+  TRUST_PROXY: 1
+  APP_LOG_CHANNEL: file
+
+lebenslauf:
+  LEBENSLAUF_DATEN_PFAD: .local/lebenslauf
+  LEBENSLAUF_PUBLIC_PROFILE: gueltig
+  LEBENSLAUF_LANG_DEFAULT: de
+  LEBENSLAUF_LANGS: "de,en"
+
+captcha:
+  CAPTCHA_TTL_SECONDS: 600
+  CAPTCHA_MAX_GET: 5
+
+contact:
+  CONTACT_MAX_POST: 3
+
+mail:
+  MAIL_STDOUT: 0
+
+rate_limit:
+  RATE_LIMIT_WINDOW_SECONDS: 600
+
+smtp:
+  SMTP_PORT: 587
+  SMTP_ENCRYPTION: tls
+  SMTP_FROM_NAME: "Lebenslauf Seite"

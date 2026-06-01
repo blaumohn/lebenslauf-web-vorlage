@@ -27,10 +27,10 @@ final class CvUploadService
     private string $labelsPath;
     private string $defaultLang;
 
-    public function __construct(ConfigValues $config)
+    public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
-        $this->rootPath = $config->rootPath();
+        $this->rootPath = rtrim($appRoot, DIRECTORY_SEPARATOR);
         $this->cvStorage = $this->buildCvStorage();
         $this->validator = $this->buildValidator();
         $this->renderer = $this->buildRenderer();
@@ -148,20 +148,20 @@ final class CvUploadService
 
     private function resolvePublicProfile(): string
     {
-        $value = trim((string) $this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
+        $value = trim($this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
         return $value === '' ? 'default' : $value;
     }
 
     private function resolveDefaultLang(): string
     {
-        $raw = (string) $this->config->get('LEBENSLAUF_LANG_DEFAULT');
+        $raw = $this->config->get('LEBENSLAUF_LANG_DEFAULT');
         $value = strtolower(trim($raw));
         return $value === '' ? 'de' : $value;
     }
 
     private function resolveLangs(): array
     {
-        $raw = (string) $this->config->get('LEBENSLAUF_LANGS');
+        $raw = $this->config->get('LEBENSLAUF_LANGS');
         return $this->parseLangs($raw, $this->defaultLang);
     }
 
@@ -213,7 +213,16 @@ final class CvUploadService
     private function buildRenderer(): CvRenderer
     {
         $twig = TwigFactory::create(Path::join($this->rootPath, 'src', 'resources', 'templates'));
-        TwigFactory::configure($twig, $this->config->basePath());
+        TwigFactory::configure($twig, $this->resolveBasePath());
         return new CvRenderer($twig);
+    }
+
+    private function resolveBasePath(): string
+    {
+        $value = $this->config->get('APP_BASE_PATH');
+        if ($value === '' || $value === '/') {
+            return '';
+        }
+        return '/' . trim($value, '/');
     }
 }

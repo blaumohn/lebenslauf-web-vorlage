@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Cli\Application;
+use App\Cli\CliContext;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -12,11 +13,11 @@ final class ConfigCommandTest extends TestCase
     {
         $tester = $this->tester();
         $exitCode = $tester->execute([
-            'pipeline'     => 'preview',
-            'action'       => 'get',
-            'arg1'         => 'SFTP_PORT',
-            '--phase'      => 'deploy',
-            '--overrides'  => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
+            'pipeline'    => 'preview',
+            'action'      => 'get',
+            'arg1'        => 'SFTP_PORT',
+            '--phase'     => 'deploy',
+            '--overrides' => json_encode($this->fullOverrides()),
         ]);
         self::assertSame(0, $exitCode);
         self::assertSame('22', trim($tester->getDisplay()));
@@ -26,11 +27,11 @@ final class ConfigCommandTest extends TestCase
     {
         $tester = $this->tester();
         $exitCode = $tester->execute([
-            'pipeline'     => 'preview',
-            'action'       => 'get',
-            'arg1'         => 'SFTP_HOST',
-            '--phase'      => 'deploy',
-            '--overrides'  => '{"SFTP_HOST":"override-host","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
+            'pipeline'    => 'preview',
+            'action'      => 'get',
+            'arg1'        => 'SFTP_HOST',
+            '--phase'     => 'deploy',
+            '--overrides' => json_encode(array_merge($this->fullOverrides(), ['SFTP_HOST' => 'override-host'])),
         ]);
         self::assertSame(0, $exitCode);
         self::assertSame('override-host', trim($tester->getDisplay()));
@@ -48,22 +49,43 @@ final class ConfigCommandTest extends TestCase
         self::assertStringContainsString('--phase fehlt. Beispiel: --phase runtime', $tester->getDisplay());
     }
 
-    public function testLintChecksRequestedDeployPhase(): void
+    public function testLintValidatesFullPipeline(): void
     {
         $tester = $this->tester();
         $exitCode = $tester->execute([
             'pipeline'    => 'preview',
             'action'      => 'lint',
-            '--phase'     => 'deploy',
-            '--overrides' => '{"SFTP_HOST":"h","SFTP_USER":"u","SFTP_PASS":"p","SSH_KNOWN_HOST_LINE":"k","APP_ROOT_URL":"https://example.invalid"}',
+            '--overrides' => json_encode($this->fullOverrides()),
         ]);
         self::assertSame(0, $exitCode);
-        self::assertStringContainsString('Config OK. Pipeline-Phase: preview/deploy', $tester->getDisplay());
+        self::assertStringContainsString('Config OK. Pipeline: preview', $tester->getDisplay());
+    }
+
+    private function fullOverrides(): array
+    {
+        return [
+            'APP_ROOT_URL'       => 'https://example.invalid',
+            'MAIL_TO_EMAIL'      => 'test@example.invalid',
+            'SMTP_HOST'          => 'smtp.example.invalid',
+            'SMTP_USER'          => 'testuser',
+            'SMTP_PASS'          => 'testpass',
+            'SMTP_FROM_EMAIL'    => 'from@example.invalid',
+            'SFTP_SERVER_DIR'    => '/deploy/preview',
+            'SFTP_HOST'          => 'sftp.example.invalid',
+            'SFTP_USER'          => 'sftpuser',
+            'SFTP_PASS'          => 'sftppass',
+            'SSH_KNOWN_HOST_LINE' => 'sftp.example.invalid ssh-rsa AAAA',
+        ];
     }
 
     private function tester(): CommandTester
     {
-        $command = (new Application())->find('config');
+        $command = (new Application($this->context()))->find('config');
         return new CommandTester($command);
+    }
+
+    private function context(): CliContext
+    {
+        return new CliContext(dirname(__DIR__, 2));
     }
 }

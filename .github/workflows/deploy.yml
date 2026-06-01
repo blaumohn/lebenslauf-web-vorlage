@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - preview
+      - prod
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer:v2
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Pipeline ausführen und deployen
+        shell: bash
+        env:
+          PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          LAST_DEPLOY_COMMIT: ${{ github.event.before }}
+          PIPELINE: ${{ github.ref_name }}
+        run: |
+          bin/cd << EOF
+          app:
+            APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
+            APP_LOG_CHANNEL: "file"
+          smtp:
+            SMTP_HOST: "${{ secrets.SMTP_HOST || vars.SMTP_HOST }}"
+            SMTP_USER: "${{ secrets.SMTP_USER || vars.SMTP_USER }}"
+            SMTP_PASS: "${{ secrets.SMTP_PASS }}"
+            SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL || vars.SMTP_FROM_EMAIL }}"
+          mail:
+            MAIL_TO_EMAIL: "${{ secrets.MAIL_TO_EMAIL || vars.MAIL_TO_EMAIL }}"
+          sftp:
+            SFTP_HOST: "${{ secrets.SFTP_HOST || vars.SFTP_HOST }}"
+            SFTP_USER: "${{ secrets.SFTP_USER || vars.SFTP_USER }}"
+            SFTP_PASS: "${{ secrets.SFTP_PASS }}"
+            SFTP_SERVER_DIR: "${{ secrets.SFTP_SERVER_DIR || vars.SFTP_SERVER_DIR }}"
+            SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE || vars.SSH_KNOWN_HOST_LINE }}"
+          EOF

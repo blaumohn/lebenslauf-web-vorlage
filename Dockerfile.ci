@@ -1,5 +1,5 @@
 FROM php:8.2-cli-alpine
-RUN apk add --no-cache bash curl git jq perl python3 py3-paramiko openssh-client nodejs npm libpng-dev libjpeg-turbo-dev
+RUN apk add --no-cache bash curl git git-daemon jq perl python3 openssh-client nodejs npm libpng-dev libjpeg-turbo-dev
 RUN docker-php-ext-configure gd --with-jpeg && docker-php-ext-install -j$(nproc) gd
 RUN curl -sS https://getcomposer.org/installer \
     | php -- --install-dir=/usr/local/bin --filename=composer

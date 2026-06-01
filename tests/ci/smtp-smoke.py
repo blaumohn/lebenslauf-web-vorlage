@@ -1,26 +1,36 @@
+import argparse
 import json
 import smtplib
 import ssl
 import sys
 import time
 import urllib.request
-from email.message import EmailMessage
 
+from cli.py.mail.smtp_lib import SmtpClient, build_message
 from cli.py.pipeline_cfg import PipelineCfg
 
 MAILPIT_API_URL = "http://mailpit:8025"
+CI_CA_FILE = "tests/ci/ca.crt"
 
 
 def main():
+    args = parse_args()
+    cafile = CI_CA_FILE if args.ci_ca_cert else None
     try:
-        config = PipelineCfg("runtime")
+        cfg = PipelineCfg("runtime")
         await_mailpit()
-        assert_bad_password_rejected(config)
-        send_test_mail(config)
+        assert_bad_password_rejected(cfg, cafile)
+        send_test_mail(cfg, cafile)
         check_mail_received()
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ci-ca-cert", action="store_true", default=False)
+    return parser.parse_args()
 
 
 def await_mailpit():
@@ -34,32 +44,26 @@ def await_mailpit():
     raise RuntimeError(f"[smtp-smoke] Mailpit nicht erreichbar: {MAILPIT_API_URL}")
 
 
-def assert_bad_password_rejected(config):
+def assert_bad_password_rejected(cfg, cafile):
+    smtp = smtplib.SMTP(cfg["SMTP_HOST"], int(cfg["SMTP_PORT"]), timeout=10)
+    smtp.ehlo()
+    smtp.starttls(context=ssl.create_default_context(cafile=cafile))
+    smtp.ehlo()
     try:
-        with connect(config) as smtp:
-            smtp.login(config["SMTP_USER"], "wrong-" + config["SMTP_PASS"])
+        smtp.login(cfg["SMTP_USER"], "wrong-" + cfg["SMTP_PASS"])
     except smtplib.SMTPAuthenticationError:
         print("[smtp-smoke] Falsches SMTP-Passwort abgelehnt")
         return
+    finally:
+        smtp.quit()
     raise RuntimeError("Falsches SMTP-Passwort wurde akzeptiert.")
 
 
-def send_test_mail(config):
-    message = build_message(config)
-    with connect(config) as smtp:
-        smtp.login(config["SMTP_USER"], config["SMTP_PASS"])
-        smtp.send_message(message)
+def send_test_mail(cfg, cafile):
+    message = build_message(cfg, subject="[SMTP-Smoke] Testmail", body="SMTP-Smoke-Test erfolgreich.")
+    with SmtpClient(cfg, cafile=cafile) as client:
+        client.send_message(message)
     print("[smtp-smoke] Testmail gesendet.")
-
-
-def build_message(config):
-    message = EmailMessage()
-    from_name = config["SMTP_FROM_NAME"]
-    message["From"] = f"{from_name} <{config['SMTP_FROM_EMAIL']}>"
-    message["To"] = config["MAIL_TO_EMAIL"]
-    message["Subject"] = "[SMTP-Smoke] Testmail"
-    message.set_content("SMTP-Smoke-Test erfolgreich.")
-    return message
 
 
 def check_mail_received():
@@ -70,25 +74,6 @@ def check_mail_received():
     if total < 1:
         raise RuntimeError(f"[smtp-smoke] Keine Mail empfangen (total={total})")
     print(f"[smtp-smoke] OK: {total} Mail(s)")
-
-
-def connect(config):
-    smtp = smtplib.SMTP(config["SMTP_HOST"], int(config["SMTP_PORT"]), timeout=10)
-    smtp.ehlo()
-    if config["SMTP_ENCRYPTION"] == "tls":
-        smtp.starttls(context=tls_context())
-        smtp.ehlo()
-        return smtp
-    if config["SMTP_ENCRYPTION"] == "none":
-        return smtp
-    smtp.close()
-    raise RuntimeError("SMTP_ENCRYPTION erlaubt nur tls oder none.")
-
-
-def tls_context():
-    context = ssl.create_default_context(cafile="tests/ci/ca.crt")
-    context.check_hostname = False
-    return context
 
 
 if __name__ == "__main__":

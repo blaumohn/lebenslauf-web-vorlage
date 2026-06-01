@@ -2,7 +2,6 @@
 
 namespace App\Cli\Command;
 
-use PipelineConfigSpec\PipelineConfigService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Console\Command\Command;
@@ -33,7 +32,7 @@ final class ConfigCommand extends BasePipelineCommand
             return $this->handleShow($input, $output);
         }
         if ($action === 'lint') {
-            return $this->handleLint($input, $output);
+            return $this->handleLint($output);
         }
         if ($action === 'compile') {
             return $this->handleCompile($input, $output);
@@ -92,13 +91,16 @@ final class ConfigCommand extends BasePipelineCommand
         return Command::SUCCESS;
     }
 
-    private function handleLint(InputInterface $input, OutputInterface $output): int
+    private function handleLint(OutputInterface $output): int
     {
-        $requestedPhase = $this->resolveOptionString($input, 'phase');
-        if ($requestedPhase !== null) {
-            return $this->lintPhase($requestedPhase, $output);
+        try {
+            $this->pipelineValidate();
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return Command::FAILURE;
         }
-        return $this->lintAllPhases($output);
+        $output->writeln('Config OK. Pipeline: ' . $this->pipelineName());
+        return Command::SUCCESS;
     }
 
     private function handleCompile(InputInterface $input, OutputInterface $output): int
@@ -119,35 +121,6 @@ final class ConfigCommand extends BasePipelineCommand
         $output->writeln("Pipeline-Phase: {$context}");
         $output->writeln("Compiled config written: {$path}");
         return Command::SUCCESS;
-    }
-
-    private function lintAllPhases(OutputInterface $output): int
-    {
-        foreach ($this->defaultLintPhases() as $phase) {
-            $result = $this->lintPhase($phase, $output);
-            if ($result !== Command::SUCCESS) {
-                return $result;
-            }
-        }
-        return Command::SUCCESS;
-    }
-
-    private function lintPhase(string $phase, OutputInterface $output): int
-    {
-        $context = $this->contextLabel($this->pipelineName(), $phase);
-        try {
-            $this->pipelineValues($phase);
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
-            return Command::FAILURE;
-        }
-        $output->writeln("Config OK. Pipeline-Phase: {$context}");
-        return Command::SUCCESS;
-    }
-
-    private function defaultLintPhases(): array
-    {
-        return ['setup', 'build', 'runtime', 'deploy'];
     }
 
     private function requirePhase(InputInterface $input, OutputInterface $output): ?string
@@ -180,6 +153,6 @@ final class ConfigCommand extends BasePipelineCommand
         if (Path::isAbsolute($path)) {
             return $path;
         }
-        return Path::join($this->rootPath(), $path);
+        return Path::join($this->appRoot(), $path);
     }
 }

@@ -15,22 +15,23 @@ use Symfony\Component\Console\Application as SymfonyApplication;
 
 final class Application extends SymfonyApplication
 {
-    public function __construct()
-    {
+    public function __construct(
+        private CliContext $context
+    ) {
         parent::__construct('lebenslauf-cli', '1.0.0');
         $this->registerCommands();
     }
 
     private function registerCommands(): void
     {
-        $this->add(new SetupCommand());
-        $this->add(new StartCommand());
-        $this->add(new BuildCommand());
-        $this->add(new CiCommand());
-        $this->add(new PythonCommand());
-        $this->add(new TokenCommand());
-        $this->add(new CaptchaCommand());
-        $this->add(new ConfigCommand());
-        $this->add(new IpHashCommand());
+        $this->addCommand(new SetupCommand($this->context));
+        $this->addCommand(new StartCommand($this->context));
+        $this->addCommand(new BuildCommand($this->context));
+        $this->addCommand(new CiCommand($this->context));
+        $this->addCommand(new PythonCommand($this->context));
+        $this->addCommand(new TokenCommand($this->context));
+        $this->addCommand(new CaptchaCommand($this->context));
+        $this->addCommand(new ConfigCommand($this->context));
+        $this->addCommand(new IpHashCommand($this->context));
     }
 }

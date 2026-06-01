@@ -43,7 +43,7 @@ final class CaptchaCommand extends BasePipelinePhaseCommand
 
     private function buildCaptchaService(ConfigValues $config): CaptchaService
     {
-        $rootPath = $this->rootPath();
+        $rootPath = $this->appRoot();
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
         $writer = new RuntimeAtomicWriter();

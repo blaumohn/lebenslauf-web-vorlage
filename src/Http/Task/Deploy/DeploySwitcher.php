@@ -10,16 +10,34 @@ final class DeploySwitcher
     public function __construct(
         private readonly RuntimeAtomicWriter $writer,
         private readonly RuntimeLockRunner $lockRunner,
-        private readonly string $entryPath,
-    ) {}
+        private readonly string $deployRoot,
+    ) {
+    }
 
-    public function switchTo(PreparedDeployState $state): void
+    public function switchTo(SlotSwitchCommand $command, string $taskId): void
     {
-        $this->lockRunner->runWithLock('deploy-switch', function () use ($state): void {
+        $reader = new CurrentSlotReader($this->deployRoot);
+        $slotBefore = $reader->readCurrent();
+        $historyWriter = new DeployHistoryWriter($this->writer, $this->deployRoot);
+        $operation = $this->buildSwitchOperation($command, $taskId, $slotBefore, $historyWriter);
+        $this->lockRunner->runWithLock('deploy-switch', $operation);
+    }
+
+    private function buildSwitchOperation(
+        SlotSwitchCommand $command,
+        string $taskId,
+        ?SlotSnapshot $slotBefore,
+        DeployHistoryWriter $historyWriter,
+    ): \Closure {
+        return function () use ($command, $taskId, $slotBefore, $historyWriter): void {
             $this->writer->writeText(
-                $this->entryPath . '/.deploy-state.ini',
-                $state->toIni(),
+                $this->deployRoot . '/.htaccess',
+                $command->toHtaccess(),
+                0644,
             );
-        });
+            $historyWriter->record(
+                DeployEvent::fromSwitch($command, $taskId, $slotBefore),
+            );
+        };
     }
 }

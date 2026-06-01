@@ -11,6 +11,20 @@ x-ci-env: &ci-env
   CI_WORK_BASE: /tmp
 
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
+x-local-repo-volume: &local-repo-volume ".:/repo"
+
+x-preview-env: &preview-env
+  <<: *ci-env
+  PIPELINE: preview
+  DEBUG: "$DEBUG"
+  PIPELINE_RUN_ID: "$PIPELINE_RUN_ID"
+  SFTP_DEPLOY_OVERRIDES: "${SFTP_DEPLOY_OVERRIDES:-}"
+  LOG_FORMAT: "${LOG_FORMAT:-}"
+
+x-preview-runner: &preview-runner
+  <<: *ci-base
+  environment:
+    <<: *preview-env
 
 services:
   ci-dev:
@@ -25,21 +39,16 @@ services:
     command: bash /repo/bin/ci
 
   ci-preview:
-    <<: *ci-base
+    <<: *preview-runner
     volumes:
       - *ci-repo-volume
       - "composer_home_preview:/home/ci/.composer"
       - "npm_cache_preview:/home/ci/.npm"
-    environment:
-      <<: *ci-env
-      PIPELINE: preview
-      DEBUG: "${DEBUG:-0}"
-      GITHUB_RUN_ID: "${GITHUB_RUN_ID:-}"
     command:
       - bash
       - -c
       - |
-        exec bash /repo/bin/ci "$${CI_TEST_CASE:?CI_TEST_CASE fehlt}" <<'YAML'
+        exec bash /repo/bin/ci "$${CI_TEST_CASE}" <<'YAML'
         app:
           APP_ROOT_URL: "http://preview-web"
         mail:
@@ -48,7 +57,7 @@ services:
           SFTP_HOST: "sftp-server"
           SFTP_USER: "preview-ci"
           SFTP_PASS: "ci-pass"
-          SFTP_SERVER_DIR: "/public"
+          SFTP_SERVER_DIR: "/deploy"
           SSH_KNOWN_HOST_LINE: "sftp-server ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINl08bdUU+IRN4P6BQJAWbOPPjy3nCxMdwx+eDtIzivk"
         smtp:
           SMTP_HOST: "mailpit"
@@ -59,9 +68,23 @@ services:
         YAML
       - --
     depends_on:
-      - sftp-server
-      - preview-web
-      - mailpit
+      sftp-server:
+        condition: service_healthy
+      preview-web:
+        condition: service_started
+      mailpit:
+        condition: service_started
+
+  deploy-local:
+    <<: *preview-runner
+    volumes:
+      - *local-repo-volume
+      - "composer_home_preview:/home/ci/.composer"
+      - "npm_cache_preview:/home/ci/.npm"
+    environment:
+      <<: *preview-env
+      LAST_DEPLOY_COMMIT: "$LAST_DEPLOY_COMMIT"
+    command: bash /repo/bin/cd
 
   mailpit:
     image: axllent/mailpit:latest
@@ -78,12 +101,14 @@ services:
   sftp-server:
     image: atmoz/sftp:alpine
     entrypoint: sh
+    environment:
+      CI_SFTP_DIR: "${CI_SFTP_DIR:-deploy}"
     command:
       - -c
       - |
         cp /tmp/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key &&
         chmod 600 /etc/ssh/ssh_host_ed25519_key &&
-        exec /entrypoint preview-ci:ci-pass:1000::public
+        exec /entrypoint preview-ci:ci-pass:1000::$${CI_SFTP_DIR}
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
       interval: 1s
@@ -91,7 +116,7 @@ services:
       retries: 30
       start_period: 2s
     volumes:
-      - "preview_deploy:/home/preview-ci/public"
+      - "preview_deploy:/home/preview-ci/${CI_SFTP_DIR:-deploy}"
       - "./tests/ci/sftp_host_ed25519_key:/tmp/ssh_host_ed25519_key:ro"
       - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
@@ -104,6 +129,7 @@ services:
     volumes:
       - "preview_deploy:/var/www/html"
       - "./scripts/config-apache.sh:/scripts/config-apache.sh:ro"
+      - "./tests/ci/ca.crt:/usr/local/share/ca-certificates/ci-mailpit-ca.crt:ro"
 
 volumes:
   composer_home_dev:

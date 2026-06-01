@@ -14,9 +14,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 
 #[AsCommand(name: 'ip-hash', description: 'IP-Hash-Tools (reset).')]
-final class IpHashCommand extends Command
+final class IpHashCommand extends BaseCliCommand
 {
-    use RootPathAware;
     protected function configure(): void
     {
         $this->addArgument('action', InputArgument::OPTIONAL, 'reset', 'reset');
@@ -42,7 +41,7 @@ final class IpHashCommand extends Command
 
     private function buildService(): IpSaltService
     {
-        $rootPath = $this->rootPath();
+        $rootPath = $this->appRoot();
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner(Path::join($rootPath, 'var', 'state', 'locks'));
         $writer = new RuntimeAtomicWriter();

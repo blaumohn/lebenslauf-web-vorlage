@@ -15,6 +15,14 @@
 
     <rule ref="PSR12"/>
 
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="72"/>
+            <property name="absoluteLineLimit" value="72"/>
+            <property name="ignoreComments" value="false"/>
+        </properties>
+    </rule>
+
     <rule ref="Generic.Metrics.NestingLevel">
         <properties>
             <property name="nestingLevel" value="2"/>

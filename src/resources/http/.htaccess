@@ -1,5 +1,0 @@
-RewriteEngine On
-RewriteCond %{THE_REQUEST} \s/(?:a|b|vendor-a|vendor-b)(?:/|\s|\?)
-RewriteRule ^ - [R=404,L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.php [L]

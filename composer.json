@@ -1,6 +1,6 @@
 {
   "name": "local/lebenslauf-vorlage",
-  "description": "Shared-hosting-friendly CV site (PHP + Twig) with file-based state.",
+  "description": "Shared-hosting-friendly CV site.",
   "type": "project",
   "repositories": [
     {
@@ -14,14 +14,15 @@
     "opis/json-schema": "^2.4",
     "slim/slim": "^4.12",
     "slim/psr7": "^1.6",
-    "twig/twig": "^3.0",
+    "twig/twig": "^3.26",
     "phpmailer/phpmailer": "^6.9",
     "symfony/console": "^7.0",
     "symfony/config": "^7.0",
     "symfony/yaml": "^7.0",
     "symfony/process": "^7.0",
     "symfony/filesystem": "^7.0",
-    "symfony/lock": "^7.0"
+    "symfony/lock": "^7.0",
+    "monolog/monolog": "^3.0"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",
@@ -44,11 +45,11 @@
   "scripts": {
     "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev --phases build src/cli/py/dev/dev.py --"
+      "php bin/cli python dev --phase build src/cli/py/dev/dev.py --"
     ],
     "dev:build": [
       "Composer\\Config::disableProcessTimeout",
-      "php bin/cli python dev --phases build src/cli/py/dev/dev.py -- --build"
+      "php bin/cli python dev --phase build src/cli/py/dev/dev.py -- --build"
     ],
     "cv:build": "php bin/cli build dev cv",
     "cv:upload": "php bin/cli build dev upload",
@@ -61,7 +62,9 @@
     "lint": [
       "@lint:php",
       "@lint:python",
-      "@lint:shell"
+      "@lint:shell",
+      "@lint:structured",
+      "@lint:line-length"
     ],
     "lint:php": [
       "@lint:phpcs",
@@ -70,13 +73,17 @@
     "lint:phpcs": "phpcs",
     "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
     "lint:python": ".venv/bin/python tools/lint-python.py",
-    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/*.sh",
+    "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/readme-dev-user-flow.sh",
+    "lint:structured": "python3 tools/lint-structured-files.py",
+    "lint:line-length": ".venv/bin/python tools/lint-line-length.py",
     "test": [
       "@test:php",
       "@test:python"
     ],
     "test:php": "phpunit",
-    "test:python": ".venv/bin/python -m unittest discover -v -b -s tests/py -p 'test_*.py'",
+    "test:python": ".venv/bin/python -m pytest tests/py",
+    "install:ci": "composer install --optimize-autoloader --no-interaction -q",
+    "install:deploy": "@install:ci --no-dev",
     "css:build": "npm run build:css",
     "build": "php bin/cli build dev",
     "build:dev": "php bin/cli build dev",

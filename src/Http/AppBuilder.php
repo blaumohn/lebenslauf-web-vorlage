@@ -2,20 +2,19 @@
 
 namespace App\Http;
 
-use App\Http\ConfigCompiled;
 use Slim\App;
 use Slim\Factory\AppFactory as SlimAppFactory;
 
 final class AppBuilder
 {
-    public static function build(ConfigCompiled $config): App
+    public static function build(ConfigCompiled $config, string $appRoot, string $deployRoot): App
     {
-        $context = AppContext::fromConfig($config);
+        $basePath = self::resolveBasePath($config->get('APP_BASE_PATH'));
+        $context = AppContext::fromConfig($config, $appRoot, $deployRoot, $basePath);
 
         $app = SlimAppFactory::create();
         $app->addBodyParsingMiddleware();
 
-        $basePath = $config->basePath();
         if ($basePath !== '') {
             $app->setBasePath($basePath);
         }
@@ -29,5 +28,14 @@ final class AppBuilder
         $errorMiddleware->setDefaultErrorHandler(new ErrorHandler($context));
 
         return $app;
+    }
+
+    private static function resolveBasePath(mixed $raw): string
+    {
+        $value = trim((string) $raw);
+        if ($value === '' || $value === '/') {
+            return '';
+        }
+        return '/' . trim($value, '/');
     }
 }

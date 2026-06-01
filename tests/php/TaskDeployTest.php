@@ -12,11 +12,13 @@ use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
 use App\Http\Task\Deploy\DeploySwitcher;
-use App\Http\Task\Deploy\PreparedDeployState;
-use App\Http\Task\Task;
+use App\Http\Task\Deploy\SlotSwitchCommand;
+use App\Http\Task\QueuedTask;
+use App\Http\Task\QueuedTaskFile;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use App\Http\Task\TaskRunner;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 final class TaskDeployTest extends TestCase
 {
@@ -36,61 +38,86 @@ final class TaskDeployTest extends TestCase
         $this->removeDir($this->dir);
     }
 
-    // ── PreparedDeployState ──────────────────────────────────────────────────
+    // ── SlotSwitchCommand ────────────────────────────────────────────────────
 
-    public function testPreparedDeployStateRoundtrip(): void
+    public function testSlotSwitchCommandResolvesRunMarkerPaths(): void
     {
-        $state = PreparedDeployState::fromParams('b', 'a');
+        $cmd = SlotSwitchCommand::fromParams('run-42', 'b', 'a');
 
-        $this->assertSame("[state]\napp=b\nvendor=a\n", $state->toIni());
+        $this->assertSame('b', $cmd->appLabel());
+        $this->assertSame('a', $cmd->vendorLabel());
+        $this->assertSame('app-b/.deploy-run', $cmd->appRunMarkerPath());
+        $this->assertSame(
+            "# deploy-slot: b\n"
+            . "RewriteEngine On\n"
+            . "RewriteCond %{DOCUMENT_ROOT}/app-b/public/%{REQUEST_URI} -f\n"
+            . "RewriteRule ^(.*)$ /app-b/public/\$1 [L]\n"
+            . "RewriteRule ^ /app-b/public/index.php [L,QSA]\n",
+            $cmd->toHtaccess(),
+        );
     }
 
-    public function testPreparedDeployStateRejectsInvalidSlot(): void
+    public function testSlotSwitchCommandRejectsMissingDeployId(): void
     {
         $this->expectException(RuntimeException::class);
-        PreparedDeployState::fromParams('c', 'a');
+        SlotSwitchCommand::fromParams('', 'b', 'a');
+    }
+
+    public function testSlotSwitchCommandRejectsInvalidSlotLabel(): void
+    {
+        $this->expectException(RuntimeException::class);
+        SlotSwitchCommand::fromParams('run-42', 'x', 'a');
+    }
+
+    public function testSlotSwitchCommandValidatesPreparedSlots(): void
+    {
+        $this->writeVendorSlot('a');
+        $this->writeAppMarker('b', 'run-42');
+        $cmd = SlotSwitchCommand::fromParams('run-42', 'b', 'a');
+
+        $cmd->validatePreparedSlots($this->dir);
+
+        $this->assertSame('run-42', $cmd->pipelineRunId());
     }
 
     // ── DeploySwitcher ───────────────────────────────────────────────────────
 
-    public function testDeploySwitcherWritesStateFile(): void
+    public function testDeploySwitcherWritesHtaccess(): void
     {
-        $stateFile = $this->dir . '/.deploy-state.ini';
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
 
-        $switcher->switchTo(PreparedDeployState::fromParams('b', 'a'));
+        $switcher->switchTo(SlotSwitchCommand::fromParams('42', 'b', 'a'), 'task-test');
 
-        $this->assertFileExists($stateFile);
-        $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($stateFile));
+        $this->assertFileExists($this->dir . '/.htaccess');
     }
 
-    // ── Task ─────────────────────────────────────────────────────────────────
+    // ── QueuedTask / QueuedTaskFile ──────────────────────────────────────────
 
-    public function testTaskParsesFile(): void
+    public function testQueuedTaskFileParsesFile(): void
     {
-        $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
+        $file = $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n");
 
-        $task = Task::fromFile($file);
+        $task = QueuedTaskFile::load($file);
 
         $this->assertSame('deploy_switch', $task->type());
         $this->assertSame('b', $task->get('app'));
         $this->assertSame('a', $task->get('vendor'));
-        $this->assertSame('42', $task->get('run_id'));
+        $this->assertSame('42', $task->get('pipeline_run_id'));
     }
 
-    public function testTaskRejectsMissingType(): void
+    public function testQueuedTaskFileRejectsMissingType(): void
     {
         $file = $this->writeTempIni("[task]\n");
         $this->expectException(RuntimeException::class);
-        Task::fromFile($file);
+        QueuedTaskFile::load($file);
     }
 
-    public function testTaskParsesTokenRotationIniFormat(): void
+    public function testQueuedTaskFileParsesTokenRotationIniFormat(): void
     {
         $ini = "[task]\ntype = cv_token_rotation\nprofile = default\ncount = 1\n\n";
         $file = $this->writeTempIni($ini);
 
-        $task = Task::fromFile($file);
+        $task = QueuedTaskFile::load($file);
 
         $this->assertSame('cv_token_rotation', $task->type());
         $this->assertSame('default', $task->get('profile'));
@@ -109,19 +136,34 @@ final class TaskDeployTest extends TestCase
 
     public function testDeploySwitchTaskHandlerPerformsSwitch(): void
     {
-        $this->writeRunMarkers('b', 'a', '42');
-        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n"));
+        $this->writeVendorSlot('a');
+        $this->writeAppMarker('b', '42');
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $result = $this->buildDeploySwitchHandler()->handle($task, $this->dir);
 
         $this->assertTrue($result->success);
-        $this->assertSame("[state]\napp=b\nvendor=a\n", file_get_contents($this->dir . '/.deploy-state.ini'));
+        $this->assertFileExists($this->dir . '/.htaccess');
+    }
+
+    public function testDeploySwitchTaskHandlerRejectsLegacyAppMarkerPath(): void
+    {
+        $this->writeVendorSlot('a');
+        $this->writeLegacyAppMarker('b', '42');
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
+
+        $this->expectException(RuntimeException::class);
+        $this->buildDeploySwitchHandler()->handle($task, $this->dir);
     }
 
     public function testDeploySwitchTaskHandlerRejectsRunIdMismatch(): void
     {
-        $this->writeRunMarkers('b', 'a', '99');
-        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n"));
+        $this->writeVendorSlot('a');
+        $this->writeAppMarker('b', '99');
+        $ini = "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n";
+        $task = QueuedTaskFile::load($this->writeTempIni($ini));
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -129,7 +171,20 @@ final class TaskDeployTest extends TestCase
 
     public function testDeploySwitchTaskHandlerRejectsMissingRunId(): void
     {
-        $task = Task::fromFile($this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\n"));
+        $task = QueuedTaskFile::load(
+            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\n")
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->buildDeploySwitchHandler()->handle($task, $this->dir);
+    }
+
+    public function testDeploySwitchTaskHandlerRejectsMissingVendorMeta(): void
+    {
+        $this->writeAppMarker('b', '42');
+        $task = QueuedTaskFile::load(
+            $this->writeTempIni("[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n")
+        );
 
         $this->expectException(RuntimeException::class);
         $this->buildDeploySwitchHandler()->handle($task, $this->dir);
@@ -139,25 +194,26 @@ final class TaskDeployTest extends TestCase
 
     public function testTaskRunnerIdleOnNoTasks(): void
     {
-        $runner = new TaskRunner([], $this->dir, $this->buildMailService());
+        $runner = new TaskRunner([], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter());
         $this->assertSame(0, $runner->runPending());
     }
 
     public function testTaskRunnerProcessesAndDeletesDeploySwitchTask(): void
     {
-        $this->writeRunMarkers('b', 'a', '42');
+        $this->writeVendorSlot('a');
+        $this->writeAppMarker('b', '42');
         $taskDir = $this->dir . '/var/tasks';
         mkdir($taskDir, 0775, true);
         $taskFile = $taskDir . '/20260505T000000Z-deploy-switch.ini';
-        file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\nrun_id=42\n");
+        file_put_contents($taskFile, "[task]\ntype=deploy_switch\napp=b\nvendor=a\npipeline_run_id=42\n");
 
-        ob_start();
-        $count = (new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService()))->runPending();
-        ob_end_clean();
+        [$count] = $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildDeploySwitchHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
-        $this->assertFileExists($this->dir . '/.deploy-state.ini');
+        $this->assertFileExists($this->dir . '/.htaccess');
     }
 
     public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void
@@ -169,13 +225,35 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/20260505T000000Z-cv-token-rotation.ini';
         file_put_contents($taskFile, "[task]\ntype=cv_token_rotation\nprofile={$profile}\ncount=1\n");
 
-        ob_start();
-        $count = (new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService()))->runPending();
-        ob_end_clean();
+        [$count] = $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
         $this->assertFileExists($this->dir . '/var/state/tokens/' . $profile . '.txt');
+    }
+
+    public function testTaskRunnerWritesErrorResultWhenHandlerThrows(): void
+    {
+        $taskId = bin2hex(random_bytes(16));
+        $taskDir = $this->dir . '/var/tasks';
+        $resultDir = $this->dir . '/var/tasks/results';
+        mkdir($taskDir, 0775, true);
+        mkdir($resultDir, 0775, true);
+        $taskFile = $taskDir . '/20260529T000000Z-cv-token-rotation.ini';
+        file_put_contents(
+            $taskFile,
+            "[task]\ntype=cv_token_rotation\ntask_id={$taskId}\nprofile=unbekannt\ncount=1\n"
+        );
+
+        $this->runRunnerCapturingOutput(
+            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+        );
+
+        $resultFile = $resultDir . '/' . $taskId . '.result';
+        $this->assertFileExists($resultFile);
+        $this->assertStringStartsWith('error:', (string) file_get_contents($resultFile));
     }
 
     public function testTaskRunnerSendsErrorMailForUnknownType(): void
@@ -185,9 +263,9 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/unknown.ini';
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
-        ob_start();
-        $count = (new TaskRunner([], $this->dir, $this->buildMailService()))->runPending();
-        $mailOutput = (string) ob_get_clean();
+        [$count, $mailOutput] = $this->runRunnerCapturingOutput(
+            new TaskRunner([], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+        );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -202,8 +280,8 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/unknown.ini';
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
-        $runner = new TaskRunner([], $this->dir, new MailService(new ConfigCompiled($this->dir)));
-        $count = $runner->runPending();
+        $runner = new TaskRunner([], $this->dir, new MailService(new ConfigCompiled($this->dir)), new NullLogger(), new RuntimeAtomicWriter());
+        [$count] = $this->runRunnerCapturingOutput($runner);
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
@@ -214,7 +292,7 @@ final class TaskDeployTest extends TestCase
     private function buildDeploySwitchHandler(): DeploySwitchTaskHandler
     {
         $switcher = new DeploySwitcher(new RuntimeAtomicWriter(), new RuntimeLockRunner($this->dir), $this->dir);
-        return new DeploySwitchTaskHandler($switcher);
+        return new DeploySwitchTaskHandler($switcher, $this->dir);
     }
 
     private function buildTokenRotationHandler(): CvTokenRotationTaskHandler
@@ -232,13 +310,47 @@ final class TaskDeployTest extends TestCase
         return new MailService(new ConfigCompiled($this->dir));
     }
 
-    private function writeRunMarkers(string $app, string $vendor, string $runId): void
+    /**
+     * @return array{0:int,1:string}
+     */
+    private function runRunnerCapturingOutput(TaskRunner $runner): array
     {
-        foreach ([$app, "vendor-{$vendor}"] as $slot) {
-            $dir = $this->dir . '/' . $slot;
-            mkdir($dir, 0775, true);
-            file_put_contents($dir . '/.deploy-run', $runId);
+        $previousLog = (string) ini_get('error_log');
+        ini_set('error_log', $this->dir . '/task-error.log');
+        ob_start();
+        $bufferLevel = ob_get_level();
+
+        try {
+            $count = $runner->runPending();
+            $output = (string) ob_get_clean();
+            return [$count, $output];
+        } finally {
+            if (ob_get_level() >= $bufferLevel) {
+                ob_end_clean();
+            }
+            ini_set('error_log', $previousLog);
         }
+    }
+
+    private function writeVendorSlot(string $vendor): void
+    {
+        $dir = $this->dir . "/vendor-{$vendor}";
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/.meta', "[vendor]\nchecksum=checksum-1\n");
+    }
+
+    private function writeAppMarker(string $app, string $runId): void
+    {
+        $dir = $this->dir . "/app-{$app}";
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/.deploy-run', $runId);
+    }
+
+    private function writeLegacyAppMarker(string $app, string $runId): void
+    {
+        $dir = $this->dir . "/{$app}";
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/.deploy-run', $runId);
     }
 
     private function writeTempIni(string $content): string
@@ -250,12 +362,20 @@ final class TaskDeployTest extends TestCase
 
     private function writeConfig(): void
     {
-        $this->writeConfigPayload(['MAIL_STDOUT' => '1', 'SMTP_FROM_NAME' => 'Test', 'MAIL_TO_EMAIL' => 'a@example.invalid']);
+        $this->writeConfigPayload([
+            'MAIL_STDOUT' => '1',
+            'SMTP_FROM_NAME' => 'Test',
+            'MAIL_TO_EMAIL' => 'a@example.invalid',
+        ]);
     }
 
     private function writeInvalidMailConfig(): void
     {
-        $this->writeConfigPayload(['MAIL_STDOUT' => '1', 'SMTP_FROM_NAME' => 'Test', 'MAIL_TO_EMAIL' => 'kein-gueltiges-email']);
+        $this->writeConfigPayload([
+            'MAIL_STDOUT' => '1',
+            'SMTP_FROM_NAME' => 'Test',
+            'MAIL_TO_EMAIL' => 'kein-gueltiges-email',
+        ]);
     }
 
     private function writeConfigPayload(array $values): void

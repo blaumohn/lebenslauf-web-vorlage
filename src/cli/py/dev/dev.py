@@ -1,19 +1,24 @@
 import argparse
+import logging
 import os
 import sys
+
+from cli.py.dev.process_supervisor import ProcessSupervisor
+from cli.py.dev.watchers import css
+from cli.py.dev.watchers.file_watcher import FileWatcher
+from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
+from cli.py.pipeline_cfg import PipelineCfg
+from cli.py.util.log import Logger
+from cli.py.util.run_helpers import run
+
+logger = logging.getLogger(__name__)
 
 ROOT_PATH = os.getcwd()
 DEV_PIPELINE = "dev"
 
-from cli.py.dev.process_supervisor import ProcessSupervisor
-from cli.py.pipeline_cfg import PipelineCfg
-from cli.py.util.run_helpers import run
-from cli.py.dev.watchers import css
-from cli.py.dev.watchers.file_watcher import FileWatcher
-from cli.py.dev.watchers.schedule import schedule_twig, schedule_yaml
-
 
 def main():
+    Logger("dev", level=logging.INFO)
     try:
         args = parse_args()
         root_path = resolve_root_path()
@@ -33,13 +38,19 @@ def main():
         exit_code = supervisor.run(file_watcher)
         sys.exit(exit_code)
     except RuntimeError as exc:
-        print(str(exc), file=sys.stderr)
+        logger.error(str(exc))
         sys.exit(1)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Dev-Server mit Watchern starten.")
-    parser.add_argument("--build", action="store_true", help="CV-Build vor dem Start ausfuehren.")
+    parser = argparse.ArgumentParser(
+        description="Dev-Server mit Watchern starten."
+    )
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="CV-Build vor dem Start ausfuehren.",
+    )
     return parser.parse_args()
 
 
@@ -56,7 +67,7 @@ def setup_watchers(supervisor, root_path):
     start_css_watch(supervisor)
     file_watcher = FileWatcher()
     cfg = PipelineCfg("build")
-    yaml_path, yaml_dir = resolve_yaml_inputs(root_path, cfg)
+    data_path = resolve_yaml_input(root_path, cfg)
 
     def build_fn(build_root):
         run_cv_build(build_root)
@@ -64,8 +75,7 @@ def setup_watchers(supervisor, root_path):
     schedule_yaml(
         file_watcher,
         root_path,
-        yaml_path,
-        yaml_dir,
+        data_path,
         build_fn
     )
     schedule_twig(file_watcher, root_path, build_fn)
@@ -74,20 +84,25 @@ def setup_watchers(supervisor, root_path):
 
 
 def start_php_server(root_path, supervisor):
-    cmd = ["php", "-S", "127.0.0.1:8080", "-t", "public"]
+    cmd = [
+        "php",
+        "-S",
+        "127.0.0.1:8080",
+        "-t",
+        "public",
+    ]
     return supervisor.start("php-server", cmd, cwd=root_path)
 
 
 def start_css_watch(supervisor):
     for index, cmd in enumerate(css.COMMANDS, start=1):
-        print("CSS-Watch gestartet:", " ".join(cmd), flush=True)
+        logger.info("CSS-Watch gestartet: %s", " ".join(cmd))
         supervisor.start(f"css-{index}", cmd)
 
 
-def resolve_yaml_inputs(root_path, cfg: PipelineCfg):
-    yaml_path = cfg.get("LEBENSLAUF_YAML_PFAD")
-    yaml_dir = cfg.get("LEBENSLAUF_DATEN_PFAD")
-    return resolve_path(root_path, yaml_path), resolve_path(root_path, yaml_dir)
+def resolve_yaml_input(root_path, cfg: PipelineCfg):
+    data_path = cfg.get("LEBENSLAUF_DATEN_PFAD")
+    return resolve_path(root_path, data_path)
 
 
 def resolve_path(root_path, value):

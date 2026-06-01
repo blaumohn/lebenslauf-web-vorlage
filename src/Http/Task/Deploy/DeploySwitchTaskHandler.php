@@ -2,7 +2,7 @@
 
 namespace App\Http\Task\Deploy;
 
-use App\Http\Task\Task;
+use App\Http\Task\QueuedTask;
 use App\Http\Task\TaskHandler;
 use App\Http\Task\TaskResult;
 
@@ -10,34 +10,27 @@ final class DeploySwitchTaskHandler implements TaskHandler
 {
     public function __construct(
         private readonly DeploySwitcher $switcher,
-    ) {}
+        private readonly string $deployRoot,
+    ) {
+    }
 
     public function canHandle(string $type): bool
     {
         return $type === 'deploy_switch';
     }
 
-    public function handle(Task $task, string $entryPath): TaskResult
+    public function handle(QueuedTask $task, string $appRoot): TaskResult
     {
-        $app    = $task->get('app');
-        $vendor = $task->get('vendor');
-        $runId  = $task->get('run_id');
-        if ($app === '' || $vendor === '' || $runId === '') {
-            throw new \RuntimeException("deploy_switch fehlt app, vendor oder run_id");
-        }
-        $this->verifyRunMarkers($entryPath, $app, $vendor, $runId);
-        $state = PreparedDeployState::fromParams($app, $vendor);
-        $this->switcher->switchTo($state);
-        return TaskResult::ok("app={$app} vendor={$vendor} run_id={$runId}");
+        $target = SlotSwitchCommand::fromQueuedTask($task, $this->deployRoot);
+        $target->validatePreparedSlots($this->deployRoot);
+        $this->switcher->switchTo($target, $task->get('task_id'));
+        return TaskResult::ok($this->formatResult($target));
     }
 
-    private function verifyRunMarkers(string $entryPath, string $app, string $vendor, string $runId): void
+    private function formatResult(SlotSwitchCommand $command): string
     {
-        foreach ([$app, "vendor-{$vendor}"] as $slot) {
-            $marker = trim((string) file_get_contents("{$entryPath}/{$slot}/.deploy-run"));
-            if ($marker !== $runId) {
-                throw new \RuntimeException("run_id stimmt nicht überein: {$slot}");
-            }
-        }
+        return "app={$command->appLabel()} "
+            . "vendor={$command->vendorLabel()} "
+            . "pipeline_run_id={$command->pipelineRunId()}";
     }
 }

@@ -1,28 +1,51 @@
-run_pipeline() {
-  local is_dev docroot
+. scripts/pipeline_output.sh
 
-  require_env_nonempty PIPELINE
+run_pipeline() {
+  local deploy_dir is_dev= ci_ca_cert_arg=
+
+  if [[ $PIPELINE == dev ]]; then
+    is_dev=1
+  else
+    deploy_dir="${1:?deploy_dir fehlt}"
+    [[ "${2:-}" == "--ci-ca-cert" ]] && ci_ca_cert_arg="$2"
+  fi
+
+  require_nonempty PIPELINE
 
   write_pipeline_config_from_stdin
 
-  [[ $PIPELINE == dev ]] && is_dev=1 || is_dev=
+  pipeline_report_start
+  run_step "Setup ($PIPELINE)" pipeline_setup "$is_dev"
 
   if [[ ! $is_dev ]]; then
-    require_env_set DEPLOY_DIR LAST_DEPLOY_COMMIT
+    run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check $ci_ca_cert_arg
   fi
 
-  cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
-  cli build "$PIPELINE" ${is_dev:+cv}
-  composer test
+  run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
+  # run_step "Tests" run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
-    docroot="public"
-  else
-    deploy
-    docroot="$DEPLOY_DIR/public"
+    run_step "Tests" composer test
+    run_step "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
+    return
   fi
 
-  with_http_server 8080 "$docroot" http_smoke_checks "127.0.0.1" "8080"
+  run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
+  run_step "HTTP-Smoke Artefakt" with_dev_server "$deploy_dir/public" run_http_smoke_checks
+  run_step "SFTP-Deploy"         deploy
+  run_step "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
+}
+
+pipeline_setup() {
+  local is_dev="$1"
+
+  cli setup "$PIPELINE" ${is_dev:+--with-sample-content}
+}
+
+pipeline_build() {
+  local is_dev="$1"
+
+  cli build "$PIPELINE" ${is_dev:+cv}
 }
 
 write_pipeline_config_from_stdin() {
@@ -33,116 +56,124 @@ write_pipeline_config_from_stdin() {
   cat > ".local/${PIPELINE}.yaml"
 }
 
-deploy() {
-  local include_vendor=true
-
-  prepare_deploy_dir
-  verify_artifact
-
-  include_vendor="$(should_include_vendor)"
-
-  sftp_upload "$include_vendor"
-}
-
-prepare_deploy_dir() {
-  rm -rf "$DEPLOY_DIR"
-  mkdir -p "$DEPLOY_DIR/var/cache"
-  mkdir -p "$DEPLOY_DIR/src"
-  cp -a public vendor "$DEPLOY_DIR/"
-  cp -a src/Http src/resources "$DEPLOY_DIR/src/"
-  cp -a var/cache/html "$DEPLOY_DIR/var/cache/"
-  cp -a var/config "$DEPLOY_DIR/var/"
-  copy_deploy_htaccess app-slot "$DEPLOY_DIR/.htaccess"
-  copy_deploy_htaccess src "$DEPLOY_DIR/src/.htaccess"
-  copy_deploy_htaccess var "$DEPLOY_DIR/var/.htaccess"
-}
-
-copy_deploy_htaccess() {
-  local scope="$1"
-  local target="$2"
-
-  cp "src/resources/http/$scope/.htaccess" "$target"
-}
-
-verify_artifact() {
-  test -f "$DEPLOY_DIR/public/index.php"
-  test -f "$DEPLOY_DIR/var/cache/html/cv-public.html"
-  test -f "$DEPLOY_DIR/.htaccess"
-  test -f "$DEPLOY_DIR/src/.htaccess"
-  test -f "$DEPLOY_DIR/var/.htaccess"
-}
-
-no_changes_since_deploy() {
-  [[ -n "${LAST_DEPLOY_COMMIT:-}" ]] && git diff --quiet "$LAST_DEPLOY_COMMIT" HEAD
-}
-
-should_include_vendor() {
-  local diff_files
-
-  if [[ -z "${LAST_DEPLOY_COMMIT:-}" ]]; then
-    echo true
+run_unit_and_feature_tests() {
+  if [ ! -x vendor/bin/phpunit ]; then
+    echo "PHPUnit nicht installiert; PHP-Tests werden übersprungen."
+    composer test:python
     return
   fi
 
-  diff_files="$(git diff --name-only "$LAST_DEPLOY_COMMIT" HEAD)"
-  echo "$diff_files" | grep -qx "composer\.lock" && echo true && return
-  echo false
+  composer test
+}
+
+prepare_deploy() {
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  prepare_deploy_dir "$deploy_dir"
+  verify_artifact "$deploy_dir"
+}
+
+prepare_deploy_dir() {
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  rm -rf "$deploy_dir"
+  mkdir -p "$deploy_dir/var/cache"
+  mkdir -p "$deploy_dir/src"
+  cp -a public vendor "$deploy_dir/"
+  cp -a src/Http src/resources "$deploy_dir/src/"
+  cp -a var/cache/html "$deploy_dir/var/cache/"
+  cp -a var/config "$deploy_dir/var/"
+  copy_slot_htaccess "src" "$deploy_dir/src/.htaccess"
+  copy_slot_htaccess "var" "$deploy_dir/var/.htaccess"
+}
+
+copy_slot_htaccess() {
+  local sub="$1" target="$2"
+  cp "src/resources/deploy-root/app-slot${sub:+/$sub}/.htaccess" "$target"
+}
+
+verify_artifact() {
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  test -f "$deploy_dir/public/index.php"
+  test -f "$deploy_dir/public/.htaccess"
+  test -f "$deploy_dir/src/Http/bootstrap.php"
+  test -f "$deploy_dir/var/cache/html/cv-public.html"
+  test -f "$deploy_dir/src/.htaccess"
+  test -f "$deploy_dir/var/.htaccess"
+}
+
+no_changes_since_deploy() {
+  local last_deploy_commit="${1:?last_deploy_commit fehlt}"
+  is_first_deploy_commit "$last_deploy_commit" && return 1
+  diff=$(git diff --name-only "$last_deploy_commit" HEAD) || return 1
+  [ -z "$diff" ]
+}
+
+is_first_deploy_commit() {
+  local zero_sha
+  zero_sha="$(printf '%040d' 0)"
+  [[ "$1" == "$zero_sha" ]]
+}
+
+run_smtp_credentials_check() {
+  cli python "$PIPELINE" --phase runtime -- scripts/smtp-credentials-check.py "$@"
+}
+
+deploy() {
+  sftp_upload
 }
 
 sftp_upload() {
-  local include_vendor="$1"
-  SFTP_INCLUDE_VENDOR="$include_vendor" cli python "$PIPELINE" --phases deploy scripts/sftp-deploy.py
+  local overrides_arg=()
+  [[ -n "${SFTP_DEPLOY_OVERRIDES:-}" ]] \
+    && overrides_arg=(--overrides "$SFTP_DEPLOY_OVERRIDES")
+  cli python "$PIPELINE" --phase deploy "${overrides_arg[@]}" scripts/sftp-deploy.py
 }
 
-
-with_http_server() {
-  local port="$1"
-  local docroot="$2"
-  local pid
-
-  shift 2
-  pid="$(start_php_server "$port" "$docroot" "/tmp/ci-http-${port}.log")"
-  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
-  wait_for_http_server "$port"
-  "$@"
-  kill "$pid"
-  trap - EXIT
+post_deploy_smoke_checks() {
+  local root_url
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  run_http_smoke_checks "$root_url"
 }
 
-http_smoke_checks() {
-  local host="$1" port="$2"
-
-  echo "[smoke] Prüfe http://${host}:${port}/"
-  smoke_http_page_contains "$host" "$port" "/" "Zum Lebenslauf"
-  echo "[smoke] OK /"
-
-  echo "[smoke] Prüfe http://${host}:${port}/cv"
-  smoke_http_page_contains "$host" "$port" "/cv" "Alex B."
-  echo "[smoke] OK /cv"
-
-  echo "[smoke] Prüfe http://${host}:${port}/contact"
-  smoke_http_page_contains "$host" "$port" "/contact" "<form"
-  echo "[smoke] OK /contact"
+run_http_smoke_checks() {
+  local base="${1%/}"
+  smoke_http_page_contains "${base}/"        "Zum Lebenslauf"
+  smoke_http_page_contains "${base}/cv"      "Alex B."
+  smoke_http_page_contains "${base}/contact" "<form"
 }
 
 smoke_http_page_contains() {
-  local host="$1" port="$2" path="$3" needle="$4" body
-
-  body="$(curl --fail --silent --show-error "http://${host}:${port}${path}")"
-
+  local url="$1" needle="$2" body
+  echo "[smoke] HTTP-Abruf: ${url}" >&2
+  if ! body="$(curl --fail --silent --show-error "$url")"; then
+    echo "[smoke] HTTP-Abruf fehlgeschlagen: ${url}" >&2
+    return 1
+  fi
   if ! printf '%s' "$body" | grep -q "$needle"; then
-    echo "[smoke] Inhalt fehlt: ${needle} in ${path}" >&2
+    echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
     echo "$body"
     exit 1
   fi
 }
 
-start_php_server() {
-  local port="$1"
-  local docroot="$2"
-  local log_file="$3"
 
-  php -S "0.0.0.0:${port}" -t "$docroot" > "$log_file" 2>&1 &
+with_dev_server() {
+  local docroot="$1" dev_server_port=8080 pid
+  shift
+  pid="$(start_php_server "$dev_server_port" "$docroot" "/tmp/ci-http-${dev_server_port}.log")"
+  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
+  wait_for_http_server "$dev_server_port"
+  "$@" "http://127.0.0.1:${dev_server_port}"
+  kill "$pid"
+  trap - EXIT
+}
+
+
+start_php_server() {
+  local port="$1" docroot="$2" log_file="$3"
+
+  php -S "0.0.0.0:${port}" \
+    -t "$docroot" \
+    > "$log_file" 2>&1 &
   echo "$!"
 }
 

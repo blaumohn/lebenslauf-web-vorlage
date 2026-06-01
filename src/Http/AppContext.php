@@ -18,11 +18,13 @@ use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 final class AppContext
 {
     public ConfigCompiled $config;
+    public LoggerInterface $logger;
     public Environment $twig;
     public CvStorage $cvStorage;
     public TokenService $tokenService;
@@ -33,33 +35,40 @@ final class AppContext
     public IpResolver $ipResolver;
     public TaskRunner $taskRunner;
 
-    public static function fromConfig(ConfigCompiled $config): self
-    {
-        $rootPath = $config->rootPath();
+    public static function fromConfig(
+        ConfigCompiled $config,
+        string $appRoot,
+        string $deployRoot,
+        string $basePath,
+    ): self {
         $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner($rootPath . '/var/state/locks');
+        $lockRunner = new RuntimeLockRunner($appRoot . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
+        $logDir = $config->pipeline() === 'dev'
+            ? $appRoot . '/var/log'
+            : $deployRoot . '/log';
 
         $context = new self();
         $context->config = $config;
-        $context->twig = TwigFactory::create($rootPath . '/src/resources/templates');
-        TwigFactory::configure($context->twig, $config->basePath());
-        $context->cvStorage = new CvStorage($storage, $rootPath . '/var/cache/html');
-        $context->tokenService = new TokenService($storage, $lockRunner, $writer, $rootPath . '/var/state/tokens');
+        $context->logger = AppLogger::create($logDir, $config->get('APP_LOG_CHANNEL'));
+        $context->twig = TwigFactory::create($appRoot . '/src/resources/templates');
+        TwigFactory::configure($context->twig, $basePath);
+        $context->cvStorage = new CvStorage($storage, $appRoot . '/var/cache/html');
+        $context->tokenService = new TokenService($storage, $lockRunner, $writer, $appRoot . '/var/state/tokens');
         $context->captchaService = new CaptchaService(
             $storage,
             $lockRunner,
             $writer,
-            $rootPath . '/var/tmp/captcha',
-            $config->getInt('CAPTCHA_TTL_SECONDS', 600)
+            $appRoot . '/var/tmp/captcha',
+            (int) $config->get('CAPTCHA_TTL_SECONDS')
         );
-        $context->rateLimiter = new RateLimiter($storage, $lockRunner, $writer, $rootPath . '/var/tmp/ratelimit');
-        $ipSaltService = self::buildIpSaltService($storage, $lockRunner, $writer, $rootPath);
+        $context->rateLimiter = new RateLimiter($storage, $lockRunner, $writer, $appRoot . '/var/tmp/ratelimit');
+        $ipSaltService = self::buildIpSaltService($storage, $lockRunner, $writer, $appRoot);
         $context->ipHashService = new IpHashService($ipSaltService->resolveSalt());
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
         $context->taskRunner = self::buildTaskRunner(
-            $writer, $lockRunner, $config, $context->mailService, $context->cvStorage, $context->tokenService
+            $writer, $lockRunner, $appRoot, $deployRoot, $config, $context->mailService, $context->cvStorage, $context->tokenService, $context->logger
         );
 
         return $context;
@@ -68,34 +77,36 @@ final class AppContext
     private static function buildTaskRunner(
         RuntimeAtomicWriter $writer,
         RuntimeLockRunner $lockRunner,
+        string $appRoot,
+        string $deployRoot,
         ConfigCompiled $config,
         MailService $mailService,
         CvStorage $cvStorage,
         TokenService $tokenService,
+        LoggerInterface $logger,
     ): TaskRunner {
-        $entryPath = $config->entryPath();
-        $switcher = new DeploySwitcher($writer, $lockRunner, $entryPath);
+        $switcher = new DeploySwitcher($writer, $lockRunner, $deployRoot);
         $rotateHandler = new TokenRotationService($cvStorage, $tokenService);
         $handlers = [
-            new DeploySwitchTaskHandler($switcher),
+            new DeploySwitchTaskHandler($switcher, $deployRoot),
             new CvTokenRotationTaskHandler($rotateHandler),
         ];
-        return new TaskRunner($handlers, $entryPath, $mailService);
+        return new TaskRunner($handlers, $appRoot, $mailService, $logger, $writer);
     }
 
     private static function buildIpSaltService(
         FileStorage $storage,
         RuntimeLockRunner $lockRunner,
         RuntimeAtomicWriter $writer,
-        string $rootPath
+        string $appRoot
     ): IpSaltService {
         return new IpSaltService(
             $storage,
             $lockRunner,
             $writer,
-            $rootPath . '/var/state',
-            $rootPath . '/var/tmp/captcha',
-            $rootPath . '/var/tmp/ratelimit'
+            $appRoot . '/var/state',
+            $appRoot . '/var/tmp/captcha',
+            $appRoot . '/var/tmp/ratelimit'
         );
     }
 }

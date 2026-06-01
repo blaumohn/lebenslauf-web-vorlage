@@ -1,0 +1,2 @@
+class DeployConflictError(Exception):
+    pass

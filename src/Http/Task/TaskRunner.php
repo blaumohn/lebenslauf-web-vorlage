@@ -4,21 +4,26 @@ namespace App\Http\Task;
 
 use App\Http\Mail\MailMessage;
 use App\Http\Mail\MailService;
+use App\Http\Runtime\RuntimeAtomicWriter;
+use Psr\Log\LoggerInterface;
 
 final class TaskRunner
 {
     private const TASK_DIR = 'var/tasks';
+    private const RESULT_DIR = 'var/tasks/results';
 
     /** @param TaskHandler[] $handlers */
     public function __construct(
         private readonly array $handlers,
-        private readonly string $entryPath,
+        private readonly string $appRoot,
         private readonly MailService $mailService,
+        private readonly LoggerInterface $logger,
+        private readonly RuntimeAtomicWriter $writer,
     ) {}
 
     public function runPending(): int
     {
-        $taskDir = $this->entryPath . '/' . self::TASK_DIR;
+        $taskDir = $this->appRoot . '/' . self::TASK_DIR;
         $files = $this->pendingFiles($taskDir);
         foreach ($files as $file) {
             $this->processTask($file);
@@ -39,31 +44,37 @@ final class TaskRunner
     private function processTask(string $filePath): void
     {
         $taskName = basename($filePath, '.ini');
-        $result = $this->executeTask($filePath, $taskName);
+        [$result, $taskId] = $this->executeTask($filePath, $taskName);
         if (is_file($filePath)) {
             unlink($filePath);
         }
+        $this->writeResult($taskId, $result);
         $this->tryNotifyResult($result, $taskName);
     }
 
-    private function executeTask(string $filePath, string $taskName): TaskResult
+    /** @return array{0: TaskResult, 1: string} */
+    private function executeTask(string $filePath, string $taskName): array
     {
+        $taskId = '';
         try {
-            $task = Task::fromFile($filePath);
-            return $this->resolveHandler($task->type())->handle($task, $this->entryPath);
+            $task = QueuedTaskFile::load($filePath);
+            $taskId = $task->get('task_id');
+            $result = $this->resolveHandler($task->type())->handle($task, $this->appRoot);
+            return [$result, $taskId];
         } catch (\Throwable $e) {
-            error_log("[task] Fehler bei {$taskName}: {$e->getMessage()}");
-            return TaskResult::fail($e->getMessage());
+            $this->logger->error("Task fehlgeschlagen: {$taskName}", ['exception' => $e]);
+            return [TaskResult::fail($e->getMessage()), $taskId];
         }
     }
 
-    private function tryNotifyResult(TaskResult $result, string $taskName): void
+    private function writeResult(string $taskId, TaskResult $result): void
     {
-        try {
-            $this->notifyResult($result, $taskName);
-        } catch (\Throwable $e) {
-            error_log("[task] Mailversand fehlgeschlagen ({$taskName}): {$e->getMessage()}");
+        if ($taskId === '') {
+            return;
         }
+        $content = $result->success ? 'ok' : 'error: ' . $result->body;
+        $path = $this->appRoot . '/' . self::RESULT_DIR . '/' . $taskId . '.result';
+        $this->writer->writeText($path, $content, 0644);
     }
 
     private function resolveHandler(string $type): TaskHandler
@@ -74,6 +85,15 @@ final class TaskRunner
             }
         }
         throw new \RuntimeException("Kein Handler für Task-Typ: {$type}");
+    }
+
+    private function tryNotifyResult(TaskResult $result, string $taskName): void
+    {
+        try {
+            $this->notifyResult($result, $taskName);
+        } catch (\Throwable $e) {
+            $this->logger->error("Mailversand fehlgeschlagen: {$taskName}", ['exception' => $e]);
+        }
     }
 
     private function notifyResult(TaskResult $result, string $taskName): void
