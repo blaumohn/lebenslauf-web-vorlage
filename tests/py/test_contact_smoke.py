@@ -61,7 +61,7 @@ class ContactSmokeTest(unittest.TestCase):
             ),
         }
         smoke = contact_smoke.ContactSmoke(
-            {"APP_ROOT_URL": "http://preview-web"},
+            {"APP_ROOT_URL": "http://ci-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
         sftp = FakeSftpClient(files)
@@ -76,7 +76,7 @@ class ContactSmokeTest(unittest.TestCase):
 
     def test_missing_captcha_state_names_expected_sftp_path(self):
         smoke = contact_smoke.ContactSmoke(
-            {"APP_ROOT_URL": "http://preview-web"},
+            {"APP_ROOT_URL": "http://ci-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
         sftp = FakeSftpClient({})
@@ -96,7 +96,7 @@ class ContactSmokeTest(unittest.TestCase):
         }
         sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
-            {"APP_ROOT_URL": "http://preview-web"},
+            {"APP_ROOT_URL": "http://ci-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
 
@@ -106,7 +106,7 @@ class ContactSmokeTest(unittest.TestCase):
         files = {".htaccess": "RewriteEngine On\n"}
         sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
-            {"APP_ROOT_URL": "http://preview-web"},
+            {"APP_ROOT_URL": "http://ci-web"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
 
@@ -117,7 +117,7 @@ class ContactSmokeTest(unittest.TestCase):
 
     def test_submits_form_to_deployed_contact_url(self):
         smoke = contact_smoke.ContactSmoke(
-            {"APP_ROOT_URL": "http://preview-web/"},
+            {"APP_ROOT_URL": "http://ci-web/"},
             {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
         )
         response = MagicMock(status_code=200)
@@ -131,7 +131,7 @@ class ContactSmokeTest(unittest.TestCase):
 
         url = post.call_args.args[0]
         data = post.call_args.kwargs["data"]
-        self.assertEqual(url, "http://preview-web/contact")
+        self.assertEqual(url, "http://ci-web/contact")
         self.assertEqual(data["captcha_id"], "abc_123")
         self.assertEqual(data["captcha_answer"], "ABC123")
 

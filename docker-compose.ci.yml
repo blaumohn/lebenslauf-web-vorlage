@@ -13,21 +13,23 @@ x-ci-env: &ci-env
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
 x-local-repo-volume: &local-repo-volume ".:/repo"
 
-x-preview-env: &preview-env
+x-ci-pipeline-env: &ci-pipeline-env
   <<: *ci-env
   PIPELINE: preview
   DEBUG: "$DEBUG"
   PIPELINE_RUN_ID: "$PIPELINE_RUN_ID"
   SFTP_DEPLOY_OVERRIDES: "${SFTP_DEPLOY_OVERRIDES:-}"
   LOG_FORMAT: "${LOG_FORMAT:-}"
+  CI_CV_DATA_PATH: "${CI_CV_DATA_PATH:-}"
+  CI_CV_DATA_PREPARE_SCRIPT: "${CI_CV_DATA_PREPARE_SCRIPT:-}"
 
-x-preview-runner: &preview-runner
+x-ci-runner: &ci-runner
   <<: *ci-base
   environment:
-    <<: *preview-env
+    <<: *ci-pipeline-env
 
 services:
-  ci-dev:
+  dev-smoke:
     <<: *ci-base
     volumes:
       - *ci-repo-volume
@@ -38,21 +40,30 @@ services:
       PIPELINE: dev
     command: bash /repo/bin/ci
 
-  ci-preview:
-    <<: *preview-runner
+  ci-driver:
+    <<: *ci-runner
     volumes:
       - *ci-repo-volume
-      - "composer_home_preview:/home/ci/.composer"
-      - "npm_cache_preview:/home/ci/.npm"
+      - "composer_home_ci:/home/ci/.composer"
+      - "npm_cache_ci:/home/ci/.npm"
+    environment:
+      <<: *ci-pipeline-env
+      PIPELINE: "$PIPELINE"
     command:
       - bash
       - -c
       - |
-        exec bash /repo/bin/ci "$${CI_TEST_CASE}" <<'YAML'
+        {
+        cat <<'YAML'
         app:
-          APP_ROOT_URL: "http://preview-web"
+          APP_ROOT_URL: "http://ci-web"
         mail:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
+        YAML
+        if [[ -n "$${CI_CV_DATA_PATH:-}" ]]; then
+          printf 'lebenslauf:\n  LEBENSLAUF_DATEN_PFAD: "%s"\n' "$$CI_CV_DATA_PATH"
+        fi
+        cat <<'YAML'
         sftp:
           SFTP_HOST: "sftp-server"
           SFTP_USER: "preview-ci"
@@ -66,23 +77,24 @@ services:
           SMTP_PASS: "ci-pass"
           SMTP_FROM_EMAIL: "noreply@ci.invalid"
         YAML
+        } | exec bash /repo/${CI_CV_DATA_PREPARE_SCRIPT:-bin/ci} "$${CI_TEST_CASE:-}"
       - --
     depends_on:
       sftp-server:
         condition: service_healthy
-      preview-web:
+      ci-web:
         condition: service_started
       mailpit:
         condition: service_started
 
   deploy-local:
-    <<: *preview-runner
+    <<: *ci-runner
     volumes:
       - *local-repo-volume
-      - "composer_home_preview:/home/ci/.composer"
-      - "npm_cache_preview:/home/ci/.npm"
+      - "composer_home_ci:/home/ci/.composer"
+      - "npm_cache_ci:/home/ci/.npm"
     environment:
-      <<: *preview-env
+      <<: *ci-pipeline-env
       LAST_DEPLOY_COMMIT: "$LAST_DEPLOY_COMMIT"
     command: bash /repo/bin/cd
 
@@ -116,25 +128,25 @@ services:
       retries: 30
       start_period: 2s
     volumes:
-      - "preview_deploy:/home/preview-ci/${CI_SFTP_DIR:-deploy}"
+      - "ci_deploy:/home/preview-ci/${CI_SFTP_DIR:-deploy}"
       - "./tests/ci/sftp_host_ed25519_key:/tmp/ssh_host_ed25519_key:ro"
       - "./tests/ci/sftp_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro"
 
-  preview-web:
+  ci-web:
     image: php:8.2-apache
     environment:
       APACHE_RUN_USER: "preview-ci"
       APACHE_RUN_GROUP: "preview-ci"
     command: bash /scripts/config-apache.sh
     volumes:
-      - "preview_deploy:/var/www/html"
+      - "ci_deploy:/var/www/html"
       - "./scripts/config-apache.sh:/scripts/config-apache.sh:ro"
       - "./tests/ci/ca.crt:/usr/local/share/ca-certificates/ci-mailpit-ca.crt:ro"
 
 volumes:
   composer_home_dev:
   npm_cache_dev:
-  composer_home_preview:
-  npm_cache_preview:
-  preview_deploy:
-    name: preview_deploy
+  composer_home_ci:
+  npm_cache_ci:
+  ci_deploy:
+    name: ci_deploy
