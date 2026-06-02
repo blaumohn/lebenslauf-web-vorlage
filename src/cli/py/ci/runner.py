@@ -64,6 +64,8 @@ def run_pipeline(pipeline: str) -> int:
         build_image()
         reset_deploy()
         start_helpers()
+        run_lebenslauf_sftp_relative_test(pipeline)
+        run_lebenslauf_absolute_test(pipeline)
         run_tests(pipeline)
         return 0
     except RuntimeError as exc:
@@ -89,7 +91,26 @@ def start_helpers() -> None:
 
 def run_tests(pipeline: str) -> None:
     for test_case, overrides in CI_TEST_CASES:
+        run_sftp_prepare(pipeline)
         run_test_case(pipeline, test_case, overrides)
+
+
+def run_sftp_prepare(pipeline: str, cv_data_path: str | None = None) -> None:
+    env = pipeline_test_env(pipeline, "sftp-prepare")
+    env["CI_CV_DATA_PREPARE_SCRIPT"] = "bin/lebenslauf-daten-vorbereiten"
+    if cv_data_path is not None:
+        env["CI_CV_DATA_PATH"] = cv_data_path
+    result = compose(
+        "run", "--rm", "--no-deps",
+        CI_SERVICE_DRIVER,
+        env=env,
+        label="Lebenslauf-Vorbereitung",
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"[runner] Lebenslauf-Vorbereitung fehlgeschlagen (Exit-Code: {result.returncode})"
+        )
 
 
 def run_test_case(pipeline: str, test_case: str, overrides: str | None) -> None:
@@ -124,9 +145,43 @@ def _compose_test(pipeline: str, test_case: str, overrides: str | None):
     )
 
 
+def run_lebenslauf_sftp_relative_test(pipeline: str) -> None:
+    data_path = ".local/lebenslauf"
+    run_sftp_prepare(pipeline, data_path)
+    env = pipeline_test_env(pipeline, "lebenslauf-relativ")
+    env["CI_CV_DATA_PATH"] = data_path
+    _run_lebenslauf_test("lebenslauf-relativ", env, [])
+
+
+def run_lebenslauf_absolute_test(pipeline: str) -> None:
+    data_path = f"/tmp/{build_ci_run_id('lebenslauf')}"
+    run_sftp_prepare(pipeline, data_path)
+    env = pipeline_test_env(pipeline, "lebenslauf-absolut")
+    env["CI_CV_DATA_PATH"] = data_path
+    _run_lebenslauf_test("lebenslauf-absolut", env, [])
+
+
+def _run_lebenslauf_test(test_case: str, env: dict, vol_args: list[str]) -> None:
+    print(f"[runner] Testfall: {test_case}", flush=True)
+    result = compose(
+        "run", "--rm", "--no-deps", "-e", "CI_TEST_CASE=",
+        *vol_args, CI_SERVICE_DRIVER,
+        env=env,
+        label=f"Testfall: {test_case}",
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"[runner] Fehlgeschlagen: Testfall: {test_case} "
+            f"(Exit-Code: {result.returncode})"
+        )
+    print(f"[runner] Testfall OK: {test_case}", flush=True)
+
+
 def pipeline_test_env(pipeline: str, test_case: str, overrides: str | None = None) -> dict[str, str]:
     env = runner_env(f"ci-{test_case}")
     env["PIPELINE"] = pipeline
+    env["CI_CV_DATA_PATH"] = ""
     if overrides is not None:
         env["SFTP_DEPLOY_OVERRIDES"] = overrides
     if test_case in SUPPRESS_ERROR_TYPES:

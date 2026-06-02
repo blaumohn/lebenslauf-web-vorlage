@@ -22,12 +22,15 @@ main() {
   export PATH="$WORK_REPO_DIR/bin:$PATH"
   . scripts/pipeline_lib.sh
 
+  write_pipeline_config_from_stdin
+
   if [[ "$PIPELINE" != "dev" ]]; then
     setup_deploy_test_case "$test_case"
     deploy_dir="var/deploy"
   fi
 
   run_step "Abhängigkeiten installieren" composer install:ci
+
   run_pipeline "$deploy_dir" --ci-ca-cert
   run_post_deploy_checks "$test_case"
 }
@@ -39,6 +42,7 @@ setup_deploy_test_case() {
     test-push-deploy)           setup_push_deploy_test ;;
     test-composer-lock-changed) setup_composer_lock_test ;;
     test-rollback)              setup_rollback_test ;;
+    "")                         ;;
     *)  echo "bin/ci: unbekannter Testfall: $test_case" >&2; exit 1 ;;
   esac
 }

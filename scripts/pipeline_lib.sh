@@ -1,5 +1,7 @@
 . scripts/pipeline_output.sh
 
+LEBENSLAUF_SFTP_FETCHED=0
+
 run_pipeline() {
   local deploy_dir is_dev= ci_ca_cert_arg=
 
@@ -19,6 +21,7 @@ run_pipeline() {
 
   if [[ ! $is_dev ]]; then
     run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check $ci_ca_cert_arg
+    run_step "Lebenslauf-Daten" prepare_lebenslauf_data
   fi
 
   run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
@@ -32,7 +35,8 @@ run_pipeline() {
 
   run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
   run_step "HTTP-Smoke Artefakt" with_dev_server "$deploy_dir/public" run_http_smoke_checks
-  run_step "SFTP-Deploy"         deploy
+  run_step "SFTP-Deploy"           deploy
+  reset_lebenslauf_sftp_if_used
   run_step "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
 }
 
@@ -49,11 +53,11 @@ pipeline_build() {
 }
 
 write_pipeline_config_from_stdin() {
-  if [[ -t 0 ]]; then
-    return
-  fi
+  local config_file=".local/${PIPELINE}.yaml"
+  [[ -f "$config_file" ]] && return
+  [[ -t 0 ]] && return
   mkdir -p .local
-  cat > ".local/${PIPELINE}.yaml"
+  cat > "$config_file"
 }
 
 run_unit_and_feature_tests() {
@@ -111,6 +115,32 @@ is_first_deploy_commit() {
   local zero_sha
   zero_sha="$(printf '%040d' 0)"
   [[ "$1" == "$zero_sha" ]]
+}
+
+prepare_lebenslauf_data() {
+  if [[ -d "$(lebenslauf_data_path)" ]]; then
+    LEBENSLAUF_SFTP_FETCHED=0
+    return 0
+  fi
+  fetch_lebenslauf
+  LEBENSLAUF_SFTP_FETCHED=1
+}
+
+lebenslauf_data_path() {
+  cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build
+}
+
+fetch_lebenslauf() {
+  cli python "$PIPELINE" --phase build --phase deploy -- scripts/lebenslauf-sftp-fetch.py
+}
+
+reset_lebenslauf_sftp_if_used() {
+  [[ "$LEBENSLAUF_SFTP_FETCHED" == "1" ]] || return 0
+  run_step "Lebenslauf-SFTP-Reset" loeschen_lebenslauf_sftp
+}
+
+loeschen_lebenslauf_sftp() {
+  cli python "$PIPELINE" --phase deploy -- scripts/lebenslauf-sftp-reset.py
 }
 
 run_smtp_credentials_check() {

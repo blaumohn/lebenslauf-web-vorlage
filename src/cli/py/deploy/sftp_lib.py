@@ -92,6 +92,9 @@ class SftpClient:
     def put_file(self, local_path, rel_path):
         self.sftp.put(str(local_path), self._abs(rel_path))
 
+    def get_file(self, rel_path, local_path):
+        self.sftp.get(self._abs(rel_path), str(local_path))
+
     def mkdir(self, rel_path):
         self.sftp.mkdir(self._abs(rel_path))
         return ok_result("sftp.mkdir")

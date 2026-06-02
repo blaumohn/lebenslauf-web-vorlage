@@ -22,6 +22,8 @@ main() {
   local deploy_dir
   require_nonempty PIPELINE LAST_DEPLOY_COMMIT
 
+  write_pipeline_config_from_stdin
+
   if no_changes_since_deploy "$LAST_DEPLOY_COMMIT"; then
     ci_note "Kein Deploy: keine Änderungen seit LAST_DEPLOY_COMMIT=${LAST_DEPLOY_COMMIT}"
     exit 0
