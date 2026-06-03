@@ -57,7 +57,15 @@ write_pipeline_config_from_stdin() {
   [[ -f "$config_file" ]] && return
   [[ -t 0 ]] && return
   mkdir -p .local
-  cat > "$config_file"
+  filter_empty_yaml_values > "$config_file"
+}
+
+filter_empty_yaml_values() {
+  awk '
+    /^[a-zA-Z]/ { pending=$0; next }
+    /: ""$/      { next }
+    { if (pending) { print pending; pending="" }; print }
+  '
 }
 
 run_unit_and_feature_tests() {

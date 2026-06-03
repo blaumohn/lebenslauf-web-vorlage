@@ -38,19 +38,36 @@ jobs:
         run: |
           bin/cd << EOF
           app:
+            APP_BASE_PATH: "${{ vars.APP_BASE_PATH }}"
             APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
-            APP_LOG_CHANNEL: "file"
-          smtp:
-            SMTP_HOST: "${{ secrets.SMTP_HOST || vars.SMTP_HOST }}"
-            SMTP_USER: "${{ secrets.SMTP_USER || vars.SMTP_USER }}"
-            SMTP_PASS: "${{ secrets.SMTP_PASS }}"
-            SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL || vars.SMTP_FROM_EMAIL }}"
+            TRUST_PROXY: "${{ vars.TRUST_PROXY }}"
+          lebenslauf:
+            LEBENSLAUF_DATEN_PFAD: "${{ secrets.LEBENSLAUF_DATEN_PFAD || vars.LEBENSLAUF_DATEN_PFAD }}"
+            LEBENSLAUF_PUBLIC_PROFILE: "${{ secrets.LEBENSLAUF_PUBLIC_PROFILE || vars.LEBENSLAUF_PUBLIC_PROFILE }}"
+            LEBENSLAUF_LANG_DEFAULT: "${{ vars.LEBENSLAUF_LANG_DEFAULT }}"
+            LEBENSLAUF_LANGS: "${{ vars.LEBENSLAUF_LANGS }}"
+          captcha:
+            CAPTCHA_TTL_SECONDS: "${{ vars.CAPTCHA_TTL_SECONDS }}"
+            CAPTCHA_MAX_GET: "${{ vars.CAPTCHA_MAX_GET }}"
+          contact:
+            CONTACT_MAX_POST: "${{ vars.CONTACT_MAX_POST }}"
           mail:
             MAIL_TO_EMAIL: "${{ secrets.MAIL_TO_EMAIL || vars.MAIL_TO_EMAIL }}"
+          rate_limit:
+            RATE_LIMIT_WINDOW_SECONDS: "${{ vars.RATE_LIMIT_WINDOW_SECONDS }}"
+          smtp:
+            SMTP_HOST: "${{ secrets.SMTP_HOST || vars.SMTP_HOST }}"
+            SMTP_PORT: "${{ vars.SMTP_PORT }}"
+            SMTP_USER: "${{ secrets.SMTP_USER || vars.SMTP_USER }}"
+            SMTP_PASS: "${{ secrets.SMTP_PASS }}"
+            SMTP_ENCRYPTION: "${{ vars.SMTP_ENCRYPTION }}"
+            SMTP_FROM_EMAIL: "${{ secrets.SMTP_FROM_EMAIL || vars.SMTP_FROM_EMAIL }}"
+            SMTP_FROM_NAME: "${{ vars.SMTP_FROM_NAME }}"
           sftp:
+            SFTP_SERVER_DIR: "${{ secrets.SFTP_SERVER_DIR || vars.SFTP_SERVER_DIR }}"
+            SFTP_PORT: "${{ vars.SFTP_PORT }}"
             SFTP_HOST: "${{ secrets.SFTP_HOST || vars.SFTP_HOST }}"
             SFTP_USER: "${{ secrets.SFTP_USER || vars.SFTP_USER }}"
             SFTP_PASS: "${{ secrets.SFTP_PASS }}"
-            SFTP_SERVER_DIR: "${{ secrets.SFTP_SERVER_DIR || vars.SFTP_SERVER_DIR }}"
             SSH_KNOWN_HOST_LINE: "${{ secrets.SSH_KNOWN_HOST_LINE || vars.SSH_KNOWN_HOST_LINE }}"
           EOF
