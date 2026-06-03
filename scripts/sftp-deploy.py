@@ -12,7 +12,7 @@ from cli.py.deploy.slot_switch import (
     SlotSwitchDispatcher,
 )
 from cli.py.deploy.token_migrator import RuntimeTokenMigrator
-from cli.py.deploy.tree_uploader import SftpTreeUploader
+from cli.py.deploy.sftp_deploy_uploader import SftpDeployUploader
 from cli.py.deploy.vendor_sentinel import ComposerInputChecksum
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
@@ -99,7 +99,7 @@ class SftpDeploy:
         )
 
     def _tree_uploader(self):
-        return SftpTreeUploader(
+        return SftpDeployUploader(
             self.client,
             self.STAGING_DIR,
             self.run_id,

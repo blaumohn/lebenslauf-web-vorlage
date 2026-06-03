@@ -37,7 +37,7 @@ VENDOR_META = f"[vendor]\nchecksum = {CHECKSUM}\n\n"
 
 def enter_common_patches(stack):
     stack.enter_context(patch(
-            "cli.py.deploy.tree_uploader.SftpTreeUploader"
+            "cli.py.deploy.sftp_deploy_uploader.SftpDeployUploader"
             "._inject_vendor_dir",
             return_value=None,
         )
@@ -316,12 +316,12 @@ class Szenario3Test(unittest.TestCase):
                     side_effect=RuntimeError("Smoke fehlgeschlagen"),
                 ),
                 patch(
-                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    "cli.py.deploy.sftp_deploy_uploader.SftpDeployUploader"
                     "._inject_vendor_dir",
                     return_value=None,
                 ),
                 patch(
-                    "cli.py.deploy.tree_uploader.SftpTreeUploader"
+                    "cli.py.deploy.sftp_deploy_uploader.SftpDeployUploader"
                     ".upload_vendor_dir",
                     return_value=None,
                 ),
