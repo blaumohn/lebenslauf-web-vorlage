@@ -34,7 +34,7 @@ final class PublishCommand extends BasePipelineCommand
         if ($deployValues === null) {
             return Command::FAILURE;
         }
-        return $this->pythonRunner()->runScript(self::PUBLISH_SCRIPT, $deployValues['deploy']);
+        return $this->pythonRunner()->runScript(self::PUBLISH_SCRIPT, $deployValues);
     }
 
     private function runBuild(ConfigValues $config, OutputInterface $output): bool

@@ -102,7 +102,7 @@ run_contact_smoke() {
 }
 
 run_publish_smoke() {
-  cli python "$PIPELINE" --phase deploy scripts/publish.py
+  cli publish "$PIPELINE"
 }
 
 run_token_smoke() {
