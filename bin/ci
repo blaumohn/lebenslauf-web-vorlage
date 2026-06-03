@@ -57,6 +57,7 @@ run_post_deploy_checks() {
   run_step "SMTP-Smoke"    run_smtp_smoke
   run_step "Contact-Smoke" run_contact_smoke
   run_step "Token-Smoke"   run_token_smoke
+  run_step "Publish-Smoke" run_publish_smoke
 }
 
 read_deploy_history() {
@@ -98,6 +99,10 @@ run_smtp_smoke() {
 
 run_contact_smoke() {
   cli python "$PIPELINE" --phase deploy --phase runtime tests/ci/contact_smoke.py
+}
+
+run_publish_smoke() {
+  cli publish "$PIPELINE"
 }
 
 run_token_smoke() {

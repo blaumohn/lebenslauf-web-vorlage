@@ -5,6 +5,7 @@ namespace App\Http;
 use App\Http\Task\TaskRunner;
 use App\Http\Task\Deploy\DeploySwitcher;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
+use App\Http\Task\Cv\CvPublishTaskHandler;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Mail\MailService;
@@ -90,6 +91,7 @@ final class AppContext
         $handlers = [
             new DeploySwitchTaskHandler($switcher, $deployRoot),
             new CvTokenRotationTaskHandler($rotateHandler),
+            new CvPublishTaskHandler($writer),
         ];
         return new TaskRunner($handlers, $appRoot, $mailService, $logger, $writer);
     }

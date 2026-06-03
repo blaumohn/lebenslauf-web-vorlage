@@ -19,6 +19,7 @@ POLL_TIMEOUT_S = 60
 TASK_SCHEMAS = {
     "cv_token_rotation": {"profile": "default", "count": "1"},
     "deploy_switch": {"app": "", "vendor": "", "run_id": ""},
+    "cv_publish": {},
 }
 
 _logger = logging.getLogger(__name__)

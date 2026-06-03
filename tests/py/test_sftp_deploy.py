@@ -24,7 +24,7 @@ from cli.py.deploy.slots import SlotMap  # noqa: E402
 from cli.py.deploy.token_migrator import (  # noqa: E402
     RuntimeTokenMigrator,
 )
-from cli.py.deploy.tree_uploader import SftpTreeUploader  # noqa: E402
+from cli.py.deploy.sftp_deploy_uploader import SftpDeployUploader  # noqa: E402
 
 class FakeLogger:
     def __call__(self, _): pass
@@ -164,7 +164,7 @@ def write_staging_bootstrap(staging_dir):
 
 
 def make_uploader(client, staging_dir, run_id="run-1"):
-    return SftpTreeUploader(
+    return SftpDeployUploader(
         client,
         Path(staging_dir),
         run_id,
@@ -248,7 +248,7 @@ class UploadSentinelTest(unittest.TestCase):
             (vendor_dir / "autoload.php").write_text("<?php")
             uploader = make_uploader(client, tmp)
             with patch.object(
-                uploader,
+                uploader._tree,
                 "upload_file",
                 side_effect=OSError("fail"),
             ), self.assertRaises(OSError):
@@ -274,7 +274,7 @@ class UploadSentinelTest(unittest.TestCase):
             (Path(tmp) / "index.php").write_text("<?php")
             uploader = make_uploader(client, tmp)
             with patch.object(
-                uploader,
+                uploader._tree,
                 "upload_file",
                 side_effect=OSError("fail"),
             ), self.assertRaises(OSError):

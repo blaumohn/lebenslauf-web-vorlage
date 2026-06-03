@@ -7,6 +7,7 @@ use App\Cli\Command\CaptchaCommand;
 use App\Cli\Command\CiCommand;
 use App\Cli\Command\ConfigCommand;
 use App\Cli\Command\IpHashCommand;
+use App\Cli\Command\PublishCommand;
 use App\Cli\Command\StartCommand;
 use App\Cli\Command\SetupCommand;
 use App\Cli\Command\TokenCommand;
@@ -33,5 +34,6 @@ final class Application extends SymfonyApplication
         $this->addCommand(new CaptchaCommand($this->context));
         $this->addCommand(new ConfigCommand($this->context));
         $this->addCommand(new IpHashCommand($this->context));
+        $this->addCommand(new PublishCommand($this->context));
     }
 }
