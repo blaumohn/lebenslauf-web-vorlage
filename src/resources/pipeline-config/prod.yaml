@@ -5,7 +5,7 @@ app:
 
 lebenslauf:
   LEBENSLAUF_DATEN_PFAD: .local/lebenslauf
-  LEBENSLAUF_PUBLIC_PROFILE: dev
+  LEBENSLAUF_PUBLIC_PROFILE: gueltig
   LEBENSLAUF_LANG_DEFAULT: de
   LEBENSLAUF_LANGS: "de,en"
 

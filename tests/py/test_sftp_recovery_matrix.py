@@ -96,6 +96,10 @@ class FakeClient:
     def put_bytes(self, _path, _data):
         pass
 
+    def append_line(self, path, line):
+        existing = self._contents.get(path, "")
+        self._contents[path] = existing + line + "\n"
+
     def ensure_dir(self, _path):
         pass
 

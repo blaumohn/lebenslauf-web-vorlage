@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["ts", "source", "event", "run_id"],
+  "additionalProperties": false,
+  "properties": {
+    "ts":             { "type": "string" },
+    "source":         { "type": "string", "enum": ["driver", "runtime"] },
+    "event":          { "type": "string", "enum": [
+                          "task_dispatched",
+                          "task_confirmed",
+                          "switch_executed",
+                          "smoke_passed",
+                          "deploy_failed",
+                          "rolled_back"
+                        ]},
+    "run_id":         { "type": "string", "minLength": 1 },
+    "task_id":        { "type": "string" },
+    "target_app":     { "type": "string" },
+    "target_vendor":  { "type": "string" },
+    "app_before":     { "type": "string" },
+    "vendor_before":  { "type": "string" },
+    "app_after":      { "type": "string" },
+    "vendor_after":   { "type": "string" },
+    "outcome":        { "type": "string" }
+  }
+}

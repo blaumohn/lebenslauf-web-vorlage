@@ -86,6 +86,12 @@ class FakeClient:
     def put_bytes(self, path, data):
         self.texts[path] = data
 
+    def append_line(self, path, line):
+        existing = self.texts.get(path, b"")
+        if isinstance(existing, bytes):
+            existing = existing.decode()
+        self.texts[path] = existing + line + "\n"
+
     def file_exists(self, path):
         return path in self._file_exists_set
 

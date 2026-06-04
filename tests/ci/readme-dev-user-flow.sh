@@ -11,7 +11,7 @@ SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 require_nonempty CI_WORK_BASE
 
 main() {
-  local staging_dir user_work_dir git_daemon_pid dev_server_pid LEBENSLAUF_WEB_VORLAGE_REPO
+  local staging_dir user_work_dir git_daemon_pid dev_server_pid REPLACE_WITH_REPOSITORY_URL
 
   run_step "README-Dev-UX: Repository bereitstellen" prepare_readme_dev_repo
   run_step "README-Dev-UX: Schnellstart" schnellstart
@@ -30,9 +30,9 @@ prepare_readme_dev_repo() {
 }
 
 schnellstart() {
-  git clone "$LEBENSLAUF_WEB_VORLAGE_REPO" lebenslauf-web-vorlage
+  git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
   cd lebenslauf-web-vorlage
-  export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
+  PATH="$PWD/bin:$PATH"  # Hinweis: alternativ `php bin/cli ...` verwenden.
   composer install
   cli setup dev --with-sample-content
   cli build dev
@@ -58,13 +58,13 @@ start_git_server() {
     --base-path="$parent" --export-all \
     "$repo_dir" &
   git_daemon_pid="$!"
-  LEBENSLAUF_WEB_VORLAGE_REPO="git://127.0.0.1:${port}/${name}"
+  REPLACE_WITH_REPOSITORY_URL="git://127.0.0.1:${port}/${name}"
   wait_for_git_server
 }
 
 wait_for_git_server() {
   for _ in $(seq 1 10); do
-    if git ls-remote "$LEBENSLAUF_WEB_VORLAGE_REPO" > /dev/null 2>&1; then
+    if git ls-remote "$REPLACE_WITH_REPOSITORY_URL" > /dev/null 2>&1; then
       return 0
     fi
     sleep 1
