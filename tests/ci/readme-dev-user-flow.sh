@@ -32,10 +32,11 @@ prepare_readme_dev_repo() {
 schnellstart() {
   git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
   cd lebenslauf-web-vorlage
+  PATH="$PWD/bin:$PATH"  # Hinweis: alternativ `php bin/cli ...` verwenden.
   composer install
-  php bin/cli setup dev --with-sample-content
-  php bin/cli build dev
-  php bin/cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+  cli setup dev --with-sample-content
+  cli build dev
+  cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
   dev_server_pid="$!"
   wait_for_dev_server
 }
