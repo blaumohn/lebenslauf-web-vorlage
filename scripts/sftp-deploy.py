@@ -3,6 +3,7 @@ from pathlib import Path
 import requests
 import requests.exceptions
 
+from cli.py.deploy.history import DeployHistoryEntry, DeployHistoryWriter
 from cli.py.deploy.machine import DeployMachine
 from cli.py.deploy.sftp_deploy_ops import SftpDeployOps
 from cli.py.deploy.sftp_lib import SftpClient
@@ -72,6 +73,7 @@ class SftpDeploy:
         self.client = None
 
     def deploy(self):
+        self._history = DeployHistoryWriter(self.client, source="driver", run_id=self.run_id, logger=self.log)
         machine = DeployMachine(
             self._build_ops(),
             on_transition=self._log_deploy_state,
@@ -116,17 +118,20 @@ class SftpDeploy:
             TaskDispatch,
             Task,
             publisher,
+            history_writer=self._history,
         )
 
     def _log_deploy_state(self, source, target):
         self.log(f"Deploy-State: {source.id} → {target.id}")
+        if target.id in {"smoke_passed", "deploy_failed", "rolled_back"}:
+            self._history.record(target.id)
 
     def _log_deploy_result(self, state):
         if state == DeployMachine.manual_intervention_required:
             self.log(
                 "Manueller Eingriff erforderlich — keine Änderungen"
             )
-        elif state == DeployMachine.failed_safe:
+        elif state == DeployMachine.deploy_failed:
             self.log(
                 "Deploy fehlgeschlagen — aktiver Deploy unberührt"
             )

@@ -4,6 +4,9 @@ namespace App\Http\Task\Deploy;
 
 final class DeployEvent
 {
+    public const SOURCE = 'runtime';
+    public const EVENT  = 'switch_executed';
+
     public function __construct(
         public readonly string $pipelineRunId,
         public readonly string $taskId,

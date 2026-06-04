@@ -1,3 +1,4 @@
+from cli.py.deploy.history import DeployHistoryWriter
 from cli.py.deploy.slot_store import SlotStore
 from cli.py.deploy.slots import SlotMap
 
@@ -25,6 +26,7 @@ class SlotSwitchDispatcher:
         task_dispatch_cls,
         task_cls,
         publisher: SlotPublisher,
+        history_writer: DeployHistoryWriter | None = None,
     ):
         self.cfg = cfg
         self.run_id = run_id
@@ -33,6 +35,7 @@ class SlotSwitchDispatcher:
         self.task_dispatch_cls = task_dispatch_cls
         self.task_cls = task_cls
         self.publisher = publisher
+        self.history_writer = history_writer
 
     def dispatch(self, target: SlotMap, active: SlotMap) -> None:
         reason = self._system_invalid_reason(active)
@@ -59,8 +62,14 @@ class SlotSwitchDispatcher:
             "vendor": target.vendor.label,
             "pipeline_run_id": self.run_id,
         })
+        self._record("task_dispatched", target_app=target.app.label, target_vendor=target.vendor.label)
         self.task_dispatch_cls(self.cfg, logger=self.log).submit(task)
+        self._record("task_confirmed")
         self.log(
             f"Switch ausgelöst: Slot {target.app.dir}, "
             f"Vendor {target.vendor.dir}, Run {self.run_id}"
         )
+
+    def _record(self, event: str, **kwargs) -> None:
+        if self.history_writer:
+            self.history_writer.record(event, **kwargs)
