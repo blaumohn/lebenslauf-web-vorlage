@@ -25,25 +25,19 @@
 ---
 
 ## Quickstart
-<small>*Full section: [Quickstart](https://docs.template.ysdani.com/en/getting-started/quickstart/)*</small>
+<small>*Source: `tests/ci/readme-dev-user-flow.sh` > `schnellstart()`*</small>
 
-> **`schnellstart()`**
->
 > ```bash
-> schnellstart() {
->   git clone https://github.com/blaumohn/lebenslauf-web-vorlage lebenslauf-web-vorlage
->   cd lebenslauf-web-vorlage
->   export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
->   composer install
->   cli setup dev --with-sample-content
->   cli build dev
->   cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
->   dev_server_pid="$!"
->   wait_for_dev_server
-> }
+> git clone https://github.com/blaumohn/lebenslauf-web-vorlage lebenslauf-web-vorlage
+> cd lebenslauf-web-vorlage
+> export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
+> composer install
+> cli setup dev --with-sample-content
+> cli build dev
+> cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+> dev_server_pid="$!"
+> wait_for_dev_server
 > ```
->
-> Source: `tests/ci/readme-dev-user-flow.sh`. The clone command uses the public GitHub URL here.
 
 ---
 
@@ -63,20 +57,14 @@
 ---
 
 ## Set up private view
-<small>*Full section: [Set up private view](https://docs.template.ysdani.com/en/getting-started/private-view/)*</small>
+<small>*Source: `tests/ci/readme-dev-user-flow.sh` > `private_ansicht_einrichten()`*</small>
 
-> **`private_ansicht_einrichten()`**
->
 > ```bash
-> private_ansicht_einrichten() {
->   local token
->   token="$(cli token dev rotate default)"
->   curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
->     | grep -q '</html>'
-> }
+> local token
+> token="$(cli token dev rotate default)"
+> curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
+>   | grep -q '</html>'
 > ```
->
-> Source: `tests/ci/readme-dev-user-flow.sh`.
 
 ---
 
