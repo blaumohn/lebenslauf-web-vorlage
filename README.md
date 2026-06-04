@@ -25,16 +25,15 @@ Deutsch | [English](README.en.md)
 ---
 
 ## Schnellstart
-<small>*Quelle: `tests/ci/readme-dev-user-flow.sh` > `schnellstart()`*</small>
+<small>*Quelle: [tests/ci/readme-dev-user-flow.sh](tests/ci/readme-dev-user-flow.sh) > `schnellstart()`*</small>
 
 > ```bash
-> git clone https://github.com/blaumohn/lebenslauf-web-vorlage lebenslauf-web-vorlage
+> git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
 > cd lebenslauf-web-vorlage
-> export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
 > composer install
-> cli setup dev --with-sample-content
-> cli build dev
-> cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+> php bin/cli setup dev --with-sample-content
+> php bin/cli build dev
+> php bin/cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
 > dev_server_pid="$!"
 > wait_for_dev_server
 > ```
@@ -57,7 +56,7 @@ Deutsch | [English](README.en.md)
 ---
 
 ## Private Ansicht einrichten
-<small>*Quelle: `tests/ci/readme-dev-user-flow.sh` > `private_ansicht_einrichten()`*</small>
+<small>*Quelle: [tests/ci/readme-dev-user-flow.sh](tests/ci/readme-dev-user-flow.sh) > `private_ansicht_einrichten()`*</small>
 
 > ```bash
 > local token
