@@ -97,13 +97,13 @@ def test_happy_path_endet_in_cleaned_up():
     assert m.current_state == DeployMachine.cleaned_up
 
 
-def test_upload_fehler_fuehrt_zu_failed_safe():
+def test_upload_fehler_fuehrt_zu_deploy_failed():
     m = DeployMachine(FakeOps(fail_at="upload_app"))
     m.run()
-    assert m.current_state == DeployMachine.failed_safe
+    assert m.current_state == DeployMachine.deploy_failed
 
 
-def test_failed_safe_verhindert_switch():
+def test_deploy_failed_verhindert_switch():
     ops = FakeOps(fail_at="upload_app")
     m = DeployMachine(ops)
     m.run()
@@ -117,11 +117,11 @@ def test_smoke_ok_exception_loest_rollback_aus():
     assert m.current_state == DeployMachine.rolled_back
 
 
-def test_rollback_fehler_fuehrt_zu_failed_safe():
+def test_rollback_fehler_fuehrt_zu_deploy_failed():
     ops = FakeOps(fail_at="rollback_after_switch", smoke=False)
     m = DeployMachine(ops)
     m.run()
-    assert m.current_state == DeployMachine.failed_safe
+    assert m.current_state == DeployMachine.deploy_failed
 
 
 def test_smoke_fehler_fuehrt_zu_rollback():
@@ -316,7 +316,7 @@ def test_on_error_meldet_beide_fehler_bei_post_switch_rollback_fehler():
     m = DeployMachine(ops, on_error=errors.append)
     m.run()
     assert len(errors) == 2
-    assert m.current_state == DeployMachine.failed_safe
+    assert m.current_state == DeployMachine.deploy_failed
 
 
 def test_on_error_meldet_conflict_in_rollback():

@@ -45,7 +45,7 @@ _PHASE_FLOW_SUFFIX = (
     "vendor_ready",
     "tokens_migrated",
     "switched",
-    "verified",
+    "smoke_passed",
 )
 
 POST_SWITCH_STEPS = {"smoke_ok"}
@@ -71,7 +71,7 @@ def expected_phase_flow(scenario):
 TERMINAL_PHASES = {
     DeployMachine.cleaned_up,
     DeployMachine.rolled_back,
-    DeployMachine.failed_safe,
+    DeployMachine.deploy_failed,
     DeployMachine.manual_intervention_required,
 }
 
@@ -267,7 +267,7 @@ def expected_error_phase(scenario):
         return DeployMachine.manual_intervention_required
     if scenario.fail_at in POST_SWITCH_STEPS:
         return DeployMachine.rolled_back
-    return DeployMachine.failed_safe
+    return DeployMachine.deploy_failed
 
 
 def make_scenario(
@@ -408,7 +408,7 @@ class DeployMachineStateMachine(RuleBasedStateMachine):
 @pytest.mark.parametrize(
     ("error_kind", "expected"),
     [
-        ("runtime", DeployMachine.failed_safe),
+        ("runtime", DeployMachine.deploy_failed),
         ("conflict", DeployMachine.manual_intervention_required),
     ],
 )

@@ -45,10 +45,10 @@ class DeployMachine(StateMachine):
     vendor_ready                 = State()
     tokens_migrated              = State()
     switched                     = State()
-    verified                     = State()
+    smoke_passed                     = State()
     cleaned_up                   = State(final=True)
     rolled_back                  = State(final=True)
-    failed_safe                  = State(final=True)
+    deploy_failed                  = State(final=True)
     manual_intervention_required = State(final=True)
 
     load               = started.to(state_loaded)
@@ -67,24 +67,24 @@ class DeployMachine(StateMachine):
     tokens_skip    = vendor_ready.to(tokens_migrated)
     switch_fresh   = tokens_migrated.to(switched)
     switch_swap    = tokens_migrated.to(switched)
-    verify         = switched.to(verified)
-    done           = verified.to(cleaned_up)
+    verify         = switched.to(smoke_passed)
+    done           = smoke_passed.to(cleaned_up)
     rollback = (
         switched.to(rolled_back)
-        | verified.to(rolled_back)
+        | smoke_passed.to(rolled_back)
     )
     fail = (
-        started.to(failed_safe)
-        | state_loaded.to(failed_safe)
-        | fresh_selected.to(failed_safe)
-        | swap_selected.to(failed_safe)
-        | swap_vendor_update_selected.to(failed_safe)
-        | target_prepared.to(failed_safe)
-        | app_uploaded.to(failed_safe)
-        | vendor_ready.to(failed_safe)
-        | tokens_migrated.to(failed_safe)
-        | switched.to(failed_safe)
-        | verified.to(failed_safe)
+        started.to(deploy_failed)
+        | state_loaded.to(deploy_failed)
+        | fresh_selected.to(deploy_failed)
+        | swap_selected.to(deploy_failed)
+        | swap_vendor_update_selected.to(deploy_failed)
+        | target_prepared.to(deploy_failed)
+        | app_uploaded.to(deploy_failed)
+        | vendor_ready.to(deploy_failed)
+        | tokens_migrated.to(deploy_failed)
+        | switched.to(deploy_failed)
+        | smoke_passed.to(deploy_failed)
     )
     conflict = (
         started.to(manual_intervention_required)
@@ -97,7 +97,7 @@ class DeployMachine(StateMachine):
         | vendor_ready.to(manual_intervention_required)
         | tokens_migrated.to(manual_intervention_required)
         | switched.to(manual_intervention_required)
-        | verified.to(manual_intervention_required)
+        | smoke_passed.to(manual_intervention_required)
     )
 
     def __init__(
@@ -146,7 +146,7 @@ class DeployMachine(StateMachine):
         self._post_switch = True
         self._guarded(self._step_verify)
 
-    def on_enter_verified(self) -> None:
+    def on_enter_smoke_passed(self) -> None:
         self.done()
 
     def after_transition(self, event, source, target) -> None:
