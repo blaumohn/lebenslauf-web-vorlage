@@ -27,15 +27,23 @@ Deutsch | [English](README.en.md)
 ## Schnellstart
 <small>*Vollständiger Abschnitt: [Schnellstart](https://docs.template.ysdani.com/de/getting-started/schnellstart/)*</small>
 
+> **`schnellstart()`**
+>
 > ```bash
-> composer install
-> php bin/cli setup dev --with-sample-content
-> php bin/cli build dev
-> composer run dev
+> schnellstart() {
+>   git clone https://github.com/blaumohn/lebenslauf-web-vorlage lebenslauf-web-vorlage
+>   cd lebenslauf-web-vorlage
+>   export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
+>   composer install
+>   cli setup dev --with-sample-content
+>   cli build dev
+>   cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+>   dev_server_pid="$!"
+>   wait_for_dev_server
+> }
 > ```
 >
-> `--with-sample-content` legt Beispieldaten an, ohne bestehende Daten zu überschreiben.
-> `composer run dev` kompiliert die Runtime-Konfiguration und startet den Entwicklungsserver.
+> Quelle: `tests/ci/readme-dev-user-flow.sh`. Der Clone-Befehl nutzt hier die öffentliche GitHub-URL.
 
 ---
 
@@ -57,16 +65,18 @@ Deutsch | [English](README.en.md)
 ## Private Ansicht einrichten
 <small>*Vollständiger Abschnitt: [Private Ansicht einrichten](https://docs.template.ysdani.com/de/getting-started/private-ansicht/)*</small>
 
-> Die private Ansicht zeigt den vollständigen Lebenslauf per URL-Token — kein Login, kein Account.
-> Einrichtung nach `composer run dev`:
+> **`private_ansicht_einrichten()`**
 >
-> 1. **Token erzeugen** — `php bin/cli token rotate preview`
-> 2. **`.local/preview.yaml` anlegen** — `APP_ROOT_URL` und Deployment-Werte setzen.
->    Datei mit `chmod 600` sichern: nur vertrauenswürdige Benutzer dürfen sie lesen.
-> 3. **GitHub Secrets/Vars setzen** — Pflichtfelder aus `src/resources/pipeline-config/manifest.yaml`,
->    Abschnitt `pipelines.preview`, im GitHub-Environment `preview`.
-> 4. **CI lokal prüfen** — `composer run ci:preview`
-> 5. **Aufrufen** — `https://domain/cv?token=<token>`
+> ```bash
+> private_ansicht_einrichten() {
+>   local token
+>   token="$(cli token dev rotate default)"
+>   curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
+>     | grep -q '</html>'
+> }
+> ```
+>
+> Quelle: `tests/ci/readme-dev-user-flow.sh`.
 
 ---
 

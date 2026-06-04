@@ -27,15 +27,23 @@
 ## Quickstart
 <small>*Full section: [Quickstart](https://docs.template.ysdani.com/en/getting-started/quickstart/)*</small>
 
+> **`schnellstart()`**
+>
 > ```bash
-> composer install
-> php bin/cli setup dev --with-sample-content
-> php bin/cli build dev
-> composer run dev
+> schnellstart() {
+>   git clone https://github.com/blaumohn/lebenslauf-web-vorlage lebenslauf-web-vorlage
+>   cd lebenslauf-web-vorlage
+>   export PATH="$PWD/bin:$PATH"  # statt export: php bin/cli …
+>   composer install
+>   cli setup dev --with-sample-content
+>   cli build dev
+>   cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+>   dev_server_pid="$!"
+>   wait_for_dev_server
+> }
 > ```
 >
-> `--with-sample-content` creates sample data without overwriting existing data.
-> `composer run dev` compiles the runtime configuration and starts the development server.
+> Source: `tests/ci/readme-dev-user-flow.sh`. The clone command uses the public GitHub URL here.
 
 ---
 
@@ -57,16 +65,18 @@
 ## Set up private view
 <small>*Full section: [Set up private view](https://docs.template.ysdani.com/en/getting-started/private-view/)*</small>
 
-> The private view shows the full CV via URL token — no login, no account.
-> Set up after `composer run dev`:
+> **`private_ansicht_einrichten()`**
 >
-> 1. **Generate token** — `php bin/cli token rotate preview`
-> 2. **Create `.local/preview.yaml`** — set `APP_ROOT_URL` and deployment values.
->    Secure with `chmod 600`: only trusted users may read the file.
-> 3. **Set GitHub Secrets/Vars** — required fields from `src/resources/pipeline-config/manifest.yaml`,
->    section `pipelines.preview`, in the GitHub environment `preview`.
-> 4. **Check CI locally** — `composer run ci:preview`
-> 5. **Open** — `https://domain/cv?token=<token>`
+> ```bash
+> private_ansicht_einrichten() {
+>   local token
+>   token="$(cli token dev rotate default)"
+>   curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
+>     | grep -q '</html>'
+> }
+> ```
+>
+> Source: `tests/ci/readme-dev-user-flow.sh`.
 
 ---
 
