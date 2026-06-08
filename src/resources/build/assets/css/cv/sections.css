@@ -2,24 +2,28 @@
   section[class^="section-"] {
     --section-body-gap: 12px;
     --section-indent: 2px;
+    --section-line-indent: 4px;
+    --section-line-width: 87.5%;
+    --section-title-font-size: 0.95rem;
+    --skills-section-offset: 3.5rem;
     display: flex;
     flex-direction: column;
     gap: 0;
   }
 
   .section-title {
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: var(--section-title-font-size);
+    font-weight: var(--font-weight-bold);
     color: #000;
     padding-bottom: 6px;
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .section-line {
     border-top: 1px solid var(--gray-400);
-    margin-left: 4px;
+    margin-left: var(--section-line-indent);
     margin-bottom: 0;
-    width: 87.5%;
+    width: var(--section-line-width);
   }
 
   @media print {
@@ -29,9 +33,9 @@
   }
 
   .section-text {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--gray-800);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .section-body {
@@ -42,7 +46,7 @@
   }
 
   .section-skills {
-    margin-top: 3.5rem;
+    margin-top: var(--skills-section-offset);
     --section-body-gap: 24px;
     --section-indent: 0;
   }

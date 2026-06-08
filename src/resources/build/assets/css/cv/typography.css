@@ -1,5 +1,6 @@
 @layer components {
 .name {
+  --name-title-font-size: 30px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -7,15 +8,15 @@
 }
 
   .name-title {
-    font-size: 30px;
-    font-weight: 600;
+    font-size: var(--name-title-font-size);
+    font-weight: var(--font-weight-semibold);
     color: #000;
   }
 
   .name-role {
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.25;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
     color: var(--gray-500);
   }
 }

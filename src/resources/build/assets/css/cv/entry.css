@@ -1,5 +1,11 @@
 @layer components {
   .entry {
+    --entry-meta-end-offset: 3%;
+    --entry-text-end-reserve: 10%;
+    --language-item-max-width: 10rem;
+  }
+
+  .entry {
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -7,10 +13,10 @@
 
   .entry-company-line,
   .entry-project-line {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     color: var(--gray-800);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .entry-header {
@@ -19,18 +25,6 @@
 
   .entry-content {
     display: flow-root;
-  }
-
-  .entry-title {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--gray-700);
-    line-height: 1.25;
-  }
-
-  .entry-project {
-    font-weight: 600;
-    color: var(--gray-800);
   }
 
   .entry-meta {
@@ -43,21 +37,33 @@
     margin-bottom: 0.25rem;
     max-width: 9rem;
     text-align: right;
-    margin-right: 3%;
+    margin-right: var(--entry-meta-end-offset);
+  }
+
+  .entry-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--gray-700);
+    line-height: var(--line-height-tight);
+  }
+
+  .entry-project {
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-800);
   }
 
   .entry-time {
-    font-size: 0.875rem;
-    font-weight: 300;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-light);
     color: var(--gray-700);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .entry-location {
-    font-size: 0.875rem;
-    font-weight: 300;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-light);
     color: var(--gray-700);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .entry-group {
@@ -73,7 +79,7 @@
   .entry-points {
     display: block;
     margin-left: 0;
-    width: 90%;
+    padding-inline-end: var(--entry-text-end-reserve);
   }
 
   .entry-point {
@@ -93,7 +99,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--gray-700);
   }
 
@@ -110,10 +116,10 @@
   }
 
   .skill-level {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     color: var(--gray-600);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   .skill-group .dot-scale,
@@ -124,7 +130,7 @@
   .dot-scale {
     font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco,
       Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--gray-500);
   }
 
@@ -133,18 +139,18 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--gray-800);
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
     padding-left: 0;
   }
 
   .language-item {
     display: flex;
-    max-width: 10rem;
+    max-width: var(--language-item-max-width);
     justify-content: space-between;
     gap: 2px 8px;
-    line-height: 1.25;
+    line-height: var(--line-height-tight);
   }
 
   @media (min-width: 40rem) and (max-width: 50rem) {
@@ -157,6 +163,4 @@
     color: var(--gray-500);
   }
 
-  @media print {
-  }
 }
