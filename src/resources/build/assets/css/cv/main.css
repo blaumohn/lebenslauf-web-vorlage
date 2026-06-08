@@ -15,15 +15,19 @@
 }
 
 @layer patterns {
+  main {
+    --main-aside-width-compact: 33.3333%;
+    --main-aside-width: 21.875%;
+  }
+
   main .main-body {
-    /*flex: 0 0 66.6667%;*/
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
 
   main .main-aside {
-    flex: 0 0 33.3333%;
+    flex: 0 0 var(--main-aside-width-compact);
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -35,11 +39,12 @@
 
   @media (min-width: 28rem) {
     main .main-aside {
-      flex: 0 0 21.875%;
+      flex: 0 0 var(--main-aside-width);
     }
 
     main .main-body {
-      flex: 0 0 78.125%;
+      flex: 1 1 auto;
+      min-width: 0;
     }
   }
 

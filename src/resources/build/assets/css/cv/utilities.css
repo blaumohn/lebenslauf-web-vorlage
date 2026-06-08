@@ -1,22 +1,4 @@
 @layer utilities {
-  .text-small {
-    font-size: 0.875rem;
-  }
-
-  .text-strong {
-    font-weight: 600;
-  }
-
-  .text-muted {
-    color: var(--gray-600);
-  }
-
-  .text-meta {
-    font-size: 0.875rem;
-    font-weight: 300;
-    color: var(--gray-700);
-  }
-
   @media print {
     .no-print {
       display: none;

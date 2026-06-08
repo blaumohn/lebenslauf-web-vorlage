@@ -29,12 +29,11 @@
   }
 
   .contact {
-    margin-left: auto;
     margin-bottom: 16px;
     text-align: right;
-    line-height: 1.25;
-    font-size: 0.875rem;
-    font-weight: 600;
+    line-height: var(--line-height-tight);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     color: var(--gray-600);
   }
 
