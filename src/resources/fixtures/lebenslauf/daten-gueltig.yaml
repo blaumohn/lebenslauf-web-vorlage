@@ -12,9 +12,9 @@ kopfdaten:
 
 fussbereich:
   text:
-    de: "Erstellt mit der React/Next.js Vorlage von Dani Y."
-    es: "Creado con la plantilla React/Next.js de Dani Y."
-  link: github.com/blaumohn/lebenslauf-vorlage
+    de: "Preview der App von Dani Y."
+    es: "Preview de la app de Dani Y."
+  link: github.com/blaumohn/lebenslauf-web-vorlage
 
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.
