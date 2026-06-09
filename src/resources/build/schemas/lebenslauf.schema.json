@@ -96,7 +96,7 @@
         "properties": {
           "titel": { "type": "string" },
           "beschreibung": { "$ref": "#/definitions/intlString" },
-          "datum": { "type": "string" }
+          "datum": { "$ref": "#/definitions/intlString" }
         }
       }
     },
@@ -142,7 +142,7 @@
       "required": ["titel", "zeitraum", "punkte"],
       "properties": {
         "titel": { "$ref": "#/definitions/intlString" },
-        "zeitraum": { "type": "string" },
+        "zeitraum": { "$ref": "#/definitions/intlString" },
         "punkte": {
           "type": "array",
           "items": { "$ref": "#/definitions/eintragPunkt" }
