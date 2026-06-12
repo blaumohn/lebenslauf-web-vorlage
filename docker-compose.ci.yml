@@ -9,6 +9,8 @@ x-ci-base: &ci-base
 x-ci-env: &ci-env
   COMPOSER_HOME: /home/ci/.composer
   CI_WORK_BASE: /tmp
+  XDG_CACHE_HOME: /tmp/xdg-cache
+  XDG_CONFIG_HOME: /tmp/xdg-config
 
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
 x-local-repo-volume: &local-repo-volume ".:/repo"
@@ -57,6 +59,8 @@ services:
         cat <<'YAML'
         app:
           APP_ROOT_URL: "http://ci-web"
+        captcha:
+          CAPTCHA_MAX_GET: "10"
         mail:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
         YAML

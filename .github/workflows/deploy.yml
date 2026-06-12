@@ -29,6 +29,12 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Playwright-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Pipeline ausführen und deployen
         shell: bash
         env:

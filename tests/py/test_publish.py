@@ -111,15 +111,37 @@ class SmokeCheckTest(unittest.TestCase):
                 publish._smoke_check({"APP_ROOT_URL": "http://example.com"}, lambda m: None)
 
 
+class QualityCheckTest(unittest.TestCase):
+    def test_html_qa_prueft_lokalen_cache(self):
+        with patch.object(publish.subprocess, "run") as mock_run:
+            publish._html_quality_check(lambda m: None)
+        mock_run.assert_called_once_with(["npm", "run", "qa:html"], check=True)
+
+    def test_a11y_ueberspringt_wenn_url_fehlt(self):
+        with patch.object(publish.subprocess, "run") as mock_run:
+            publish._accessibility_check({}, lambda m: None)
+        mock_run.assert_not_called()
+
+    def test_a11y_prueft_veroeffentlichte_web_ansicht(self):
+        with patch.object(publish.subprocess, "run") as mock_run:
+            publish._accessibility_check({"APP_ROOT_URL": "http://example.com/"}, lambda m: None)
+        args, kwargs = mock_run.call_args
+        self.assertEqual(args[0], ["npm", "run", "qa:a11y"])
+        self.assertTrue(kwargs["check"])
+        self.assertEqual(kwargs["env"]["PLAYWRIGHT_BASE_URL"], "http://example.com")
+
+
 class MainTest(unittest.TestCase):
-    def test_ruft_upload_dann_smoke_in_reihenfolge(self):
+    def test_ruft_quality_upload_smoke_a11y_in_reihenfolge(self):
         order = []
         with patch.object(publish, "PipelineCfg", return_value=MagicMock()), \
              patch.object(publish, "Logger", return_value=lambda msg: None), \
+             patch.object(publish, "_html_quality_check", side_effect=lambda *a: order.append("html")), \
              patch.object(publish, "_upload_and_dispatch", side_effect=lambda *a: order.append("upload")), \
-             patch.object(publish, "_smoke_check", side_effect=lambda *a: order.append("smoke")):
+             patch.object(publish, "_smoke_check", side_effect=lambda *a: order.append("smoke")), \
+             patch.object(publish, "_accessibility_check", side_effect=lambda *a: order.append("a11y")):
             publish.main()
-        self.assertEqual(order, ["upload", "smoke"])
+        self.assertEqual(order, ["html", "upload", "smoke", "a11y"])
 
 
 if __name__ == "__main__":

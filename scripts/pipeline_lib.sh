@@ -1,15 +1,17 @@
 . scripts/pipeline_output.sh
+. scripts/web_checks.sh
 
 LEBENSLAUF_SFTP_FETCHED=0
 
 run_pipeline() {
-  local deploy_dir is_dev= ci_ca_cert_arg=
+  local deploy_dir='' is_dev=''
+  local -a ci_ca_cert_arg=()
 
   if [[ $PIPELINE == dev ]]; then
     is_dev=1
   else
     deploy_dir="${1:?deploy_dir fehlt}"
-    [[ "${2:-}" == "--ci-ca-cert" ]] && ci_ca_cert_arg="$2"
+    [[ "${2:-}" == "--ci-ca-cert" ]] && ci_ca_cert_arg=("$2")
   fi
 
   require_nonempty PIPELINE
@@ -20,7 +22,7 @@ run_pipeline() {
   run_step "Setup ($PIPELINE)" pipeline_setup "$is_dev"
 
   if [[ ! $is_dev ]]; then
-    run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check $ci_ca_cert_arg
+    run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check "${ci_ca_cert_arg[@]}"
     run_step "Lebenslauf-Daten" prepare_lebenslauf_data
   fi
 
@@ -34,10 +36,12 @@ run_pipeline() {
   fi
 
   run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
-  run_step "HTTP-Smoke Artefakt" with_dev_server "$deploy_dir/public" run_http_smoke_checks
+  run_step "Artefakt-HTTP-Smoke" with_dev_server "$deploy_dir/public" run_http_smoke_checks
+  run_step "Artefakt-HTML/A11y-QA" run_artifact_html_accessibility_checks "$deploy_dir"
   run_step "SFTP-Deploy"           deploy
   reset_lebenslauf_sftp_if_used
-  run_step "HTTP-Smoke Zielsystem" post_deploy_smoke_checks
+  run_step "Zielsystem-HTTP-Smoke" post_deploy_http_smoke_checks
+  run_step "Zielsystem-Header-Smoke" post_deploy_header_smoke_checks
 }
 
 pipeline_setup() {
@@ -164,76 +168,4 @@ sftp_upload() {
   [[ -n "${SFTP_DEPLOY_OVERRIDES:-}" ]] \
     && overrides_arg=(--overrides "$SFTP_DEPLOY_OVERRIDES")
   cli python "$PIPELINE" --phase deploy "${overrides_arg[@]}" scripts/sftp-deploy.py
-}
-
-post_deploy_smoke_checks() {
-  local root_url
-  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  run_http_smoke_checks "$root_url"
-}
-
-run_http_smoke_checks() {
-  local base="${1%/}"
-  local cv_name
-  cv_name="$(read_cv_name_kurz)"
-  smoke_http_page_contains "${base}/"        "Zum Lebenslauf"
-  smoke_http_page_contains "${base}/cv"      "$cv_name"
-  smoke_http_page_contains "${base}/contact" "<form"
-}
-
-read_cv_name_kurz() {
-  local daten_pfad profile yaml_file
-  daten_pfad="$(cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build)"
-  profile="$(cli config "$PIPELINE" get LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  yaml_file="${daten_pfad}/daten-${profile}.yaml"
-  grep 'kurz:' "$yaml_file" | sed 's/.*kurz: *//'
-}
-
-smoke_http_page_contains() {
-  local url="$1" needle="$2" body
-  echo "[smoke] HTTP-Abruf: ${url}" >&2
-  if ! body="$(curl --fail --silent --show-error "$url")"; then
-    echo "[smoke] HTTP-Abruf fehlgeschlagen: ${url}" >&2
-    return 1
-  fi
-  if ! printf '%s' "$body" | grep -q "$needle"; then
-    echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
-    echo "$body"
-    exit 1
-  fi
-}
-
-
-with_dev_server() {
-  local docroot="$1" dev_server_port=8080 pid
-  shift
-  pid="$(start_php_server "$dev_server_port" "$docroot" "/tmp/ci-http-${dev_server_port}.log")"
-  trap 'kill '"$pid"' 2>/dev/null || true' EXIT
-  wait_for_http_server "$dev_server_port"
-  "$@" "http://127.0.0.1:${dev_server_port}"
-  kill "$pid"
-  trap - EXIT
-}
-
-
-start_php_server() {
-  local port="$1" docroot="$2" log_file="$3"
-
-  php -S "0.0.0.0:${port}" \
-    -t "$docroot" \
-    > "$log_file" 2>&1 &
-  echo "$!"
-}
-
-wait_for_http_server() {
-  local port="$1"
-
-  for _ in $(seq 1 10); do
-    if curl --silent --show-error "http://127.0.0.1:${port}/" > /dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
-  echo "HTTP-Server auf Port ${port} antwortet nicht rechtzeitig" >&2
-  exit 1
 }
