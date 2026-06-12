@@ -3,9 +3,7 @@
     --entry-meta-end-offset: 3%;
     --entry-text-end-reserve: 10%;
     --language-item-max-width: 10rem;
-  }
 
-  .entry {
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -128,7 +126,7 @@
   }
 
   .dot-scale {
-    font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco,
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
       Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: var(--font-size-sm);
     color: var(--gray-500);
@@ -153,7 +151,7 @@
     line-height: var(--line-height-tight);
   }
 
-  @media (min-width: 40rem) and (max-width: 50rem) {
+  @media (40rem <= width <= 50rem) {
     .language-item {
       flex-direction: column;
     }
