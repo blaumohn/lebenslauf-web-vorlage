@@ -27,6 +27,7 @@ abstract class BasePipelineCommand extends BaseCliCommand
             throw new \InvalidArgumentException('Pipeline fehlt. Beispiel: dev');
         }
         $this->pipelineName = $pipeline;
+        $this->overrides = [];
 
         if (!$input->hasOption('overrides')) {
             return;

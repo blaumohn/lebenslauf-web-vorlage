@@ -59,8 +59,6 @@ services:
         cat <<'YAML'
         app:
           APP_ROOT_URL: "http://ci-web"
-        captcha:
-          CAPTCHA_MAX_GET: "10"
         mail:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
         YAML

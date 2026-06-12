@@ -22,7 +22,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
 
     protected function configurePipelineCommand(): void
     {
-        $this->addArgument('task', InputArgument::OPTIONAL, 'Subtask (cv, css, upload, all)')
+        $this->addArgument('task', InputArgument::OPTIONAL, 'Subtask (config, cv, css, upload, all)')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'CV-Profil (bei upload)')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'JSON-Pfad (bei upload)');
     }
@@ -32,6 +32,9 @@ final class BuildCommand extends BasePipelinePhaseCommand
         $task = strtolower(trim((string) $input->getArgument('task')));
         if ($task === '' || $task === 'all') {
             return $this->runAll($output);
+        }
+        if ($task === 'config') {
+            return $this->runConfigOnly($output);
         }
         if ($task === 'css') {
             return $this->runCssBuild($output);
@@ -43,7 +46,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
             return $this->runCvUpload($input, $output);
         }
 
-        $output->writeln('<error>Usage: build <PIPELINE> [cv|css|upload|all] [ARGS]</error>');
+        $output->writeln('<error>Usage: build <PIPELINE> [config|cv|css|upload|all] [ARGS]</error>');
         return Command::FAILURE;
     }
 
@@ -65,6 +68,13 @@ final class BuildCommand extends BasePipelinePhaseCommand
             return Command::FAILURE;
         }
         return Command::SUCCESS;
+    }
+
+    private function runConfigOnly(OutputInterface $output): int
+    {
+        return $this->compileRuntimeConfig($output)
+            ? Command::SUCCESS
+            : Command::FAILURE;
     }
 
     private function runCvUpload(InputInterface $input, OutputInterface $output): int
