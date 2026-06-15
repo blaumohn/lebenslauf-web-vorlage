@@ -54,7 +54,7 @@ class CiRunnerTest(unittest.TestCase):
         self.assertEqual("", env["CI_CV_DATA_PATH"])
 
     def test_lebenslauf_relativ_setzt_cv_data_path(self):
-        with patch.object(runner, "run_sftp_prepare") as prepare:
+        with patch.object(runner, "run_test_prepare") as prepare:
             with patch.object(runner, "_run_lebenslauf_test") as run_test:
                 runner.run_lebenslauf_sftp_relative_test("preview")
 
@@ -66,7 +66,7 @@ class CiRunnerTest(unittest.TestCase):
 
     def test_lebenslauf_absolut_setzt_cv_data_path_ohne_mount(self):
         with patch.object(runner, "build_ci_run_id", return_value="ci-lebenslauf-abc"):
-            with patch.object(runner, "run_sftp_prepare") as prepare:
+            with patch.object(runner, "run_test_prepare") as prepare:
                 with patch.object(runner, "_run_lebenslauf_test") as run_test:
                     runner.run_lebenslauf_absolute_test("preview")
 

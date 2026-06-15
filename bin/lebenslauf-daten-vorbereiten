@@ -26,6 +26,7 @@ main() {
 
   run_step "Abhängigkeiten installieren" composer install:ci
   run_step "Setup ($PIPELINE)"           cli setup "$PIPELINE"
+  run_step "Contact-RateLimit-Reset"     reset_contact_get_ratelimit
   run_step "Lebenslauf-Datenpfad"        ensure_cv_data_path
   upload_cv_data_if_needed
 }
@@ -51,6 +52,13 @@ upload_cv_data_if_needed() {
 vorbereiten_lebenslauf() {
   cli python "$PIPELINE" --phase build --phase deploy -- \
     scripts/lebenslauf-sftp-upload.py
+}
+
+reset_contact_get_ratelimit() {
+  if [[ "$PIPELINE" == "dev" ]]; then
+    return 0
+  fi
+  cli python "$PIPELINE" --phase deploy tests/ci/reset_contact_get_ratelimit.py
 }
 
 main "$@"

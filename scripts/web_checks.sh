@@ -12,32 +12,7 @@ run_artifact_html_accessibility_checks() {
   local deploy_dir="${1:?deploy_dir fehlt}"
 
   run_html_quality_checks "$deploy_dir/var/cache/html"
-  run_accessibility_checks_with_config_override "$deploy_dir"
-}
-
-run_accessibility_checks_with_config_override() {
-  local deploy_dir="${1:?deploy_dir fehlt}"
-  local status=0
-
-  write_artifact_runtime_config "$deploy_dir" '{"CAPTCHA_MAX_GET":"10"}'
-  with_dev_server "$deploy_dir/public" run_accessibility_checks || status=$?
-  write_artifact_runtime_config "$deploy_dir"
-  return "$status"
-}
-
-write_artifact_runtime_config() {
-  local deploy_dir="${1:?deploy_dir fehlt}"
-  local -a override_args=()
-
-  [[ -n "${2:-}" ]] && override_args=(--overrides "$2")
-  cli build "$PIPELINE" config "${override_args[@]}"
-  copy_runtime_config_to_artifact "$deploy_dir"
-}
-
-copy_runtime_config_to_artifact() {
-  local deploy_dir="${1:?deploy_dir fehlt}"
-
-  cp -a var/config "$deploy_dir/var/"
+  with_dev_server "$deploy_dir/public" run_accessibility_checks
 }
 
 run_html_quality_checks() {

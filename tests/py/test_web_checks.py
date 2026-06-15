@@ -73,7 +73,7 @@ class WebChecksTest(unittest.TestCase):
         self.assertIn("[smoke] HTTP-Abruf fehlgeschlagen: http://example.test/contact", result.stderr)
         self.assertIn("<html>Zu viele Anfragen</html>", result.stderr)
 
-    def test_a11y_artefakt_test_schreibt_override_und_stellt_config_wieder_her(self):
+    def test_a11y_artefakt_test_nutzt_bestehende_runtime_config(self):
         result = run_web_check(
             r"""
             . scripts/web_checks.sh
@@ -92,16 +92,12 @@ class WebChecksTest(unittest.TestCase):
         self.assertEqual(
             [
                 "html /tmp/deploy/var/cache/html",
-                'build preview config --overrides {"CAPTCHA_MAX_GET":"10"}',
-                "cp -a var/config /tmp/deploy/var/",
                 "server /tmp/deploy/public run_accessibility_checks",
-                "build preview config",
-                "cp -a var/config /tmp/deploy/var/",
             ],
             result.stdout.strip().splitlines(),
         )
 
-    def test_a11y_artefakt_test_stellt_config_nach_fehler_wieder_her(self):
+    def test_a11y_artefakt_test_gibt_server_fehler_zurueck(self):
         result = run_web_check(
             r"""
             . scripts/web_checks.sh
@@ -119,7 +115,13 @@ class WebChecksTest(unittest.TestCase):
         )
 
         self.assertEqual(7, result.returncode)
-        self.assertIn("build preview config\ncp -a var/config /tmp/deploy/var/", result.stdout)
+        self.assertEqual(
+            [
+                "html /tmp/deploy/var/cache/html",
+                "server /tmp/deploy/public run_accessibility_checks",
+            ],
+            result.stdout.strip().splitlines(),
+        )
 
 
 if __name__ == "__main__":
