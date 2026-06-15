@@ -70,7 +70,7 @@ final class MailServiceTest extends TestCase
 
     private function writeConfig(array $config): void
     {
-        $path = $this->root . '/var/config/config.php';
+        $path = $this->root . '/var/config/config.json';
         $this->ensureDir(dirname($path));
         $payload = [
             'pipeline_phase' => [
@@ -79,7 +79,7 @@ final class MailServiceTest extends TestCase
             ],
             'values' => $config,
         ];
-        file_put_contents($path, '<?php return ' . var_export($payload, true) . ';');
+        file_put_contents($path, json_encode($payload, JSON_THROW_ON_ERROR));
     }
 
     private function createRoot(): string

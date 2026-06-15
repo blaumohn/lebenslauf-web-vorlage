@@ -13,15 +13,12 @@ final class ConfigCompiled
     public function __construct(string $appRoot)
     {
         $this->appRoot = rtrim($appRoot, DIRECTORY_SEPARATOR);
-        $path = Path::join($this->appRoot, 'var', 'config', 'config.php');
+        $path = Path::join($this->appRoot, 'var', 'config', 'config.json');
         if (!is_file($path)) {
             $hint = 'Bitte zuerst: php bin/cli build <pipeline>';
             throw new \RuntimeException("Compiled config fehlt: {$path}. {$hint}");
         }
-        $data = require $path;
-        if (!is_array($data)) {
-            throw new \RuntimeException("Compiled config ungueltig: {$path}");
-        }
+        $data = $this->loadPayload($path);
         $this->values = $this->loadValues($path, $data);
         $this->pipelinePhase = $this->loadPipelinePhase($path, $data);
     }
@@ -34,7 +31,7 @@ final class ConfigCompiled
         return (string) $this->values[$key];
     }
 
-public function pipeline(): string
+    public function pipeline(): string
     {
         return (string) ($this->pipelinePhase['pipeline'] ?? '');
     }
@@ -42,6 +39,19 @@ public function pipeline(): string
     public function phase(): string
     {
         return (string) ($this->pipelinePhase['phase'] ?? '');
+    }
+
+    private function loadPayload(string $configPath): array
+    {
+        try {
+            $data = json_decode((string) file_get_contents($configPath), true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new \RuntimeException("Compiled config JSON ungueltig: {$configPath}", previous: $exception);
+        }
+        if (!is_array($data)) {
+            throw new \RuntimeException("Compiled config ungueltig: {$configPath}");
+        }
+        return $data;
     }
 
     private function loadValues(string $configPath, array $data): array

@@ -4,7 +4,7 @@ import { $, fs } from 'zx';
 const missingBuildMessage =
   'A11y-QA braucht einen Build: zuerst cli build dev ausführen.';
 
-if (!fs.existsSync('var/config/config.php')) {
+if (!fs.existsSync('var/config/config.json')) {
   process.stderr.write(`${missingBuildMessage}\n`);
   process.exit(1);
 }

@@ -96,7 +96,8 @@ prepare_deploy_dir() {
   cp -a public vendor "$deploy_dir/"
   cp -a src/Http src/resources "$deploy_dir/src/"
   cp -a var/cache/html "$deploy_dir/var/cache/"
-  cp -a var/config "$deploy_dir/var/"
+  mkdir -p "$deploy_dir/var/config"
+  cp -a var/config/config.json "$deploy_dir/var/config/config.json"
   copy_slot_htaccess "src" "$deploy_dir/src/.htaccess"
   copy_slot_htaccess "var" "$deploy_dir/var/.htaccess"
 }
@@ -112,6 +113,7 @@ verify_artifact() {
   test -f "$deploy_dir/public/.htaccess"
   test -f "$deploy_dir/src/Http/bootstrap.php"
   test -f "$deploy_dir/var/cache/html/cv-public.html"
+  test -f "$deploy_dir/var/config/config.json"
   test -f "$deploy_dir/src/.htaccess"
   test -f "$deploy_dir/var/.htaccess"
 }

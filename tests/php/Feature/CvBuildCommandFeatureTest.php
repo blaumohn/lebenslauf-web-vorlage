@@ -78,16 +78,19 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
 
     private function readCompiledConfigValue(string $key): mixed
     {
-        $payload = require $this->root . '/var/config/config.php';
+        $payload = json_decode(
+            (string) file_get_contents($this->root . '/var/config/config.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
         return $payload['values'][$key] ?? null;
     }
 
     private function writeCompiledConfigValue(string $key, mixed $value): void
     {
-        $path = $this->root . '/var/config/config.php';
-        $payload = require $path;
+        $path = $this->root . '/var/config/config.json';
+        $payload = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
         $payload['values'][$key] = $value;
-        $content = "<?php\n\nreturn " . var_export($payload, true) . ";\n";
-        file_put_contents($path, $content);
+        file_put_contents($path, json_encode($payload, JSON_THROW_ON_ERROR));
     }
 }
