@@ -91,12 +91,12 @@ def start_helpers() -> None:
 
 def run_tests(pipeline: str) -> None:
     for test_case, overrides in CI_TEST_CASES:
-        run_sftp_prepare(pipeline)
+        run_test_prepare(pipeline)
         run_test_case(pipeline, test_case, overrides)
 
 
-def run_sftp_prepare(pipeline: str, cv_data_path: str | None = None) -> None:
-    env = pipeline_test_env(pipeline, "sftp-prepare")
+def run_test_prepare(pipeline: str, cv_data_path: str | None = None) -> None:
+    env = pipeline_test_env(pipeline, "test-prepare")
     env["CI_CV_DATA_PREPARE_SCRIPT"] = "bin/lebenslauf-daten-vorbereiten"
     if cv_data_path is not None:
         env["CI_CV_DATA_PATH"] = cv_data_path
@@ -104,12 +104,13 @@ def run_sftp_prepare(pipeline: str, cv_data_path: str | None = None) -> None:
         "run", "--rm", "--no-deps",
         CI_SERVICE_DRIVER,
         env=env,
-        label="Lebenslauf-Vorbereitung",
+        label="Test-Vorbereitung",
         check=False,
     )
     if result.returncode != 0:
         raise RuntimeError(
-            f"[runner] Lebenslauf-Vorbereitung fehlgeschlagen (Exit-Code: {result.returncode})"
+            f"[runner] Test-Vorbereitung fehlgeschlagen "
+            f"(Exit-Code: {result.returncode})"
         )
 
 
@@ -147,7 +148,7 @@ def _compose_test(pipeline: str, test_case: str, overrides: str | None):
 
 def run_lebenslauf_sftp_relative_test(pipeline: str) -> None:
     data_path = ".local/lebenslauf"
-    run_sftp_prepare(pipeline, data_path)
+    run_test_prepare(pipeline, data_path)
     env = pipeline_test_env(pipeline, "lebenslauf-relativ")
     env["CI_CV_DATA_PATH"] = data_path
     _run_lebenslauf_test("lebenslauf-relativ", env, [])
@@ -155,7 +156,7 @@ def run_lebenslauf_sftp_relative_test(pipeline: str) -> None:
 
 def run_lebenslauf_absolute_test(pipeline: str) -> None:
     data_path = f"/tmp/{build_ci_run_id('lebenslauf')}"
-    run_sftp_prepare(pipeline, data_path)
+    run_test_prepare(pipeline, data_path)
     env = pipeline_test_env(pipeline, "lebenslauf-absolut")
     env["CI_CV_DATA_PATH"] = data_path
     _run_lebenslauf_test("lebenslauf-absolut", env, [])

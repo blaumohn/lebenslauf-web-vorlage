@@ -22,7 +22,7 @@
   body {
     font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
     color: var(--gray-800);
-    background: #ffffff;
+    background: #fff;
     padding: 24px;
     line-height: var(--line-height-base);
     -webkit-font-smoothing: antialiased;
@@ -74,10 +74,7 @@
     }
 
     @page {
-      margin-left: 2.5cm;
-      margin-right: 1cm;
-      margin-top: 1cm;
-      margin-bottom: 1cm;
+      margin: 1cm 1cm 1cm 2.5cm;
     }
 
     body {

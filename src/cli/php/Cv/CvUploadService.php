@@ -107,7 +107,7 @@ final class CvUploadService
         array $labels
     ): void {
         $privateView = $this->viewBuilder->build($normalized);
-        $privateHtml = $this->renderer->renderPrivate($privateView, $labels);
+        $privateHtml = $this->renderer->renderPrivate($privateView, $labels, $lang);
         $this->cvStorage->savePrivateHtmlForLang($profile, $privateHtml, $lang);
         if ($lang === $primaryLang) {
             $this->cvStorage->savePrivateHtml($profile, $privateHtml);
@@ -127,7 +127,7 @@ final class CvUploadService
         }
         $publicData = $this->redactor->redact($normalized);
         $publicView = $this->viewBuilder->build($publicData);
-        $publicHtml = $this->renderer->renderPublic($publicView, $labels);
+        $publicHtml = $this->renderer->renderPublic($publicView, $labels, $lang);
         $this->cvStorage->savePublicHtmlForLang($publicHtml, $lang);
         if ($lang === $primaryLang) {
             $this->cvStorage->savePublicHtml($publicHtml);

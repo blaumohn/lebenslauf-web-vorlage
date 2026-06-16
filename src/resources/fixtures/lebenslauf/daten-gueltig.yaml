@@ -14,7 +14,7 @@ fussbereich:
   text:
     de: "Preview der App von Dani Y."
     es: "Preview de la app de Dani Y."
-  link: github.com/blaumohn/lebenslauf-web-vorlage
+  link: https://github.com/blaumohn/lebenslauf-web-vorlage
 
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.

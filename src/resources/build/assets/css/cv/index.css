@@ -1,11 +1,11 @@
 @layer reset, base, patterns, components, utilities;
 
-@import "../normalise.css" layer(reset);
-@import "./base.css";
-@import "./page.css";
-@import "./header.css";
-@import "./main.css";
-@import "./typography.css";
-@import "./sections.css";
-@import "./entry.css";
-@import "./utilities.css";
+@import url("../normalise.css") layer(reset);
+@import url("./base.css");
+@import url("./page.css");
+@import url("./header.css");
+@import url("./main.css");
+@import url("./typography.css");
+@import url("./sections.css");
+@import url("./entry.css");
+@import url("./utilities.css");

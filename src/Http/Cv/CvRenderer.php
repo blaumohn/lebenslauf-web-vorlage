@@ -13,21 +13,29 @@ final class CvRenderer
         $this->twig = $twig;
     }
 
-    public function renderPrivate(array $data, array $labels): string
+    public function renderPrivate(array $data, array $labels, string $lang = 'de'): string
     {
         return $this->twig->render('cv_private.html.twig', [
             'cv' => $data,
             'etiketten' => $labels,
+            'lang' => $this->normalizeLang($lang),
             'title' => $labels['_'] ?? 'Lebenslauf',
         ]);
     }
 
-    public function renderPublic(array $data, array $labels): string
+    public function renderPublic(array $data, array $labels, string $lang = 'de'): string
     {
         return $this->twig->render('cv_public.html.twig', [
             'cv' => $data,
             'etiketten' => $labels,
+            'lang' => $this->normalizeLang($lang),
             'title' => $labels['_'] ?? 'Lebenslauf',
         ]);
+    }
+
+    private function normalizeLang(string $lang): string
+    {
+        $lang = strtolower(trim($lang));
+        return $lang === '' ? 'de' : $lang;
     }
 }

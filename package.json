@@ -4,11 +4,27 @@
   "type": "module",
   "scripts": {
     "build:css": "postcss src/resources/build/assets/css/cv/index.css -o public/css/cv.css && postcss src/resources/build/assets/css/site.css -o public/css/site.css",
-    "css:watch": "python3 src/cli/py/dev/css-watch.py || python src/cli/py/dev/css-watch.py"
+    "css:watch": "python3 src/cli/py/dev/css-watch.py || python src/cli/py/dev/css-watch.py",
+    "lint": "npm run lint:js && npm run lint:css",
+    "lint:css": "stylelint \"src/resources/build/assets/css/**/*.css\"",
+    "lint:js": "eslint eslint.config.js playwright.config.js htmlvalidate.config.cjs stylelint.config.cjs tests/ci/a11y.mjs tests/ci/a11y.ensure-browser.mjs tests/ci/a11y.web-server.mjs tests/ci/a11y.spec.js",
+    "qa": "npm run qa:html && npm run lint && npm run qa:a11y",
+    "qa:a11y:ensure-browser": "node tests/ci/a11y.ensure-browser.mjs",
+    "qa:a11y": "playwright test tests/ci/a11y.spec.js",
+    "qa:a11y:install": "playwright install chromium",
+    "qa:html": "html-validate --config htmlvalidate.config.cjs \"var/cache/html/*.html\""
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@eslint/js": "^9.29.0",
+    "@playwright/test": "^1.53.1",
+    "eslint": "^9.29.0",
+    "html-validate": "^9.6.0",
     "postcss": "^8.4.38",
     "postcss-cli": "^11.0.0",
-    "postcss-import": "^16.1.0"
+    "postcss-import": "^16.1.0",
+    "stylelint": "^16.20.0",
+    "stylelint-config-standard": "^38.0.0",
+    "zx": "^8.8.5"
   }
 }

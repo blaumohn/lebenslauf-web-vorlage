@@ -64,7 +64,9 @@
       "@lint:python",
       "@lint:shell",
       "@lint:structured",
-      "@lint:line-length"
+      "@lint:line-length",
+      "@lint:js",
+      "@lint:css"
     ],
     "lint:php": [
       "@lint:phpcs",
@@ -76,6 +78,11 @@
     "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/readme-dev-user-flow.sh",
     "lint:structured": "python3 tools/lint-structured-files.py",
     "lint:line-length": ".venv/bin/python tools/lint-line-length.py",
+    "lint:js": "npm run lint:js",
+    "lint:css": "npm run lint:css",
+    "qa": "npm run qa",
+    "qa:a11y": "npm run qa:a11y",
+    "qa:html": "npm run qa:html",
     "test": [
       "@test:php",
       "@test:python"

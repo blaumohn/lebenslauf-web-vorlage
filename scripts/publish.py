@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 import requests
@@ -19,8 +21,15 @@ def main() -> None:
     log = Logger("publish")
     cfg = PipelineCfg("deploy")
     log(f"Verbinde zu {_format_target(cfg)}")
+    _html_quality_check(log)
     _upload_and_dispatch(cfg, log)
     _smoke_check(cfg, log)
+    _accessibility_check(cfg, log)
+
+
+def _html_quality_check(log) -> None:
+    log("Prüfe lokalen HTML-Cache")
+    subprocess.run(["npm", "run", "qa:html"], check=True)
 
 
 def _upload_and_dispatch(cfg, log) -> None:
@@ -45,6 +54,17 @@ def _smoke_check(cfg, log) -> None:
     if len(resp.text) < 500 or "<html" not in resp.text:
         raise RuntimeError(f"Smoke: Inhalt ungültig — {url}")
     log(f"Smoke bestanden: {url}")
+
+
+def _accessibility_check(cfg, log) -> None:
+    url = cfg.get("APP_ROOT_URL", "")
+    if not url:
+        log("Warnung: APP_ROOT_URL nicht konfiguriert — A11y-QA übersprungen")
+        return
+    env = os.environ.copy()
+    env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
+    log(f"Prüfe A11y: {env['PLAYWRIGHT_BASE_URL']}")
+    subprocess.run(["npm", "run", "qa:a11y"], check=True, env=env)
 
 
 def _format_target(cfg) -> str:

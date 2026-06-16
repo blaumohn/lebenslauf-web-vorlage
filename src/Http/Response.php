@@ -17,17 +17,30 @@ final class Response
 
     public static function html(string $body, int $status = 200): self
     {
-        return new self($body, $status, ['Content-Type' => 'text/html; charset=utf-8']);
+        return new self($body, $status, [
+            'Content-Type' => 'text/html; charset=utf-8',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public static function text(string $body, int $status = 200): self
     {
-        return new self($body, $status, ['Content-Type' => 'text/plain; charset=utf-8']);
+        return new self($body, $status, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public static function json(array $data, int $status = 200): self
     {
-        return new self(json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $status, ['Content-Type' => 'application/json']);
+        return new self(
+            json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            $status,
+            [
+                'Content-Type' => 'application/json',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
     }
 
     public function withHeader(string $key, string $value): self
@@ -35,6 +48,11 @@ final class Response
         $clone = clone $this;
         $clone->headers[$key] = $value;
         return $clone;
+    }
+
+    public function headers(): array
+    {
+        return $this->headers;
     }
 
     public function send(): void

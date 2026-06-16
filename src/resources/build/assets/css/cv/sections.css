@@ -6,6 +6,7 @@
     --section-line-width: 87.5%;
     --section-title-font-size: 0.95rem;
     --skills-section-offset: 3.5rem;
+
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -46,9 +47,10 @@
   }
 
   .section-skills {
-    margin-top: var(--skills-section-offset);
     --section-body-gap: 24px;
     --section-indent: 0;
+
+    margin-top: var(--skills-section-offset);
   }
 
   .section-education {

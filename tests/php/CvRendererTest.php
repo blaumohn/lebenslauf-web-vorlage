@@ -26,6 +26,18 @@ final class CvRendererTest extends TestCase
         );
     }
 
+    public function testPublicCvUsesGivenDocumentLanguage(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('en');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en');
+
+        $this->assertStringContainsString('<html lang="en">', $html);
+    }
+
     private function renderer(): CvRenderer
     {
         $twig = TwigFactory::create($this->templatesPath());

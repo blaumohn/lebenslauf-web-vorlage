@@ -12,7 +12,8 @@ final class ResponseHelper
         $response->getBody()->write($html);
         return $response
             ->withStatus($status)
-            ->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public static function text(ResponseInterface $response, string $text, int $status = 200): ResponseInterface
@@ -20,7 +21,8 @@ final class ResponseHelper
         $response->getBody()->write($text);
         return $response
             ->withStatus($status)
-            ->withHeader('Content-Type', 'text/plain; charset=utf-8');
+            ->withHeader('Content-Type', 'text/plain; charset=utf-8')
+            ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public static function png(ResponseInterface $response, string $png): ResponseInterface

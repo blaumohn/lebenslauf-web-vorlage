@@ -7,7 +7,7 @@
     margin-bottom: 0;
   }
 
-  @media (max-width: 40rem) {
+  @media (width <= 40rem) {
     header {
       grid-template-columns: 1fr;
     }
@@ -45,7 +45,7 @@
     text-decoration: underline;
   }
 
-  @media (max-width: 40rem) {
+  @media (width <= 40rem) {
     header .header-aside {
       justify-self: start;
       width: 100%;

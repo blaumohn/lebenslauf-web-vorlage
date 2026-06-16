@@ -54,6 +54,17 @@ final class ConfigCompiledTest extends TestCase
         new ConfigCompiled($root);
     }
 
+    public function testThrowsWhenJsonIsInvalid(): void
+    {
+        $root = $this->createRoot();
+        file_put_contents($root . '/var/config/config.json', '{"values":');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Compiled config JSON ungueltig');
+
+        new ConfigCompiled($root);
+    }
+
     public function testThrowsWhenKeyMissing(): void
     {
         $root = $this->createRoot();
@@ -79,8 +90,7 @@ final class ConfigCompiledTest extends TestCase
 
     private function writeConfig(string $root, array $payload): void
     {
-        $path = $root . '/var/config/config.php';
-        $content = "<?php\n\nreturn " . var_export($payload, true) . ";\n";
-        file_put_contents($path, $content);
+        $path = $root . '/var/config/config.json';
+        file_put_contents($path, json_encode($payload, JSON_THROW_ON_ERROR));
     }
 }

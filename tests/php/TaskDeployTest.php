@@ -381,7 +381,7 @@ final class TaskDeployTest extends TestCase
     private function writeConfigPayload(array $values): void
     {
         $payload = ['pipeline_phase' => ['pipeline' => 'dev', 'phase' => 'runtime'], 'values' => $values];
-        file_put_contents($this->dir . '/var/config/config.php', '<?php return ' . var_export($payload, true) . ';');
+        file_put_contents($this->dir . '/var/config/config.json', json_encode($payload, JSON_THROW_ON_ERROR));
     }
 
     private function removeDir(string $dir): void

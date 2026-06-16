@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Cli\CliContext;
 use App\Cli\Command\BasePipelinePhaseCommand;
 use App\Cli\Command\CiCommand;
+use App\Cli\Command\ConfigCommand;
 use PipelineConfigSpec\PipelineConfig;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\InputInterface;
@@ -52,6 +53,28 @@ final class PipelineCommandConfigTest extends TestCase
 
         self::assertSame(0, $exitCode);
         self::assertStringContainsString('config=.local/alt-cv', $tester->getDisplay());
+    }
+
+    public function testBasePipelineCommandClearsOverrideBetweenExecutions(): void
+    {
+        $tester = new CommandTester(new ConfigCommand($this->context()));
+        $tester->execute([
+            'pipeline'    => 'dev',
+            'action'      => 'get',
+            'arg1'        => 'CAPTCHA_MAX_GET',
+            '--phase'     => 'runtime',
+            '--overrides' => json_encode(['CAPTCHA_MAX_GET' => '10']),
+        ]);
+
+        $exitCode = $tester->execute([
+            'pipeline' => 'dev',
+            'action'   => 'get',
+            'arg1'     => 'CAPTCHA_MAX_GET',
+            '--phase'  => 'runtime',
+        ]);
+
+        self::assertSame(0, $exitCode);
+        self::assertSame('5', $tester->getDisplay());
     }
 
     public function testCiCommandOnlyAcceptsPipelineArgument(): void

@@ -1,6 +1,7 @@
 @layer components {
 .name {
   --name-title-font-size: 30px;
+
   display: flex;
   flex-direction: column;
   gap: 4px;

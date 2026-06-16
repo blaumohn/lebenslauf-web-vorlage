@@ -62,7 +62,10 @@ final class SetupCommand extends BasePipelinePhaseCommand
         if (!$this->installPythonDeps($input, $output)) {
             return false;
         }
-        return $this->installNodeDependencies($input, $output);
+        if (!$this->installNodeDependencies($input, $output)) {
+            return false;
+        }
+        return $this->ensureA11yBrowser($input, $output);
     }
 
     private function copySampleContent(array $configValues, OutputInterface $output): bool
@@ -156,6 +159,15 @@ final class SetupCommand extends BasePipelinePhaseCommand
             $command[] = $cacheDir;
         }
         return $this->runCommand($command, $output, $input->isInteractive());
+    }
+
+    private function ensureA11yBrowser(InputInterface $input, OutputInterface $output): bool
+    {
+        return $this->runCommand(
+            ['npm', 'run', 'qa:a11y:ensure-browser'],
+            $output,
+            $input->isInteractive()
+        );
     }
 
     private function pythonCacheDir(InputInterface $input): ?string
