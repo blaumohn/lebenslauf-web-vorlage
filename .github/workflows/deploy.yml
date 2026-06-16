@@ -54,6 +54,7 @@ jobs:
             LEBENSLAUF_LANGS: "${{ vars.LEBENSLAUF_LANGS }}"
           captcha:
             CAPTCHA_TTL_SECONDS: "${{ vars.CAPTCHA_TTL_SECONDS }}"
+            CAPTCHA_MAX_GET: "${{ vars.CAPTCHA_MAX_GET }}"
           contact:
             CONTACT_MAX_POST: "${{ vars.CONTACT_MAX_POST }}"
           mail:
