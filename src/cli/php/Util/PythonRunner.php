@@ -11,7 +11,7 @@ final class PythonRunner
 
     public function __construct(string $rootPath)
     {
-        $this->rootPath = rtrim($rootPath, DIRECTORY_SEPARATOR);
+        $this->rootPath = $rootPath;
     }
 
     public function runScript(

@@ -12,7 +12,7 @@ final class ConfigCompiled
 
     public function __construct(string $appRoot)
     {
-        $this->appRoot = rtrim($appRoot, DIRECTORY_SEPARATOR);
+        $this->appRoot = $appRoot;
         $path = Path::join($this->appRoot, 'var', 'config', 'config.json');
         if (!is_file($path)) {
             $hint = 'Bitte zuerst: php bin/cli build <pipeline>';

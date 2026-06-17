@@ -2,6 +2,8 @@
 
 namespace App\Http\Security;
 
+use Symfony\Component\Filesystem\Path;
+
 final class IpSaltResetExecutor
 {
     private IpSaltStateStore $stateStore;
@@ -17,8 +19,8 @@ final class IpSaltResetExecutor
     ) {
         $this->stateStore = $stateStore;
         $this->validator = $validator;
-        $this->captchaDir = rtrim($captchaDir, DIRECTORY_SEPARATOR);
-        $this->rateLimitDir = rtrim($rateLimitDir, DIRECTORY_SEPARATOR);
+        $this->captchaDir = $captchaDir;
+        $this->rateLimitDir = $rateLimitDir;
     }
 
     public function markInProgress(IpSaltState $state): IpSaltState
@@ -68,7 +70,7 @@ final class IpSaltResetExecutor
             if ($item === '.' || $item === '..') {
                 continue;
             }
-            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            $path = Path::join($dir, $item);
             if (!is_file($path)) {
                 continue;
             }

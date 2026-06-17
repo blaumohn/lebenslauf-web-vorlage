@@ -7,7 +7,7 @@ final class CliContext
     public function __construct(
         private string $appRoot
     ) {
-        $this->appRoot = rtrim($this->appRoot, DIRECTORY_SEPARATOR);
+        $this->appRoot = $appRoot;
     }
 
     public function appRoot(): string

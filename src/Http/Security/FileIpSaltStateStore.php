@@ -4,6 +4,7 @@ namespace App\Http\Security;
 
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Storage\FileStorage;
+use Symfony\Component\Filesystem\Path;
 
 final class FileIpSaltStateStore implements IpSaltStateStore
 {
@@ -20,7 +21,7 @@ final class FileIpSaltStateStore implements IpSaltStateStore
     ) {
         $this->storage = $storage;
         $this->writer = $writer;
-        $this->stateDir = rtrim($stateDir, DIRECTORY_SEPARATOR);
+        $this->stateDir = $stateDir;
     }
 
     public function readState(): IpSaltState
@@ -109,6 +110,6 @@ final class FileIpSaltStateStore implements IpSaltStateStore
 
     private function statePath(): string
     {
-        return $this->stateDir . DIRECTORY_SEPARATOR . self::STATE_FILE;
+        return Path::join($this->stateDir, self::STATE_FILE);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Captcha;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
+use Symfony\Component\Filesystem\Path;
 
 final class CaptchaService
 {
@@ -24,7 +25,7 @@ final class CaptchaService
         $this->storage = $storage;
         $this->lockRunner = $lockRunner;
         $this->writer = $writer;
-        $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
+        $this->dir = $dir;
         $this->ttlSeconds = $ttlSeconds;
         $this->storage->ensureDir($this->dir);
     }
@@ -71,7 +72,7 @@ final class CaptchaService
 
     public function cleanupExpired(): int
     {
-        $files = glob($this->dir . DIRECTORY_SEPARATOR . '*.json') ?: [];
+        $files = glob(Path::join($this->dir, '*.json')) ?: [];
         $count = 0;
         foreach ($files as $file) {
             $data = $this->storage->readJson($file);
@@ -159,7 +160,7 @@ final class CaptchaService
 
     private function pathFor(string $id): string
     {
-        return $this->dir . DIRECTORY_SEPARATOR . $id . '.json';
+        return Path::join($this->dir, $id . '.json');
     }
 
     private function loadChallenge(string $id): ?array

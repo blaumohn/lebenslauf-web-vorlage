@@ -13,7 +13,7 @@ final class RuntimeLockRunner
 
     public function __construct(string $lockDir, int $timeoutMs = 300, int $pollIntervalMs = 25)
     {
-        $this->lockDir = rtrim($lockDir, DIRECTORY_SEPARATOR);
+        $this->lockDir = $lockDir;
         $this->timeoutMs = $this->requirePositiveMs($timeoutMs, 'timeoutMs');
         $this->pollIntervalMs = $this->requirePositiveMs($pollIntervalMs, 'pollIntervalMs');
     }
