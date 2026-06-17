@@ -91,11 +91,9 @@
 }
 
 @layer components {
-  .badge {
-    display: inline-block;
-    padding: 4px 8px;
-    background: #efe5d7;
-    border-radius: 999px;
-    font-size: 0.85rem;
+  .site-name {
+    font-weight: 600;
+    text-decoration: none;
+    color: inherit;
   }
 }

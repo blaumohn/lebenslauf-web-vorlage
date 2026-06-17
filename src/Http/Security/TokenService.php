@@ -5,6 +5,7 @@ namespace App\Http\Security;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
+use Symfony\Component\Filesystem\Path;
 
 final class TokenService
 {
@@ -22,7 +23,7 @@ final class TokenService
         $this->storage = $storage;
         $this->lockRunner = $lockRunner;
         $this->writer = $writer;
-        $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
+        $this->dir = $dir;
         $this->storage->ensureDir($this->dir);
     }
 
@@ -36,7 +37,7 @@ final class TokenService
     public function findProfileForToken(string $token): ?string
     {
         $hash = $this->hashToken($token);
-        $files = glob($this->dir . DIRECTORY_SEPARATOR . '*.txt') ?: [];
+        $files = glob(Path::join($this->dir, '*.txt')) ?: [];
         foreach ($files as $file) {
             $profile = basename($file, '.txt');
             $list = $this->readHashes($profile);
@@ -92,7 +93,7 @@ final class TokenService
 
     private function tokenPath(string $profile): string
     {
-        return $this->dir . DIRECTORY_SEPARATOR . $profile . '.txt';
+        return Path::join($this->dir, $profile . '.txt');
     }
 
     private function hashToken(string $token): string

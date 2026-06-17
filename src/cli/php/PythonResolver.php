@@ -11,12 +11,12 @@ final class PythonResolver
 
     public function __construct(string $rootPath)
     {
-        $this->rootPath = rtrim($rootPath, DIRECTORY_SEPARATOR);
+        $this->rootPath = $rootPath;
     }
 
     public function createVenv(string $path, bool $interactive = false): bool
     {
-        $target = Path::join($this->rootPath, ltrim($path, DIRECTORY_SEPARATOR));
+        $target = Path::join($this->rootPath, ltrim($path, '/\\'));
         if (is_dir($target)) {
             return true;
         }

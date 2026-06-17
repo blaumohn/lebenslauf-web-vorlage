@@ -53,9 +53,12 @@ final class ContactSubmitAction
             );
         }
 
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $html = $this->context->twig->render('contact_ok.html.twig', [
             'title' => 'Kontakt',
+            'sent_name' => $form['name'],
+            'sent_email' => $form['email'],
+            'sent_message' => $form['message'],
         ] + $base);
 
         return ResponseHelper::html($response, $html);
@@ -75,7 +78,7 @@ final class ContactSubmitAction
 
     private function renderRateLimit(ResponseInterface $response): ResponseInterface
     {
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Zu viele Anfragen',
             'message' => 'Bitte später erneut versuchen.',
@@ -160,17 +163,19 @@ final class ContactSubmitAction
         string $error,
         int $status
     ): ResponseInterface {
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $challenge = $this->context->captchaService->createChallenge($ipHash);
         $captchaId = $challenge['captcha_id'];
         $captchaUrl = '/captcha.png?id=' . urlencode($captchaId);
         $html = $this->context->twig->render('contact.html.twig', [
             'title' => 'Kontakt',
-            'captcha_id' => $captchaId,
-            'captcha_url' => $captchaUrl,
-            'show_error' => true,
-            'error_text' => $error,
-            'form_values' => $form,
+            'form' => [
+                'show_error' => true,
+                'error_text' => $error,
+                'captcha_id' => $captchaId,
+                'captcha_url' => $captchaUrl,
+                'values' => $form,
+            ],
         ] + $base);
         return ResponseHelper::html($response, $html, $status);
     }

@@ -4,14 +4,8 @@ namespace App\Http\View;
 
 final class PageViewBuilder
 {
-    public static function base(): array
+    public static function base(?string $siteHeader): array
     {
-        return [
-            'nav_items' => [
-                ['href' => '/', 'label' => 'Home'],
-                ['href' => '/cv', 'label' => 'Lebenslauf'],
-                ['href' => '/contact', 'label' => 'Kontakt'],
-            ],
-        ];
+        return ['site_header' => $siteHeader];
     }
 }

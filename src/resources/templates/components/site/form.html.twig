@@ -1,24 +1,24 @@
-{% macro input(label, name, type, value, required = true) %}
+{% macro input(label, name, type, value, required = true, placeholder = '') %}
   <label>
-    {{ label }}
-    <input type="{{ type }}" name="{{ name }}" value="{{ value|default('') }}"{% if required %} required{% endif %}>
+    {{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}
+    <input type="{{ type }}" name="{{ name }}" value="{{ value|default('') }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}>
   </label>
 {% endmacro %}
 
 {% macro textarea(label, name, value, rows = 6, required = true) %}
   <label>
-    {{ label }}
+    {{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}
     <textarea name="{{ name }}" rows="{{ rows }}"{% if required %} required{% endif %}>{{ value|default('') }}</textarea>
   </label>
 {% endmacro %}
 
 {% macro captcha(captcha_id, captcha_url) %}
   <label>
-    CAPTCHA
+    CAPTCHA <span aria-hidden="true">*</span>
     <input type="text" name="captcha_answer" required>
   </label>
   <input type="hidden" name="captcha_id" value="{{ captcha_id }}">
   <section>
-    <img src="{{ captcha_url }}" alt="CAPTCHA ist erforderlich, um das Kontaktformular abzusenden." />
+    <img src="{{ captcha_url }}" alt="Bild-CAPTCHA. Audio-Alternative ist geplant, aber noch nicht verfügbar." />
   </section>
 {% endmacro %}

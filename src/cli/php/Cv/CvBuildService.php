@@ -17,7 +17,7 @@ final class CvBuildService
     public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
-        $this->rootPath = rtrim($appRoot, DIRECTORY_SEPARATOR);
+        $this->rootPath = $appRoot;
         $this->uploader = new CvUploadService($config, $appRoot);
     }
 

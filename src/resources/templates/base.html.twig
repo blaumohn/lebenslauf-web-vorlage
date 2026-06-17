@@ -9,7 +9,7 @@
 <body>
   {% import 'components/site/layout.html.twig' as layout %}
   <div class="page">
-    {{ layout.header(site_name|default('Lebenslauf'), nav_items|default([])) }}
+    {{ site_header|raw }}
 
     <main class="card">
       {% block content %}{% endblock %}

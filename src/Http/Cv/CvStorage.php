@@ -3,6 +3,7 @@
 namespace App\Http\Cv;
 
 use App\Http\Storage\FileStorage;
+use Symfony\Component\Filesystem\Path;
 
 final class CvStorage
 {
@@ -12,7 +13,7 @@ final class CvStorage
     public function __construct(FileStorage $storage, string $cacheDir)
     {
         $this->storage = $storage;
-        $this->cacheDir = rtrim($cacheDir, DIRECTORY_SEPARATOR);
+        $this->cacheDir = $cacheDir;
         $this->storage->ensureDir($this->cacheDir);
     }
 
@@ -64,13 +65,23 @@ final class CvStorage
         return is_file($this->privatePath($profile));
     }
 
+    public function saveHeaderFragment(string $html): void
+    {
+        $this->storage->writeText($this->headerFragmentPath(), $html);
+    }
+
+    public function getHeaderFragment(): ?string
+    {
+        return $this->storage->readText($this->headerFragmentPath());
+    }
+
     public function hasPublic(): bool
     {
         if (is_file($this->publicPath())) {
             return true;
         }
 
-        $pattern = $this->cacheDir . DIRECTORY_SEPARATOR . 'cv-public.*.html';
+        $pattern = Path::join($this->cacheDir, 'cv-public.*.html');
         $matches = glob($pattern);
         return is_array($matches) && count($matches) > 0;
     }
@@ -85,24 +96,29 @@ final class CvStorage
         return is_file($this->publicPath());
     }
 
+    private function headerFragmentPath(): string
+    {
+        return Path::join($this->cacheDir, 'site-header.html');
+    }
+
     private function publicPath(?string $lang = null): string
     {
         $suffix = $this->langSuffix($lang);
         if ($suffix !== '') {
-            return $this->cacheDir . DIRECTORY_SEPARATOR . 'cv-public.' . $suffix . '.html';
+            return Path::join($this->cacheDir, 'cv-public.' . $suffix . '.html');
         }
 
-        return $this->cacheDir . DIRECTORY_SEPARATOR . 'cv-public.html';
+        return Path::join($this->cacheDir, 'cv-public.html');
     }
 
     private function privatePath(string $profile, ?string $lang = null): string
     {
         $suffix = $this->langSuffix($lang);
         if ($suffix !== '') {
-            return $this->cacheDir . DIRECTORY_SEPARATOR . 'cv-private-' . $profile . '.' . $suffix . '.html';
+            return Path::join($this->cacheDir, 'cv-private-' . $profile . '.' . $suffix . '.html');
         }
 
-        return $this->cacheDir . DIRECTORY_SEPARATOR . 'cv-private-' . $profile . '.html';
+        return Path::join($this->cacheDir, 'cv-private-' . $profile . '.html');
     }
 
     private function langSuffix(?string $lang): string

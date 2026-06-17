@@ -23,7 +23,7 @@ final class HomeAction
         $publicMessage = $hasPublic
             ? 'Der öffentliche Lebenslauf ist verfügbar.'
             : 'Noch kein öffentlicher Lebenslauf vorhanden.';
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $html = $this->context->twig->render('home.html.twig', [
             'title' => 'Home',
             'public_cv_message' => $publicMessage,

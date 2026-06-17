@@ -5,6 +5,7 @@ namespace App\Http\Security;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Storage\FileStorage;
+use Symfony\Component\Filesystem\Path;
 
 final class RateLimiter
 {
@@ -22,14 +23,14 @@ final class RateLimiter
         $this->storage = $storage;
         $this->lockRunner = $lockRunner;
         $this->writer = $writer;
-        $this->dir = rtrim($dir, DIRECTORY_SEPARATOR);
+        $this->dir = $dir;
         $this->storage->ensureDir($this->dir);
     }
 
     public function allow(string $key, int $max, int $windowSeconds): bool
     {
         $safeKey = $this->safeKey($key);
-        $path = $this->dir . DIRECTORY_SEPARATOR . $safeKey . '.json';
+        $path = Path::join($this->dir, $safeKey . '.json');
         $now = time();
         $locked = fn() => $this->allowLocked($path, $max, $windowSeconds, $now);
         return (bool) $this->lockRunner->runWithLock('ratelimit_' . $safeKey, $locked);

@@ -3,6 +3,7 @@ AGENTS.md
 /public/css
 /.phpunit.result.cache
 /.venv/
+/test-results/
 **/__pycache__/
 /.local/
 /var/*

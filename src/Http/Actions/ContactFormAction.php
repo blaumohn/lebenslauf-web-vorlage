@@ -46,7 +46,7 @@ final class ContactFormAction
         ResponseInterface $response,
         int $status
     ): ResponseInterface {
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Zu viele Anfragen',
             'message' => 'Bitte später erneut versuchen.',
@@ -59,20 +59,18 @@ final class ContactFormAction
         string $ipHash,
         ?string $error
     ): ResponseInterface {
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $challenge = $this->context->captchaService->createChallenge($ipHash);
         $captchaId = $challenge['captcha_id'];
         $captchaUrl = '/captcha.png?id=' . urlencode($captchaId);
         $html = $this->context->twig->render('contact.html.twig', [
             'title' => 'Kontakt',
-            'captcha_id' => $captchaId,
-            'captcha_url' => $captchaUrl,
-            'show_error' => $error !== null,
-            'error_text' => $error ?? '',
-            'form_values' => [
-                'name' => '',
-                'email' => '',
-                'message' => '',
+            'form' => [
+                'show_error' => $error !== null,
+                'error_text' => $error ?? '',
+                'captcha_id' => $captchaId,
+                'captcha_url' => $captchaUrl,
+                'values' => ['name' => '', 'email' => '', 'message' => ''],
             ],
         ] + $base);
         return ResponseHelper::html($response, $html);

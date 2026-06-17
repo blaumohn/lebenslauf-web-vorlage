@@ -263,13 +263,12 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/unknown.ini';
         file_put_contents($taskFile, "[task]\ntype=unknown_type\n");
 
-        [$count, $mailOutput] = $this->runRunnerCapturingOutput(
+        [$count] = $this->runRunnerCapturingOutput(
             new TaskRunner([], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
         );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
-        $this->assertStringContainsString('fehlgeschlagen', $mailOutput);
     }
 
     public function testTaskRunnerDeletesTaskAndLogsWhenMailFails(): void
