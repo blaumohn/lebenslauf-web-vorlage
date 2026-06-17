@@ -2,23 +2,9 @@
 
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
-  {% import 'components/site/form.html.twig' as form_ui %}
 
   {{ ui.page_title('Kontakt') }}
-  {{ ui.muted('Nachrichten werden nicht gespeichert. Bitte für Rückfragen E-Mail angeben.') }}
+  {{ ui.muted('Ihre Nachricht wird direkt an mich weitergeleitet — ohne Datenbankablage.') }}
 
-  {% if show_error %}
-    {{ ui.muted(error_text) }}
-  {% endif %}
-
-  <form method="post" action="{{ path('/contact') }}">
-    {{ form_ui.input('Name', 'name', 'text', form_values.name|default(''), true) }}
-    <br><br>
-    {{ form_ui.input('E-Mail', 'email', 'email', form_values.email|default(''), true) }}
-    <br><br>
-    {{ form_ui.textarea('Nachricht', 'message', form_values.message|default(''), 6, true) }}
-    <br><br>
-    {{ form_ui.captcha(captcha_id, captcha_url) }}
-    <button type="submit">Senden</button>
-  </form>
+  {% include 'components/site/contact-form.html.twig' with { form: form } only %}
 {% endblock %}

@@ -1,0 +1,17 @@
+{% import 'components/site/lib.html.twig' as ui %}
+{% import 'components/site/form.html.twig' as form_ui %}
+
+{% if form.show_error %}
+  {{ ui.muted(form.error_text) }}
+{% endif %}
+
+<form method="post" action="{{ path('/contact') }}">
+  {{ form_ui.input('Name', 'name', 'text', form.values.name, true) }}
+  <br><br>
+  {{ form_ui.input('E-Mail', 'email', 'email', form.values.email, true, 'name@beispiel.de') }}
+  <br><br>
+  {{ form_ui.textarea('Nachricht', 'message', form.values.message, 6, true) }}
+  <br><br>
+  {{ form_ui.captcha(form.captcha_id, form.captcha_url) }}
+  <button type="submit">Senden</button>
+</form>
