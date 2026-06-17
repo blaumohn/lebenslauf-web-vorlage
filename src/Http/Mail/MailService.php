@@ -21,6 +21,7 @@ final class MailService
         return $this->createMailer($message, $to)->send();
     }
 
+
     private function sendToStdout(MailMessage $message, string $to): bool
     {
         $appName = $this->config->get('SMTP_FROM_NAME');
@@ -28,12 +29,15 @@ final class MailService
             . "To: {$to}\n"
             . "Subject: {$message->subject($appName)}\n\n"
             . $message->body . "\n";
-        $stream = fopen('php://output', 'wb');
-        if ($stream === false) {
-            error_log($payload);
+        if (PHP_SAPI !== 'cli-server') {
             return true;
         }
-        fwrite($stream, $payload);
+        $tty = @fopen('/dev/tty', 'wb');
+        if ($tty === false) {
+            return true;
+        }
+        fwrite($tty, $payload);
+        fclose($tty);
         return true;
     }
 
