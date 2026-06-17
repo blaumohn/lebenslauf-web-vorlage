@@ -75,7 +75,7 @@ final class CvAction
         string $message,
         int $status
     ): ResponseInterface {
-        $base = PageViewBuilder::base();
+        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
         $html = $this->context->twig->render('error.html.twig', [
             'title' => $title,
             'message' => $message,

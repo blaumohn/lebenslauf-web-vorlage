@@ -30,7 +30,7 @@ final class CvUploadService
     public function __construct(ConfigValues $config, string $appRoot)
     {
         $this->config = $config;
-        $this->rootPath = rtrim($appRoot, DIRECTORY_SEPARATOR);
+        $this->rootPath = $appRoot;
         $this->cvStorage = $this->buildCvStorage();
         $this->validator = $this->buildValidator();
         $this->renderer = $this->buildRenderer();
@@ -131,6 +131,7 @@ final class CvUploadService
         $this->cvStorage->savePublicHtmlForLang($publicHtml, $lang);
         if ($lang === $primaryLang) {
             $this->cvStorage->savePublicHtml($publicHtml);
+            $this->cvStorage->saveHeaderFragment($this->buildHeaderFragment($normalized));
         }
         $output->writeln("Public CV rendered for profile {$profile} ({$lang}).");
     }
@@ -208,6 +209,15 @@ final class CvUploadService
             'lebenslauf.schema.json'
         );
         return new CvValidator($schemaPath);
+    }
+
+    private function buildHeaderFragment(array $normalized): string
+    {
+        $name = (string) ($normalized['kopfdaten']['name']['kurz'] ?? '');
+        return $this->renderer->renderFragment(
+            'components/site/header.html.twig',
+            ['site_name' => $name]
+        );
     }
 
     private function buildRenderer(): CvRenderer

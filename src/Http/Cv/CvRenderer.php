@@ -13,6 +13,11 @@ final class CvRenderer
         $this->twig = $twig;
     }
 
+    public function renderFragment(string $template, array $data): string
+    {
+        return $this->twig->render($template, $data);
+    }
+
     public function renderPrivate(array $data, array $labels, string $lang = 'de'): string
     {
         return $this->twig->render('cv_private.html.twig', [
