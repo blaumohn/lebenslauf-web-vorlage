@@ -42,7 +42,14 @@ final class ErrorHandler
             $message .= ' ' . $exception->getMessage();
         }
 
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $lang = strtolower(trim((string) $this->context->config->get('CONTENT_LANG_DEFAULT')));
+        if ($lang === '') {
+            throw new \RuntimeException('Konfiguration fehlt: CONTENT_LANG_DEFAULT');
+        }
+        $base = PageViewBuilder::base(
+            $this->context->cvStorage->getHeaderFragmentForLang($lang),
+            $this->context->cvStorage->getFooterFragmentForLang($lang)
+        );
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Serverfehler',
             'message' => $message,

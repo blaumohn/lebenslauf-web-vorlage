@@ -75,7 +75,7 @@ final class CvAction
         string $message,
         int $status
     ): ResponseInterface {
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $base = PageViewBuilder::base(null, null);
         $html = $this->context->twig->render('error.html.twig', [
             'title' => $title,
             'message' => $message,
@@ -126,13 +126,13 @@ final class CvAction
 
     private function supportedLangs(): array
     {
-        $raw = (string) $this->context->config->get('LEBENSLAUF_LANGS');
+        $raw = (string) $this->context->config->get('CONTENT_LANGS');
         return $this->parseLangs($raw, $this->resolveDefaultLang());
     }
 
     private function resolveDefaultLang(): string
     {
-        $raw = (string) $this->context->config->get('LEBENSLAUF_LANG_DEFAULT');
+        $raw = (string) $this->context->config->get('CONTENT_LANG_DEFAULT');
         $value = strtolower(trim($raw));
         return $value === '' ? 'de' : $value;
     }

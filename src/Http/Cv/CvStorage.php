@@ -70,9 +70,68 @@ final class CvStorage
         $this->storage->writeText($this->headerFragmentPath(), $html);
     }
 
+    public function saveHeaderFragmentForLang(string $lang, string $html): void
+    {
+        $this->storage->writeText($this->headerFragmentPath($lang), $html);
+    }
+
     public function getHeaderFragment(): ?string
     {
         return $this->storage->readText($this->headerFragmentPath());
+    }
+
+    public function getHeaderFragmentForLang(string $lang): ?string
+    {
+        return $this->readWithFallback(
+            $this->headerFragmentPath($lang),
+            $this->headerFragmentPath()
+        );
+    }
+
+    public function saveFooterFragment(string $html): void
+    {
+        $this->storage->writeText($this->footerFragmentPath(), $html);
+    }
+
+    public function saveFooterFragmentForLang(string $lang, string $html): void
+    {
+        $this->storage->writeText($this->footerFragmentPath($lang), $html);
+    }
+
+    public function getFooterFragment(): ?string
+    {
+        return $this->storage->readText($this->footerFragmentPath());
+    }
+
+    public function getFooterFragmentForLang(string $lang): ?string
+    {
+        return $this->readWithFallback(
+            $this->footerFragmentPath($lang),
+            $this->footerFragmentPath()
+        );
+    }
+
+    public function saveCvFooterFragment(string $html): void
+    {
+        $this->storage->writeText($this->cvFooterFragmentPath(), $html);
+    }
+
+    public function saveCvFooterFragmentForLang(string $lang, string $html): void
+    {
+        $this->storage->writeText($this->cvFooterFragmentPath($lang), $html);
+    }
+
+    public function getCvFooterFragment(): ?string
+    {
+        return $this->storage->readText($this->cvFooterFragmentPath());
+    }
+
+    public function getCvFooterFragmentForLang(string $lang): ?string
+    {
+        return $this->readWithFallback(
+            $this->cvFooterFragmentPath($lang),
+            $this->cvFooterFragmentPath()
+        );
     }
 
     public function hasPublic(): bool
@@ -96,8 +155,30 @@ final class CvStorage
         return is_file($this->publicPath());
     }
 
-    private function headerFragmentPath(): string
+    private function cvFooterFragmentPath(?string $lang = null): string
     {
+        $suffix = $this->langSuffix($lang);
+        if ($suffix !== '') {
+            return Path::join($this->cacheDir, 'cv-footer.' . $suffix . '.html');
+        }
+        return Path::join($this->cacheDir, 'cv-footer.html');
+    }
+
+    private function footerFragmentPath(?string $lang = null): string
+    {
+        $suffix = $this->langSuffix($lang);
+        if ($suffix !== '') {
+            return Path::join($this->cacheDir, 'site-footer.' . $suffix . '.html');
+        }
+        return Path::join($this->cacheDir, 'site-footer.html');
+    }
+
+    private function headerFragmentPath(?string $lang = null): string
+    {
+        $suffix = $this->langSuffix($lang);
+        if ($suffix !== '') {
+            return Path::join($this->cacheDir, 'site-header.' . $suffix . '.html');
+        }
         return Path::join($this->cacheDir, 'site-header.html');
     }
 

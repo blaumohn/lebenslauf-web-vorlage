@@ -1,4 +1,4 @@
-{% macro view(cv, etiketten, is_private, name) %}
+{% macro view(cv, etiketten, is_private, name, cv_footer) %}
   {% import 'components/cv/lib.html.twig' as ui %}
   {% import 'components/cv/page.html.twig' as page %}
   {% import 'components/cv/sections.html.twig' as section %}
@@ -73,7 +73,7 @@
     </section>
   </main>
 
-  {% if cv.footer.show %}
-    {{ page.footer(name, cv.footer) }}
+  {% if cv_footer %}
+    {{ cv_footer|raw }}
   {% endif %}
 {% endmacro %}

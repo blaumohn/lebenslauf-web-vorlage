@@ -41,22 +41,23 @@ class LebenslaufSftpUploadTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as work_dir:
             source = Path(work_dir) / ".local" / "lebenslauf"
             self.write_fixture(source, "daten-relativ.yaml")
-            client = self.run_upload(work_dir, ".local/lebenslauf")
+            client = self.run_upload(work_dir, ".local")
 
         self.assert_uploads(client, "daten-relativ.yaml")
 
     def test_upload_absolutes_daten_verzeichnis(self):
         with tempfile.TemporaryDirectory() as work_dir:
-            source = Path(work_dir) / "absolute-cv"
+            content_base = Path(work_dir) / "absolute-content"
+            source = content_base / "lebenslauf"
             self.write_fixture(source, "daten-absolut.yaml")
-            client = self.run_upload(work_dir, str(source))
+            client = self.run_upload(work_dir, str(content_base))
 
         self.assert_uploads(client, "daten-absolut.yaml")
 
     def run_upload(self, work_dir, data_path):
         client = FakeSftpClient()
         configs = {
-            "build": {"LEBENSLAUF_DATEN_PFAD": data_path},
+            "build": {"CONTENT_PATH": data_path},
             "deploy": {},
         }
         with patch.object(self.module, "PipelineCfg", lambda phase: configs[phase]):

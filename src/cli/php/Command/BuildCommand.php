@@ -2,9 +2,7 @@
 
 namespace App\Cli\Command;
 
-use App\Cli\ConfigValues;
-use App\Cli\Cv\CvBuildService;
-use App\Cli\Cv\CvUploadService;
+use App\Cli\Site\SiteBuildService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -12,7 +10,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 
-#[AsCommand(name: 'build', description: 'Erstellt CSS und Lebenslauf-HTML.')]
+#[AsCommand(name: 'build', description: 'Erstellt CSS und Site-HTML.')]
 final class BuildCommand extends BasePipelinePhaseCommand
 {
     protected function commandPhase(): string
@@ -22,9 +20,7 @@ final class BuildCommand extends BasePipelinePhaseCommand
 
     protected function configurePipelineCommand(): void
     {
-        $this->addArgument('task', InputArgument::OPTIONAL, 'Subtask (config, cv, css, upload, all)')
-            ->addArgument('arg1', InputArgument::OPTIONAL, 'CV-Profil (bei upload)')
-            ->addArgument('arg2', InputArgument::OPTIONAL, 'JSON-Pfad (bei upload)');
+        $this->addArgument('task', InputArgument::OPTIONAL, 'Subtask (config, site, css, all)');
     }
 
     protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
@@ -39,14 +35,11 @@ final class BuildCommand extends BasePipelinePhaseCommand
         if ($task === 'css') {
             return $this->runCssBuild($output);
         }
-        if ($task === 'cv') {
-            return $this->runCvOnly($output);
-        }
-        if ($task === 'upload') {
-            return $this->runCvUpload($input, $output);
+        if ($task === 'site') {
+            return $this->runSiteOnly($output);
         }
 
-        $output->writeln('<error>Usage: build <PIPELINE> [config|cv|css|upload|all] [ARGS]</error>');
+        $output->writeln('<error>Usage: build <PIPELINE> [config|site|css|all]</error>');
         return Command::FAILURE;
     }
 
@@ -56,15 +49,19 @@ final class BuildCommand extends BasePipelinePhaseCommand
         if ($exitCode !== 0) {
             return $exitCode;
         }
-        return $this->runCvOnly($output);
+        return $this->runSiteOnly($output);
     }
 
-    private function runCvOnly(OutputInterface $output): int
+    private function runSiteOnly(OutputInterface $output): int
     {
         if (!$this->compileRuntimeConfig($output)) {
             return Command::FAILURE;
         }
-        if (!$this->runCvBuild($this->commandConfig(), $output)) {
+        $service = SiteBuildService::create($this->commandConfig(), $this->appRoot());
+        try {
+            $service->build($output);
+        } catch (\RuntimeException $e) {
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
             return Command::FAILURE;
         }
         return Command::SUCCESS;
@@ -77,45 +74,12 @@ final class BuildCommand extends BasePipelinePhaseCommand
             : Command::FAILURE;
     }
 
-    private function runCvUpload(InputInterface $input, OutputInterface $output): int
-    {
-        $cvProfile = trim((string) $input->getArgument('arg1'));
-        $jsonPath = trim((string) $input->getArgument('arg2'));
-        if ($cvProfile === '' || $jsonPath === '') {
-            $output->writeln('<error>Usage: build <PIPELINE> upload <CV_PROFIL> <JSON></error>');
-            return Command::FAILURE;
-        }
-
-        $service = new CvUploadService($this->commandConfig(), $this->appRoot());
-        try {
-            $service->upload($cvProfile, $jsonPath, $output);
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
-            return Command::FAILURE;
-        }
-
-        return Command::SUCCESS;
-    }
-
-    private function runCvBuild(ConfigValues $config, OutputInterface $output): bool
-    {
-        $builder = new CvBuildService($config, $this->appRoot());
-
-        try {
-            $builder->build($output);
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
-            return false;
-        }
-        return true;
-    }
-
     private function compileRuntimeConfig(OutputInterface $output): bool
     {
         try {
             $this->pipelineCompile('runtime');
-        } catch (\RuntimeException $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+        } catch (\RuntimeException $e) {
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
             return false;
         }
         return true;

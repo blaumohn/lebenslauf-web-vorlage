@@ -3,11 +3,13 @@ app:
   TRUST_PROXY: 1
   APP_LOG_CHANNEL: file
 
+content:
+  CONTENT_PATH: .local
+  CONTENT_LANG_DEFAULT: de
+  CONTENT_LANGS: "de,en"
+
 lebenslauf:
-  LEBENSLAUF_DATEN_PFAD: .local/lebenslauf
   LEBENSLAUF_PUBLIC_PROFILE: gueltig
-  LEBENSLAUF_LANG_DEFAULT: de
-  LEBENSLAUF_LANGS: "de,en"
 
 captcha:
   CAPTCHA_TTL_SECONDS: 600

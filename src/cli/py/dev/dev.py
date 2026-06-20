@@ -101,8 +101,9 @@ def start_css_watch(supervisor):
 
 
 def resolve_yaml_input(root_path, cfg: PipelineCfg):
-    data_path = cfg.get("LEBENSLAUF_DATEN_PFAD")
-    return resolve_path(root_path, data_path)
+    content_path = cfg.get("CONTENT_PATH")
+    resolved = resolve_path(root_path, content_path)
+    return os.path.join(resolved, "lebenslauf")
 
 
 def resolve_path(root_path, value):

@@ -35,16 +35,16 @@ final class CvFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
         $dePath = $this->root . '/var/cache/html/cv-public.de.html';
-        $enPath = $this->root . '/var/cache/html/cv-public.en.html';
+        $esPath = $this->root . '/var/cache/html/cv-public.es.html';
         file_put_contents($dePath, '<h1>Deutsch</h1>');
-        file_put_contents($enPath, '<h1>English</h1>');
+        file_put_contents($esPath, '<h1>Español</h1>');
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv?lang=en');
+            ->createServerRequest('GET', '/cv?lang=es');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('English', (string) $response->getBody());
+        $this->assertStringContainsString('Español', (string) $response->getBody());
     }
 
     public function testPrivateCvRequiresValidToken(): void
@@ -88,15 +88,15 @@ final class CvFeatureTest extends FeatureTestCase
         $tokenService->rotate($profile, [$token]);
 
         $dePath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
-        $enPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.en.html';
+        $esPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.es.html';
         file_put_contents($dePath, '<h1>Privat</h1>');
-        file_put_contents($enPath, '<h1>Private English</h1>');
+        file_put_contents($esPath, '<h1>Privado</h1>');
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv?token=' . urlencode($token) . '&lang=en');
+            ->createServerRequest('GET', '/cv?token=' . urlencode($token) . '&lang=es');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('Private English', (string) $response->getBody());
+        $this->assertStringContainsString('Privado', (string) $response->getBody());
     }
 }

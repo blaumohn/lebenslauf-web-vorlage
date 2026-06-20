@@ -63,7 +63,7 @@ services:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
         YAML
         if [[ -n "$${CI_CV_DATA_PATH:-}" ]]; then
-          printf 'lebenslauf:\n  LEBENSLAUF_DATEN_PFAD: "%s"\n' "$$CI_CV_DATA_PATH"
+          printf 'content:\n  CONTENT_PATH: "%s"\n' "$$CI_CONTENT_PATH"
         fi
         cat <<'YAML'
         sftp:

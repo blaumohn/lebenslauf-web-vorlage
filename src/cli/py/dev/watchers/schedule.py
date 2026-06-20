@@ -14,7 +14,7 @@ def schedule_yaml(observer, root_path, data_path, build_fn):
         )
         logger.info("YAML-Watch aktiv: Verzeichnis")
         return
-    logger.info("YAML-Watch deaktiviert (LEBENSLAUF_DATEN_PFAD setzen).")
+    logger.info("YAML-Watch deaktiviert (CONTENT_PATH setzen).")
 
 
 def schedule_twig(observer, root_path, build_fn):

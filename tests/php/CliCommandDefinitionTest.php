@@ -20,8 +20,6 @@ final class CliCommandDefinitionTest extends TestCase
 
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertTrue($definition->hasArgument('task'));
-        self::assertTrue($definition->hasArgument('arg1'));
-        self::assertTrue($definition->hasArgument('arg2'));
     }
 
     public function testBuildCommandRejectsUnknownTask(): void

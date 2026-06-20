@@ -18,23 +18,25 @@ final class CvRenderer
         return $this->twig->render($template, $data);
     }
 
-    public function renderPrivate(array $data, array $labels, string $lang = 'de'): string
+    public function renderPrivate(array $data, array $labels, string $lang, string $cvFooter): string
     {
         return $this->twig->render('cv_private.html.twig', [
             'cv' => $data,
             'etiketten' => $labels,
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'] ?? 'Lebenslauf',
+            'title' => $labels['_'] ?? throw new \RuntimeException("Label '_' fehlt für Sprache: {$lang}"),
+            'cv_footer' => $cvFooter,
         ]);
     }
 
-    public function renderPublic(array $data, array $labels, string $lang = 'de'): string
+    public function renderPublic(array $data, array $labels, string $lang, string $cvFooter): string
     {
         return $this->twig->render('cv_public.html.twig', [
             'cv' => $data,
             'etiketten' => $labels,
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'] ?? 'Lebenslauf',
+            'title' => $labels['_'] ?? throw new \RuntimeException("Label '_' fehlt für Sprache: {$lang}"),
+            'cv_footer' => $cvFooter,
         ]);
     }
 

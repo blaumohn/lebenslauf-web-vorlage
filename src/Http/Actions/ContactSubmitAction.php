@@ -53,7 +53,11 @@ final class ContactSubmitAction
             );
         }
 
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $lang = $this->defaultLang();
+        $base = PageViewBuilder::base(
+            $this->context->cvStorage->getHeaderFragmentForLang($lang),
+            $this->context->cvStorage->getFooterFragmentForLang($lang)
+        );
         $html = $this->context->twig->render('contact_ok.html.twig', [
             'title' => 'Kontakt',
             'sent_name' => $form['name'],
@@ -78,7 +82,11 @@ final class ContactSubmitAction
 
     private function renderRateLimit(ResponseInterface $response): ResponseInterface
     {
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $lang = $this->defaultLang();
+        $base = PageViewBuilder::base(
+            $this->context->cvStorage->getHeaderFragmentForLang($lang),
+            $this->context->cvStorage->getFooterFragmentForLang($lang)
+        );
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Zu viele Anfragen',
             'message' => 'Bitte später erneut versuchen.',
@@ -163,11 +171,15 @@ final class ContactSubmitAction
         string $error,
         int $status
     ): ResponseInterface {
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $lang = $this->defaultLang();
+        $base = PageViewBuilder::base(
+            $this->context->cvStorage->getHeaderFragmentForLang($lang),
+            $this->context->cvStorage->getFooterFragmentForLang($lang)
+        );
         $challenge = $this->context->captchaService->createChallenge($ipHash);
         $captchaId = $challenge['captcha_id'];
         $captchaUrl = '/captcha.png?id=' . urlencode($captchaId);
-        $html = $this->context->twig->render('contact.html.twig', [
+        $html = $this->context->twig->render($this->contactTemplate(), [
             'title' => 'Kontakt',
             'form' => [
                 'show_error' => true,
@@ -178,5 +190,23 @@ final class ContactSubmitAction
             ],
         ] + $base);
         return ResponseHelper::html($response, $html, $status);
+    }
+
+    private function defaultLang(): string
+    {
+        $lang = strtolower(trim($this->context->config->get('CONTENT_LANG_DEFAULT')));
+        if ($lang === '') {
+            throw new \RuntimeException('Konfiguration fehlt: CONTENT_LANG_DEFAULT');
+        }
+        return $lang;
+    }
+
+    private function contactTemplate(): string
+    {
+        $lang = strtolower(trim($this->context->config->get('CONTENT_LANG_DEFAULT')));
+        if ($lang === '') {
+            throw new \RuntimeException('Konfiguration fehlt: CONTENT_LANG_DEFAULT');
+        }
+        return "@generated/contact/{$lang}.twig";
     }
 }

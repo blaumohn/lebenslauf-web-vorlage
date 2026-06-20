@@ -18,7 +18,7 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels());
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '');
 
         $this->assertStringContainsString(
             '<li>Zertifikat Webentwicklung, BFI Wien</li>',
@@ -33,7 +33,7 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '');
 
         $this->assertStringContainsString('<html lang="en">', $html);
     }

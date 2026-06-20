@@ -48,10 +48,10 @@ jobs:
             APP_ROOT_URL: "${{ vars.APP_ROOT_URL }}"
             TRUST_PROXY: "${{ vars.TRUST_PROXY }}"
           lebenslauf:
-            LEBENSLAUF_DATEN_PFAD: "${{ secrets.LEBENSLAUF_DATEN_PFAD || vars.LEBENSLAUF_DATEN_PFAD }}"
+            CONTENT_PATH: "${{ secrets.CONTENT_PATH || vars.CONTENT_PATH }}"
+            CONTENT_LANG_DEFAULT: "${{ vars.CONTENT_LANG_DEFAULT }}"
+            CONTENT_LANGS: "${{ vars.CONTENT_LANGS }}"
             LEBENSLAUF_PUBLIC_PROFILE: "${{ secrets.LEBENSLAUF_PUBLIC_PROFILE || vars.LEBENSLAUF_PUBLIC_PROFILE }}"
-            LEBENSLAUF_LANG_DEFAULT: "${{ vars.LEBENSLAUF_LANG_DEFAULT }}"
-            LEBENSLAUF_LANGS: "${{ vars.LEBENSLAUF_LANGS }}"
           captcha:
             CAPTCHA_TTL_SECONDS: "${{ vars.CAPTCHA_TTL_SECONDS }}"
             CAPTCHA_MAX_GET: "${{ vars.CAPTCHA_MAX_GET }}"

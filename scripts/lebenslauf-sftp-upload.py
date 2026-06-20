@@ -13,7 +13,7 @@ def main() -> None:
     with SftpClient(deploy_cfg) as client:
         assert_dir_empty(client)
         build_cfg = PipelineCfg("build")
-        local_path = Path(build_cfg["LEBENSLAUF_DATEN_PFAD"])
+        local_path = Path(build_cfg["CONTENT_PATH"]) / "lebenslauf"
         if not local_path.is_dir():
             print(
                 f"FEHLER: Lebenslauf-Pfad nicht gefunden: {local_path}",

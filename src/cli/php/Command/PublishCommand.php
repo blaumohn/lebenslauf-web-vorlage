@@ -2,14 +2,13 @@
 
 namespace App\Cli\Command;
 
-use App\Cli\ConfigValues;
-use App\Cli\Cv\CvBuildService;
+use App\Cli\Site\SiteBuildService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'publish', description: 'Baut CV-HTML lokal und veröffentlicht es auf dem Server.')]
+#[AsCommand(name: 'publish', description: 'Baut Site-HTML lokal und veröffentlicht es auf dem Server.')]
 final class PublishCommand extends BasePipelineCommand
 {
     use PythonRunnerAware;
@@ -37,11 +36,11 @@ final class PublishCommand extends BasePipelineCommand
         return $this->pythonRunner()->runScript(self::PUBLISH_SCRIPT, $deployValues);
     }
 
-    private function runBuild(ConfigValues $config, OutputInterface $output): bool
+    private function runBuild(\App\Cli\ConfigValues $config, OutputInterface $output): bool
     {
-        $builder = new CvBuildService($config, $this->appRoot());
+        $service = SiteBuildService::create($config, $this->appRoot());
         try {
-            $builder->build($output);
+            $service->build($output);
         } catch (\RuntimeException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
             return false;

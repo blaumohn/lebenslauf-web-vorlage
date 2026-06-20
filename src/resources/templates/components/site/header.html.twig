@@ -1,8 +1,8 @@
 <header>
   <a href="{{ path('/') }}" class="site-name">{{ site_name }}</a>
   <nav>
-    <a href="{{ path('/') }}">Home</a>
-    <a href="{{ path('/cv') }}">Lebenslauf</a>
-    <a href="{{ path('/contact') }}">Kontakt</a>
+    {% for item in nav_items %}
+      <a href="{{ path(item.href) }}">{{ item.label }}</a>
+    {% endfor %}
   </nav>
 </header>

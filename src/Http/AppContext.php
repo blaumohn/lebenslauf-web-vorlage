@@ -54,6 +54,7 @@ final class AppContext
         $context->logger = AppLogger::create($logDir, $config->get('APP_LOG_CHANNEL'));
         $context->twig = TwigFactory::create($appRoot . '/src/resources/templates');
         TwigFactory::configure($context->twig, $basePath);
+        TwigFactory::addGeneratedPath($context->twig, $appRoot . '/var/cache/templates');
         $context->cvStorage = new CvStorage($storage, $appRoot . '/var/cache/html');
         $context->tokenService = new TokenService($storage, $lockRunner, $writer, $appRoot . '/var/state/tokens');
         $context->captchaService = new CaptchaService(
