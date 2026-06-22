@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "intro", "name_label", "email_label", "message_label", "submit_label"],
+  "properties": {
+    "title":         { "$ref": "#/definitions/intlString" },
+    "intro":         { "$ref": "#/definitions/intlString" },
+    "name_label":    { "$ref": "#/definitions/intlString" },
+    "email_label":   { "$ref": "#/definitions/intlString" },
+    "message_label": { "$ref": "#/definitions/intlString" },
+    "submit_label":  { "$ref": "#/definitions/intlString" }
+  },
+  "definitions": {
+    "intlString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
+    }
+  }
+}

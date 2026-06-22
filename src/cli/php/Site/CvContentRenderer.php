@@ -5,7 +5,7 @@ namespace App\Cli\Site;
 use App\Cli\ConfigValues;
 use App\Http\Cv\CvDataNormalizer;
 use App\Http\Cv\CvRenderer;
-use App\Http\Cv\CvValidator;
+use App\Http\SchemaValidator;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Http\Cv\LabelService;
 use App\Http\Cv\RedactionService;
@@ -18,7 +18,7 @@ use Symfony\Component\Yaml\Yaml;
 final class CvContentRenderer extends BaseContentRenderer
 {
     private \App\Http\Cv\CvStorage $cvStorage;
-    private CvValidator $validator;
+    private SchemaValidator $validator;
     private CvRenderer $renderer;
     private CvViewModelBuilder $viewBuilder;
     private RedactionService $redactor;
@@ -37,6 +37,7 @@ final class CvContentRenderer extends BaseContentRenderer
 
     public function render(OutputInterface $output): void
     {
+        $this->validateLabels($output);
         $targets = $this->resolveTargets();
         $jsonPath = Path::join($this->rootPath, 'var', 'tmp', 'lebenslauf.json');
         $this->ensureDir(dirname($jsonPath));
@@ -44,6 +45,15 @@ final class CvContentRenderer extends BaseContentRenderer
         foreach ($targets as $target) {
             $this->renderTarget($target, $jsonPath, $output);
         }
+    }
+
+    private function validateLabels(OutputInterface $output): void
+    {
+        $raw = json_decode((string) file_get_contents($this->labelsPath));
+        if ($raw === null) {
+            throw new \RuntimeException("Labels-Datei ungültig oder nicht lesbar: {$this->labelsPath}");
+        }
+        $this->assertValid($raw, 'labels.schema.json', $output);
     }
 
     private function resolveTargets(): array
@@ -188,10 +198,10 @@ final class CvContentRenderer extends BaseContentRenderer
         return Path::join($this->resolveContentBase(), 'lebenslauf');
     }
 
-    private function buildValidator(): CvValidator
+    private function buildValidator(): SchemaValidator
     {
         $schema = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', 'lebenslauf.schema.json');
-        return new CvValidator($schema);
+        return new SchemaValidator($schema);
     }
 
     private function buildCvRenderer(): CvRenderer

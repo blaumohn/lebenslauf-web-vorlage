@@ -24,7 +24,7 @@ final class CvRenderer
             'cv' => $data,
             'etiketten' => $labels,
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'] ?? throw new \RuntimeException("Label '_' fehlt für Sprache: {$lang}"),
+            'title' => $labels['_'],
             'cv_footer' => $cvFooter,
         ]);
     }
@@ -35,7 +35,7 @@ final class CvRenderer
             'cv' => $data,
             'etiketten' => $labels,
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'] ?? throw new \RuntimeException("Label '_' fehlt für Sprache: {$lang}"),
+            'title' => $labels['_'],
             'cv_footer' => $cvFooter,
         ]);
     }

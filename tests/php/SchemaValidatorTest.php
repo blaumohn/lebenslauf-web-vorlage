@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-use App\Http\Cv\CvValidator;
+use App\Http\SchemaValidator;
 use PHPUnit\Framework\TestCase;
 
-final class CvValidatorTest extends TestCase
+final class SchemaValidatorTest extends TestCase
 {
     public function testValidDataPasses(): void
     {
-        $validator = new CvValidator($this->schemaPath());
+        $validator = new SchemaValidator($this->schemaPath());
         $errors = $validator->validate($this->validData());
         $this->assertSame([], $errors);
     }
 
     public function testInvalidNameFails(): void
     {
-        $validator = new CvValidator($this->schemaPath());
+        $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
         $data['kopfdaten']['name'] = 'Max Mustermann';
 
@@ -26,7 +26,7 @@ final class CvValidatorTest extends TestCase
 
     public function testEducationDescriptionIsOptional(): void
     {
-        $validator = new CvValidator($this->schemaPath());
+        $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
         unset($data['ausbildung'][0]['beschreibung']);
 
@@ -36,7 +36,7 @@ final class CvValidatorTest extends TestCase
 
     public function testEducationDegreeIsOptional(): void
     {
-        $validator = new CvValidator($this->schemaPath());
+        $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
         unset($data['ausbildung'][0]['grad']);
 
@@ -46,7 +46,7 @@ final class CvValidatorTest extends TestCase
 
     public function testEducationNeedsDegreeOrDescription(): void
     {
-        $validator = new CvValidator($this->schemaPath());
+        $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
         unset($data['ausbildung'][0]['grad']);
         unset($data['ausbildung'][0]['beschreibung']);

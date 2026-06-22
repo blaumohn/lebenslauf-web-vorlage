@@ -4,8 +4,10 @@ namespace App\Cli\Site;
 
 use App\Cli\ConfigValues;
 use App\Http\Cv\CvStorage;
+use App\Http\SchemaValidator;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Twig\Environment;
 
@@ -79,5 +81,19 @@ abstract class BaseContentRenderer implements ContentRendererInterface
     protected function buildStorage(): CvStorage
     {
         return new CvStorage(new FileStorage(), Path::join($this->rootPath, 'var', 'cache', 'html'));
+    }
+
+    protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void
+    {
+        $schemaPath = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', $schemaName);
+        $errors = (new SchemaValidator($schemaPath))->validate($data);
+        if ($errors === []) {
+            return;
+        }
+        $output->writeln("<error>{$schemaName}: Schema-Validierung fehlgeschlagen:</error>");
+        foreach ($errors as $error) {
+            $output->writeln("- {$error}");
+        }
+        throw new \RuntimeException("{$schemaName}: Schema-Validierung fehlgeschlagen.");
     }
 }

@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slug", "datum", "status", "titel", "zusammenfassung", "inhalt"],
+  "properties": {
+    "slug":           { "type": "string", "minLength": 1 },
+    "datum":          { "type": "string", "minLength": 1 },
+    "status":         { "type": "string", "enum": ["published", "draft"] },
+    "titel":          { "$ref": "#/definitions/intlString" },
+    "zusammenfassung":{ "$ref": "#/definitions/intlString" },
+    "inhalt":         { "$ref": "#/definitions/intlString" },
+    "tags":           { "type": "array", "items": { "type": "string" } }
+  },
+  "definitions": {
+    "intlString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
+    }
+  }
+}

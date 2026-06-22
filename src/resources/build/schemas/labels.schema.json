@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_", "motivation", "faehigkeiten", "berufserfahrung", "sprachen", "ausbildung", "interessen", "vortraege", "opensource"],
+  "properties": {
+    "_":              { "$ref": "#/definitions/intlString" },
+    "motivation":     { "$ref": "#/definitions/labelGroup" },
+    "faehigkeiten":   { "$ref": "#/definitions/labelGroup" },
+    "berufserfahrung":{ "$ref": "#/definitions/labelGroup" },
+    "sprachen":       { "$ref": "#/definitions/labelGroup" },
+    "ausbildung":     { "$ref": "#/definitions/labelGroup" },
+    "interessen":     { "$ref": "#/definitions/labelGroup" },
+    "vortraege":      { "$ref": "#/definitions/labelGroup" },
+    "opensource":     { "$ref": "#/definitions/labelGroup" }
+  },
+  "definitions": {
+    "intlString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
+    },
+    "labelGroup": {
+      "type": "object",
+      "required": ["_"],
+      "properties": {
+        "_": { "$ref": "#/definitions/intlString" }
+      }
+    }
+  }
+}

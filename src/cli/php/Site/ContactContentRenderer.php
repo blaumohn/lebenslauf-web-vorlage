@@ -19,6 +19,7 @@ final class ContactContentRenderer extends BaseContentRenderer
         if (!is_array($data)) {
             throw new \RuntimeException("Ungültiges Contact-YAML: {$yamlPath}");
         }
+        $this->assertValid($data, 'contact.schema.json', $output);
         foreach ($this->resolveLangs() as $lang) {
             $this->renderForLang($data, $lang, $output);
         }

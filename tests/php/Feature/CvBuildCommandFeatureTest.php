@@ -45,7 +45,6 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
 
     public function testBuildCvUsesDataPathOverride(): void
     {
-        $this->copySchema();
         $this->prepareCustomContentRoot('custom-content');
 
         $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
@@ -78,18 +77,6 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
         copy(
             $this->projectRoot() . '/src/resources/fixtures/site/site.yaml',
             $root . '/site/site.yaml'
-        );
-    }
-
-    private function copySchema(): void
-    {
-        $target = $this->root . '/src/resources/build/schemas/lebenslauf.schema.json';
-        if (!is_dir(dirname($target))) {
-            mkdir(dirname($target), 0775, true);
-        }
-        copy(
-            $this->projectRoot() . '/src/resources/build/schemas/lebenslauf.schema.json',
-            $target
         );
     }
 

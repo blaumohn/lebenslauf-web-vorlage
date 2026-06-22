@@ -32,6 +32,7 @@ final class HomeContentRenderer extends BaseContentRenderer
         if (!is_array($data)) {
             throw new \RuntimeException("Ungültiges Home-YAML: {$yamlPath}");
         }
+        $this->assertValid($data, 'home.schema.json', $output);
         foreach ($this->resolveLangs() as $lang) {
             $this->renderForLang($data, $lang, $output);
         }

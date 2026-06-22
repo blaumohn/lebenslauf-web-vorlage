@@ -1,19 +1,14 @@
 <?php
 
-namespace App\Http\Cv;
+namespace App\Http;
 
 use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\SchemaLoader;
 use Opis\JsonSchema\Validator;
 
-final class CvValidator
+final class SchemaValidator
 {
-    private string $schemaPath;
-
-    public function __construct(string $schemaPath)
-    {
-        $this->schemaPath = $schemaPath;
-    }
+    public function __construct(private string $schemaPath) {}
 
     public function validate(mixed $data): array
     {
@@ -35,26 +30,7 @@ final class CvValidator
             return [];
         }
 
-        $formatter = new ErrorFormatter();
-        $errors = $formatter->format($result);
-
-        return $this->flattenErrors($errors);
-    }
-
-    private function flattenErrors(array $errors, string $prefix = ''): array
-    {
-        $messages = [];
-        foreach ($errors as $key => $value) {
-            $path = $prefix === '' ? $key : $prefix . '.' . $key;
-            if (!is_array($value)) {
-                $messages[] = $path . ': ' . (string) $value;
-                continue;
-            }
-
-            $messages = array_merge($messages, $this->flattenErrors($value, $path));
-        }
-
-        return $messages;
+        return $this->flattenErrors((new ErrorFormatter())->format($result));
     }
 
     private function loadSchema(): array
@@ -74,11 +50,25 @@ final class CvValidator
             $schema = is_bool($decoded)
                 ? $loader->loadBooleanSchema($decoded)
                 : $loader->loadObjectSchema($decoded);
-        } catch (\Throwable $exception) {
+        } catch (\Throwable) {
             return [null, null, 'Schema ist ungültig.'];
         }
 
         return [$loader, $schema, null];
+    }
+
+    private function flattenErrors(array $errors, string $prefix = ''): array
+    {
+        $messages = [];
+        foreach ($errors as $key => $value) {
+            $path = $prefix === '' ? $key : $prefix . '.' . $key;
+            if (!is_array($value)) {
+                $messages[] = $path . ': ' . (string) $value;
+                continue;
+            }
+            $messages = array_merge($messages, $this->flattenErrors($value, $path));
+        }
+        return $messages;
     }
 
     private function normalizeArrayData(array $data): mixed
@@ -87,7 +77,6 @@ final class CvValidator
         if ($normalized === null && json_last_error() !== JSON_ERROR_NONE) {
             return null;
         }
-
         return $normalized;
     }
 }

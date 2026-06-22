@@ -28,7 +28,7 @@ final class BlogContentRenderer extends BaseContentRenderer
             $output->writeln("Blog: Verzeichnis nicht gefunden ({$dataPath}), übersprungen.");
             return;
         }
-        $posts = $this->discoverPosts($dataPath);
+        $posts = $this->discoverPosts($dataPath, $output);
         if ($posts === []) {
             $output->writeln("Blog: keine YAML-Dateien gefunden in {$dataPath}.");
             return;
@@ -38,7 +38,7 @@ final class BlogContentRenderer extends BaseContentRenderer
         }
     }
 
-    private function discoverPosts(string $dataPath): array
+    private function discoverPosts(string $dataPath, OutputInterface $output): array
     {
         $entries = scandir($dataPath);
         if ($entries === false) {
@@ -50,9 +50,11 @@ final class BlogContentRenderer extends BaseContentRenderer
                 continue;
             }
             $data = Yaml::parseFile(Path::join($dataPath, $entry));
-            if (is_array($data)) {
-                $posts[] = $data;
+            if (!is_array($data)) {
+                continue;
             }
+            $this->assertValid($data, 'blog-post.schema.json', $output);
+            $posts[] = $data;
         }
         return $posts;
     }

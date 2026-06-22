@@ -29,6 +29,10 @@ abstract class FeatureTestCase extends TestCase
             $this->projectRoot() . '/src/resources/build/labels.json',
             $this->root . '/src/resources/build/labels.json'
         );
+        $this->copyDir(
+            $this->projectRoot() . '/src/resources/build/schemas',
+            $this->root . '/src/resources/build/schemas'
+        );
         $this->copyFile(
             $this->projectRoot() . '/src/resources/nav.yaml',
             $this->root . '/src/resources/nav.yaml'
