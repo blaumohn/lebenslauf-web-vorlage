@@ -17,7 +17,7 @@ CI_TEST_CASES = (
 )
 
 SUPPRESS_ERROR_TYPES: dict[str, set[str]] = {
-    "test-rollback": {"ConnectionError"},
+    "test-rollback": {"ConnectionError", "RuntimeError"},
 }
 
 

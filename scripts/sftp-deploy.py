@@ -1,7 +1,6 @@
+import os
+import subprocess
 from pathlib import Path
-
-import requests
-import requests.exceptions
 
 from cli.py.deploy.history import DeployHistoryEntry, DeployHistoryWriter
 from cli.py.deploy.machine import DeployMachine
@@ -41,11 +40,18 @@ def smoke_check(cfg, log) -> None:
             "Smoke übersprungen"
         )
         return
-    resp = requests.get(url, timeout=10, allow_redirects=True)
-    if resp.status_code != 200:
-        raise RuntimeError(
-            f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}"
-        )
+    log(f"Smoke: {url}")
+    proc_env = os.environ.copy()
+    proc_env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
+    proc_env["CONTENT_LANGS"] = cfg.get("CONTENT_LANGS", "de")
+    silent = os.environ.get("LOG_FORMAT") == "json"
+    result = subprocess.run(
+        ["npm", "run", "qa:smoke"],
+        env=proc_env,
+        capture_output=silent,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Smoke fehlgeschlagen — {url}")
 
 
 def main():
