@@ -2,12 +2,18 @@
 
 namespace App\Cli\Site;
 
+use App\Cli\Site\LabelService;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
 
 final class ContactContentRenderer extends BaseContentRenderer
 {
+    public function sectionKey(): ?string
+    {
+        return 'contact';
+    }
+
     public function render(OutputInterface $output): void
     {
         $yamlPath = $this->dataPath();
@@ -27,9 +33,29 @@ final class ContactContentRenderer extends BaseContentRenderer
 
     private function renderForLang(array $data, string $lang, OutputInterface $output): void
     {
-        $text = $this->pickLang($data, $lang);
+        $contact = $this->pickLang($data, $lang);
+        $labels = LabelService::fromJsonFile($this->labelsPath(), $lang)->all();
+        $text = array_merge($contact, $this->resolveContactLabels($labels));
         $this->writeTemplate($lang, $this->generateTemplate($text));
         $output->writeln("Contact-Template generiert ({$lang}).");
+    }
+
+    private function resolveContactLabels(array $labels): array
+    {
+        $contact = $labels['contact'];
+        $fields = $contact['childLabels'];
+        return [
+            'title'         => $contact['value'],
+            'name_label'    => $fields['name']['value'],
+            'email_label'   => $fields['email']['value'],
+            'message_label' => $fields['message']['value'],
+            'submit_label'  => $fields['submit']['value'],
+        ];
+    }
+
+    private function labelsPath(): string
+    {
+        return Path::join($this->rootPath, 'src', 'resources', 'build', 'labels.json');
     }
 
     private function generateTemplate(array $text): string

@@ -21,6 +21,11 @@ final class BlogContentRenderer extends BaseContentRenderer
         $this->storage = new FileStorage();
     }
 
+    public function sectionKey(): ?string
+    {
+        return 'blog';
+    }
+
     public function render(OutputInterface $output): void
     {
         $dataPath = $this->dataPath();

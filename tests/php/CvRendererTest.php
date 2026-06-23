@@ -52,21 +52,25 @@ final class CvRendererTest extends TestCase
 
     private function validFixturePath(): string
     {
-        return dirname(__DIR__, 2) . '/src/resources/fixtures/lebenslauf/daten-gueltig.yaml';
+        return dirname(__DIR__, 2) . '/src/resources/fixtures/lebenslauf/daten-demo.yaml';
     }
 
     private function labels(): array
     {
         return [
-            '_' => 'Lebenslauf',
-            'faehigkeiten' => ['_' => 'Fähigkeiten'],
-            'sprachen' => ['_' => 'Sprachen'],
-            'interessen' => ['_' => 'Interessen'],
-            'motivation' => ['_' => 'Motivation'],
-            'berufserfahrung' => ['_' => 'Berufserfahrung'],
-            'opensource' => ['_' => 'Open Source'],
-            'vortraege' => ['_' => 'Vorträge'],
-            'ausbildung' => ['_' => 'Ausbildung'],
+            'cv' => [
+                'value' => 'Lebenslauf',
+                'childLabels' => [
+                    'faehigkeiten'    => ['value' => 'Fähigkeiten'],
+                    'sprachen'        => ['value' => 'Sprachen'],
+                    'interessen'      => ['value' => 'Interessen'],
+                    'motivation'      => ['value' => 'Motivation'],
+                    'berufserfahrung' => ['value' => 'Berufserfahrung'],
+                    'opensource'      => ['value' => 'Open Source'],
+                    'vortraege'       => ['value' => 'Vorträge'],
+                    'ausbildung'      => ['value' => 'Ausbildung'],
+                ],
+            ],
         ];
     }
 }

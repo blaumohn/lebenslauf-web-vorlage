@@ -14,7 +14,7 @@ final class SampleContentCopierTest extends TestCase
     protected function setUp(): void
     {
         $this->root = $this->createRoot();
-        $this->seedFixture();
+        $this->seedFixtures();
     }
 
     protected function tearDown(): void
@@ -26,24 +26,35 @@ final class SampleContentCopierTest extends TestCase
     {
         $copier = new SampleContentCopier($this->root);
 
-        $target = $copier->copy('default');
+        $target = $copier->copy();
 
-        self::assertSame($this->root . '/.local/lebenslauf/daten-default.yaml', $target);
-        self::assertFileExists($target);
-        self::assertSame("titel: Beispiel\n", file_get_contents($target));
+        self::assertSame($this->root . '/.local/content', $target);
+        self::assertFileExists($target . '/lebenslauf/daten-demo.yaml');
+        self::assertFileExists($target . '/home/home.yaml');
     }
 
     public function testFailsWhenTargetAlreadyExists(): void
     {
         $copier = new SampleContentCopier($this->root);
-        $target = $copier->targetPath('default');
-        $this->ensureDir(dirname($target));
-        file_put_contents($target, "titel: Echt\n");
+        mkdir($copier->targetPath(), 0775, true);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Sample-Ziel existiert bereits');
 
-        $copier->copy('default');
+        $copier->copy();
+    }
+
+    private function seedFixtures(): void
+    {
+        $fixtures = [
+            'lebenslauf/daten-demo.yaml' => "titel: Beispiel\n",
+            'home/home.yaml'             => "titel: Startseite\n",
+        ];
+        foreach ($fixtures as $rel => $content) {
+            $path = $this->root . '/src/resources/fixtures/' . $rel;
+            $this->ensureDir(dirname($path));
+            file_put_contents($path, $content);
+        }
     }
 
     private function createRoot(): string
@@ -57,15 +68,6 @@ final class SampleContentCopierTest extends TestCase
             }
         }
         return $root;
-    }
-
-    private function seedFixture(): void
-    {
-        $path = $this->root . '/src/resources/fixtures/lebenslauf/daten-gueltig.yaml';
-        $this->ensureDir(dirname($path));
-        if (file_put_contents($path, "titel: Beispiel\n") === false) {
-            throw new \RuntimeException('Konnte Fixture nicht schreiben.');
-        }
     }
 
     private function ensureDir(string $dir): void

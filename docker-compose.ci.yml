@@ -22,8 +22,8 @@ x-ci-pipeline-env: &ci-pipeline-env
   PIPELINE_RUN_ID: "$PIPELINE_RUN_ID"
   SFTP_DEPLOY_OVERRIDES: "${SFTP_DEPLOY_OVERRIDES:-}"
   LOG_FORMAT: "${LOG_FORMAT:-}"
-  CI_CV_DATA_PATH: "${CI_CV_DATA_PATH:-}"
-  CI_CV_DATA_PREPARE_SCRIPT: "${CI_CV_DATA_PREPARE_SCRIPT:-}"
+  CI_CONTENT_PATH: "${CI_CONTENT_PATH:-}"
+  CI_CONTENT_PREPARE_SCRIPT: "${CI_CONTENT_PREPARE_SCRIPT:-}"
 
 x-ci-runner: &ci-runner
   <<: *ci-base
@@ -62,7 +62,7 @@ services:
         mail:
           MAIL_TO_EMAIL: "ci-test@ci.invalid"
         YAML
-        if [[ -n "$${CI_CV_DATA_PATH:-}" ]]; then
+        if [[ -n "$${CI_CONTENT_PATH:-}" ]]; then
           printf 'content:\n  CONTENT_PATH: "%s"\n' "$$CI_CONTENT_PATH"
         fi
         cat <<'YAML'
@@ -79,7 +79,7 @@ services:
           SMTP_PASS: "ci-pass"
           SMTP_FROM_EMAIL: "noreply@ci.invalid"
         YAML
-        } | exec bash /repo/${CI_CV_DATA_PREPARE_SCRIPT:-bin/ci} "$${CI_TEST_CASE:-}"
+        } | exec bash /repo/${CI_CONTENT_PREPARE_SCRIPT:-bin/ci} "$${CI_TEST_CASE:-}"
       - --
     depends_on:
       sftp-server:

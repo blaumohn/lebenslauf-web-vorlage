@@ -22,9 +22,9 @@ final class CvRenderer
     {
         return $this->twig->render('cv_private.html.twig', [
             'cv' => $data,
-            'etiketten' => $labels,
+            'etiketten' => $labels['cv']['childLabels'],
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'],
+            'title' => $labels['cv']['value'],
             'cv_footer' => $cvFooter,
         ]);
     }
@@ -33,9 +33,9 @@ final class CvRenderer
     {
         return $this->twig->render('cv_public.html.twig', [
             'cv' => $data,
-            'etiketten' => $labels,
+            'etiketten' => $labels['cv']['childLabels'],
             'lang' => $this->normalizeLang($lang),
-            'title' => $labels['_'],
+            'title' => $labels['cv']['value'],
             'cv_footer' => $cvFooter,
         ]);
     }

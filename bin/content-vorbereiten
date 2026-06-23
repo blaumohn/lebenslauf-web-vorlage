@@ -1,6 +1,6 @@
 set -euo pipefail
 set -E
-trap 'echo "[lebenslauf-daten-vorbereiten] Fehler in Zeile $LINENO: $BASH_COMMAND" >&2' ERR
+trap 'echo "[content-vorbereiten] Fehler in Zeile $LINENO: $BASH_COMMAND" >&2' ERR
 
 if [[ "${DEBUG:-0}" == "1" ]]; then
   set -x
@@ -14,7 +14,7 @@ require_nonempty PIPELINE CI_WORK_BASE
 
 [ "$PIPELINE" != dev ] && require_nonempty PIPELINE_RUN_ID
 
-CV_DATA_PATH_CREATED=0
+CONTENT_PATH_CREATED=0
 
 main() {
   WORK_REPO_DIR="$(prepare_repo_dir)"
@@ -27,31 +27,31 @@ main() {
   run_step "Abhängigkeiten installieren" composer install:ci
   run_step "Setup ($PIPELINE)"           cli setup "$PIPELINE"
   run_step "Contact-RateLimit-Reset"     reset_contact_get_ratelimit
-  run_step "Lebenslauf-Datenpfad"        ensure_cv_data_path
-  upload_cv_data_if_needed
+  run_step "Content-Pfad"               ensure_content_path
+  upload_content_if_needed
 }
 
-ensure_cv_data_path() {
-  local data_path
-  data_path="$(cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build)"
-  if [[ -d "$data_path" ]]; then
-    CV_DATA_PATH_CREATED=0
+ensure_content_path() {
+  local content_path
+  content_path="$(cli config "$PIPELINE" get CONTENT_PATH --phase build)"
+  if [[ -d "$content_path/lebenslauf" ]]; then
+    CONTENT_PATH_CREATED=0
     return 0
   fi
 
-  mkdir -p "$data_path"
-  cp src/resources/fixtures/lebenslauf/daten-*.yaml "$data_path"/
-  CV_DATA_PATH_CREATED=1
+  mkdir -p "$content_path"
+  cp -r src/resources/fixtures/. "$content_path/"
+  CONTENT_PATH_CREATED=1
 }
 
-upload_cv_data_if_needed() {
-  [[ "$CV_DATA_PATH_CREATED" == "1" ]] || return 0
-  run_step "Lebenslauf hochladen" vorbereiten_lebenslauf
+upload_content_if_needed() {
+  [[ "$CONTENT_PATH_CREATED" == "1" ]] || return 0
+  run_step "Content hochladen" upload_content
 }
 
-vorbereiten_lebenslauf() {
+upload_content() {
   cli python "$PIPELINE" --phase build --phase deploy -- \
-    scripts/lebenslauf-sftp-upload.py
+    scripts/content-sftp-upload.py
 }
 
 reset_contact_get_ratelimit() {

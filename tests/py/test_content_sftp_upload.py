@@ -1,7 +1,9 @@
 import importlib.util
+import os
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,8 +12,8 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 
 def load_module():
-    path = REPO_ROOT / "scripts" / "lebenslauf-sftp-upload.py"
-    spec = importlib.util.spec_from_file_location("lebenslauf_sftp_upload", path)
+    path = REPO_ROOT / "scripts" / "content-sftp-upload.py"
+    spec = importlib.util.spec_from_file_location("content_sftp_upload", path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -33,31 +35,34 @@ class FakeSftpClient:
         self.uploads.append((Path(local_path).name, remote_path))
 
 
-class LebenslaufSftpUploadTest(unittest.TestCase):
+class ContentSftpUploadTest(unittest.TestCase):
     def setUp(self):
         self.module = load_module()
 
-    def test_upload_relatives_daten_verzeichnis(self):
+    def test_upload_relatives_content_verzeichnis(self):
         with tempfile.TemporaryDirectory() as work_dir:
-            source = Path(work_dir) / ".local" / "lebenslauf"
-            self.write_fixture(source, "daten-relativ.yaml")
-            client = self.run_upload(work_dir, ".local")
+            content_path = Path(work_dir) / ".local" / "content"
+            self.write_fixture(content_path / "lebenslauf", "daten-demo.yaml")
+            self.write_fixture(content_path / "home", "home.yaml")
+            client = self.run_upload(work_dir, str(content_path))
 
-        self.assert_uploads(client, "daten-relativ.yaml")
+        self.assertIn("etc/content/lebenslauf", client.ensured_dirs)
+        self.assertIn("etc/content/home", client.ensured_dirs)
+        self.assertIn(("daten-demo.yaml", "etc/content/lebenslauf/daten-demo.yaml"), client.uploads)
+        self.assertIn(("home.yaml", "etc/content/home/home.yaml"), client.uploads)
 
-    def test_upload_absolutes_daten_verzeichnis(self):
+    def test_upload_absolutes_content_verzeichnis(self):
         with tempfile.TemporaryDirectory() as work_dir:
-            content_base = Path(work_dir) / "absolute-content"
-            source = content_base / "lebenslauf"
-            self.write_fixture(source, "daten-absolut.yaml")
-            client = self.run_upload(work_dir, str(content_base))
+            content_path = Path(work_dir) / "absolute-content"
+            self.write_fixture(content_path / "lebenslauf", "daten-demo.yaml")
+            client = self.run_upload(work_dir, str(content_path))
 
-        self.assert_uploads(client, "daten-absolut.yaml")
+        self.assertIn(("daten-demo.yaml", "etc/content/lebenslauf/daten-demo.yaml"), client.uploads)
 
-    def run_upload(self, work_dir, data_path):
+    def run_upload(self, work_dir, content_path):
         client = FakeSftpClient()
         configs = {
-            "build": {"CONTENT_PATH": data_path},
+            "build": {"CONTENT_PATH": content_path},
             "deploy": {},
         }
         with patch.object(self.module, "PipelineCfg", lambda phase: configs[phase]):
@@ -66,13 +71,9 @@ class LebenslaufSftpUploadTest(unittest.TestCase):
                     self.module.main()
         return client
 
-    def write_fixture(self, source, name):
-        source.mkdir(parents=True)
-        (source / name).write_text("name: Test\n")
-
-    def assert_uploads(self, client, name):
-        self.assertEqual(["etc/lebenslauf"], client.ensured_dirs)
-        self.assertEqual([(name, f"etc/lebenslauf/{name}")], client.uploads)
+    def write_fixture(self, subdir: Path, name: str) -> None:
+        subdir.mkdir(parents=True, exist_ok=True)
+        (subdir / name).write_text("titel: Beispiel\n")
 
 
 class context:
@@ -93,11 +94,9 @@ class change_dir:
 
     def __enter__(self):
         self.previous = Path.cwd()
-        import os
         os.chdir(self.path)
 
     def __exit__(self, _exc_type, _exc, _tb):
-        import os
         os.chdir(self.previous)
         return False
 

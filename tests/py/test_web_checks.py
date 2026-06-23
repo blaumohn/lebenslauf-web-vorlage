@@ -124,5 +124,60 @@ class WebChecksTest(unittest.TestCase):
         )
 
 
+    def test_http_smoke_checks_besteht_wenn_alle_seiten_antworten(self):
+        result = run_web_check(
+            r"""
+            . scripts/web_checks.sh
+            curl() {
+              case "$*" in
+                *example.test/)        printf '<a href="/cv">Zum Lebenslauf</a>' ;;
+                *example.test/cv)      printf '<section id="section-experience">' ;;
+                *example.test/contact) printf '<form method="post">' ;;
+              esac
+            }
+            run_http_smoke_checks http://example.test
+            """
+        )
+
+        self.assertEqual(0, result.returncode)
+
+    def test_http_smoke_checks_schlaegt_fehl_wenn_eine_seite_inhalt_fehlt(self):
+        result = run_web_check(
+            r"""
+            . scripts/web_checks.sh
+            curl() { printf '<html>leer</html>'; }
+            run_http_smoke_checks http://example.test
+            """
+        )
+
+        self.assertNotEqual(0, result.returncode)
+
+    def test_http_header_checks_besteht_wenn_headers_korrekt(self):
+        result = run_web_check(
+            r"""
+            . scripts/web_checks.sh
+            curl() {
+              printf 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n'
+            }
+            run_http_header_checks http://example.test
+            """
+        )
+
+        self.assertEqual(0, result.returncode)
+
+    def test_http_header_checks_schlaegt_fehl_wenn_nosniff_fehlt(self):
+        result = run_web_check(
+            r"""
+            . scripts/web_checks.sh
+            curl() {
+              printf 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n'
+            }
+            run_http_header_checks http://example.test
+            """
+        )
+
+        self.assertNotEqual(0, result.returncode)
+
+
 if __name__ == "__main__":
     unittest.main()

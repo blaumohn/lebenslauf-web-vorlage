@@ -1,29 +1,4 @@
-title:
-  de: Kontakt
-  en: Contact
-  es: Contacto
-
 intro:
   de: Ihre Nachricht wird direkt an mich weitergeleitet — ohne Datenbankablage.
   en: Your message is forwarded directly to me — without database storage.
   es: Su mensaje se reenvía directamente a mí, sin almacenamiento en base de datos.
-
-name_label:
-  de: Name
-  en: Name
-  es: Nombre
-
-email_label:
-  de: "E-Mail"
-  en: "E-Mail"
-  es: "Correo electrónico"
-
-message_label:
-  de: Nachricht
-  en: Message
-  es: Mensaje
-
-submit_label:
-  de: Senden
-  en: Send
-  es: Enviar

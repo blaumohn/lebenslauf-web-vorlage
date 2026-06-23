@@ -3,7 +3,7 @@
 namespace App\Cli\Site;
 
 use App\Cli\ConfigValues;
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\SchemaValidator;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
@@ -14,6 +14,11 @@ use Twig\Environment;
 abstract class BaseContentRenderer implements ContentRendererInterface
 {
     public function __construct(protected ConfigValues $config, protected string $rootPath) {}
+
+    public function sectionKey(): ?string
+    {
+        return null;
+    }
 
     protected function resolveLangs(): array
     {
@@ -78,9 +83,9 @@ abstract class BaseContentRenderer implements ContentRendererInterface
         return $twig;
     }
 
-    protected function buildStorage(): CvStorage
+    protected function buildStorage(): SiteHtmlCache
     {
-        return new CvStorage(new FileStorage(), Path::join($this->rootPath, 'var', 'cache', 'html'));
+        return new SiteHtmlCache(new FileStorage(), Path::join($this->rootPath, 'var', 'cache', 'html'));
     }
 
     protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void

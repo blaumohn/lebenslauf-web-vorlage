@@ -5,4 +5,13 @@
       <a href="{{ path(item.href) }}">{{ item.label }}</a>
     {% endfor %}
   </nav>
+  <nav class="lang-nav" aria-label="Sprache">
+    {% for item in lang_items %}
+      {% if item.current %}
+        <span class="lang-current">{{ item.code }}</span>
+      {% else %}
+        <a href="{{ item.href }}">{{ item.code }}</a>
+      {% endif %}
+    {% endfor %}
+  </nav>
 </header>

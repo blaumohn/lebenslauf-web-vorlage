@@ -28,4 +28,16 @@ final class SiteBuildService
             $renderer->render($output);
         }
     }
+
+    public function contentSections(): array
+    {
+        $keys = [];
+        foreach ($this->renderers as $renderer) {
+            $key = $renderer->sectionKey();
+            if ($key !== null) {
+                $keys[] = $key;
+            }
+        }
+        return $keys;
+    }
 }

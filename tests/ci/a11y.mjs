@@ -4,10 +4,12 @@ import { $, which } from 'zx';
 
 export class A11yQa {
   static pages() {
+    const langs = (process.env.CONTENT_LANGS || 'de')
+      .split(',').map(l => l.trim()).filter(Boolean);
+    const langPages = langs.map(l => ({ path: `/cv?lang=${l}`, name: `public CV ${l}` }));
     return [
       { path: '/', name: 'home' },
-      { path: '/cv', name: 'public CV' },
-      { path: '/cv?lang=en', name: 'public CV English' },
+      ...langPages,
       { path: '/contact', name: 'contact form' }
     ];
   }

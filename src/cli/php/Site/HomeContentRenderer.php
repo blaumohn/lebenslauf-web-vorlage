@@ -21,6 +21,11 @@ final class HomeContentRenderer extends BaseContentRenderer
         $this->storage = new FileStorage();
     }
 
+    public function sectionKey(): ?string
+    {
+        return 'home';
+    }
+
     public function render(OutputInterface $output): void
     {
         $yamlPath = $this->dataPath();

@@ -1,0 +1,37 @@
+slug: beispiel-beitrag-drei
+datum: "2026-02-20"
+status: published
+
+titel:
+  de: "Beispielbeitrag: Explizite Verträge statt stiller Annahmen"
+  es: "Entrada de ejemplo: contratos explícitos en lugar de suposiciones silenciosas"
+
+zusammenfassung:
+  de: >
+    Implizite Annahmen über Datenformate und Schnittstellen sind eine häufige
+    Fehlerquelle. Explizite Validierung macht Fehler früh und klar sichtbar.
+  es: >
+    Las suposiciones implícitas sobre formatos de datos e interfaces son una
+    fuente habitual de errores. La validación explícita hace que los errores
+    sean visibles de forma temprana y clara.
+
+inhalt:
+  de: |
+    <p>Wenn Code stillschweigend davon ausgeht, dass ein Feld vorhanden oder
+    ein Wert in einem bestimmten Format ist, entstehen Fehler, die erst spät
+    und weit vom Ursprung entfernt sichtbar werden.</p>
+    <p>Explizite Validierung an den Systemgrenzen — beim Einlesen von
+    Konfiguration, Nutzereingaben oder externen Daten — macht Verstöße
+    sofort sichtbar und vermeidet stille Fehlerzustände.</p>
+  es: |
+    <p>Cuando el código asume en silencio que un campo está presente o que un
+    valor tiene un formato determinado, los errores aparecen tarde y lejos
+    de su origen.</p>
+    <p>La validación explícita en los límites del sistema — al leer
+    configuración, entradas de usuario o datos externos — hace que las
+    infracciones sean inmediatamente visibles y evita estados de error
+    silenciosos.</p>
+
+tags:
+  - quality
+  - architecture

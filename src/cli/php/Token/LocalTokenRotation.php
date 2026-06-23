@@ -2,7 +2,7 @@
 
 namespace App\Cli\Token;
 
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
@@ -21,8 +21,8 @@ final class LocalTokenRotation
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($appRoot . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
-        $cvStorage = new CvStorage($storage, $appRoot . '/var/cache/html');
+        $htmlCache = new SiteHtmlCache($storage, $appRoot . '/var/cache/html');
         $tokenService = new TokenService($storage, $lockRunner, $writer, $appRoot . '/var/state/tokens');
-        return new TokenRotationService($cvStorage, $tokenService);
+        return new TokenRotationService($htmlCache, $tokenService);
     }
 }

@@ -1,7 +1,7 @@
 . scripts/pipeline_output.sh
 . scripts/web_checks.sh
 
-LEBENSLAUF_SFTP_FETCHED=0
+CONTENT_SFTP_FETCHED=0
 
 run_pipeline() {
   local deploy_dir='' is_dev=''
@@ -23,7 +23,7 @@ run_pipeline() {
 
   if [[ ! $is_dev ]]; then
     run_step "SMTP-Auth-Prüfung" run_smtp_credentials_check "${ci_ca_cert_arg[@]}"
-    run_step "Lebenslauf-Daten" prepare_lebenslauf_data
+    run_step "Content-Daten" prepare_content_data
   fi
 
   run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
@@ -39,7 +39,7 @@ run_pipeline() {
   run_step "Artefakt-HTTP-Smoke" with_dev_server "$deploy_dir/public" run_http_smoke_checks
   run_step "Artefakt-HTML/A11y-QA" run_artifact_html_accessibility_checks "$deploy_dir"
   run_step "SFTP-Deploy"           deploy
-  reset_lebenslauf_sftp_if_used
+  reset_content_sftp_if_used
   run_step "Zielsystem-HTTP-Smoke" post_deploy_http_smoke_checks
   run_step "Zielsystem-Header-Smoke" post_deploy_header_smoke_checks
 }
@@ -53,7 +53,7 @@ pipeline_setup() {
 pipeline_build() {
   local is_dev="$1"
 
-  cli build "$PIPELINE" ${is_dev:+cv}
+  cli build "$PIPELINE" ${is_dev:+site}
 }
 
 write_pipeline_config_from_stdin() {
@@ -95,7 +95,7 @@ prepare_deploy_dir() {
   mkdir -p "$deploy_dir/src"
   cp -a public vendor "$deploy_dir/"
   cp -a src/Http src/resources "$deploy_dir/src/"
-  cp -a var/cache/html "$deploy_dir/var/cache/"
+  cp -a var/cache/html var/cache/templates "$deploy_dir/var/cache/"
   mkdir -p "$deploy_dir/var/config"
   cp -a var/config/config.json "$deploy_dir/var/config/config.json"
   copy_slot_htaccess "src" "$deploy_dir/src/.htaccess"
@@ -108,14 +108,23 @@ copy_slot_htaccess() {
 }
 
 verify_artifact() {
-  local deploy_dir="${1:?deploy_dir fehlt}"
-  test -f "$deploy_dir/public/index.php"
-  test -f "$deploy_dir/public/.htaccess"
-  test -f "$deploy_dir/src/Http/bootstrap.php"
-  test -f "$deploy_dir/var/cache/html/cv-public.html"
-  test -f "$deploy_dir/var/config/config.json"
-  test -f "$deploy_dir/src/.htaccess"
-  test -f "$deploy_dir/var/.htaccess"
+  local deploy_dir="${1:?deploy_dir fehlt}" missing=0
+  local files=(
+    "$deploy_dir/public/index.php"
+    "$deploy_dir/public/.htaccess"
+    "$deploy_dir/src/Http/bootstrap.php"
+    "$deploy_dir/var/cache/html/cv-public.html"
+    "$deploy_dir/var/config/config.json"
+    "$deploy_dir/src/.htaccess"
+    "$deploy_dir/var/.htaccess"
+  )
+  for f in "${files[@]}"; do
+    if [[ ! -f "$f" ]]; then
+      echo "[verify] Artefakt fehlt: ${f#"$deploy_dir/"}" >&2
+      missing=1
+    fi
+  done
+  return "$missing"
 }
 
 no_changes_since_deploy() {
@@ -131,30 +140,30 @@ is_first_deploy_commit() {
   [[ "$1" == "$zero_sha" ]]
 }
 
-prepare_lebenslauf_data() {
-  if [[ -d "$(lebenslauf_data_path)" ]]; then
-    LEBENSLAUF_SFTP_FETCHED=0
+prepare_content_data() {
+  if [[ -d "$(content_base_path)/lebenslauf" ]]; then
+    CONTENT_SFTP_FETCHED=0
     return 0
   fi
-  fetch_lebenslauf
-  LEBENSLAUF_SFTP_FETCHED=1
+  fetch_content
+  CONTENT_SFTP_FETCHED=1
 }
 
-lebenslauf_data_path() {
-  cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build
+content_base_path() {
+  cli config "$PIPELINE" get CONTENT_PATH --phase build
 }
 
-fetch_lebenslauf() {
-  cli python "$PIPELINE" --phase build --phase deploy -- scripts/lebenslauf-sftp-fetch.py
+fetch_content() {
+  cli python "$PIPELINE" --phase build --phase deploy -- scripts/content-sftp-fetch.py
 }
 
-reset_lebenslauf_sftp_if_used() {
-  [[ "$LEBENSLAUF_SFTP_FETCHED" == "1" ]] || return 0
-  run_step "Lebenslauf-SFTP-Reset" loeschen_lebenslauf_sftp
+reset_content_sftp_if_used() {
+  [[ "$CONTENT_SFTP_FETCHED" == "1" ]] || return 0
+  run_step "Content-SFTP-Reset" loeschen_content_sftp
 }
 
-loeschen_lebenslauf_sftp() {
-  cli python "$PIPELINE" --phase deploy -- scripts/lebenslauf-sftp-reset.py
+loeschen_content_sftp() {
+  cli python "$PIPELINE" --phase deploy -- scripts/content-sftp-reset.py
 }
 
 run_smtp_credentials_check() {

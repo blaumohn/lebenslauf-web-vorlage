@@ -1,0 +1,37 @@
+slug: beispiel-beitrag-zwei
+datum: "2026-04-15"
+status: published
+
+titel:
+  de: "Beispielbeitrag: Testen als Entwurfswerkzeug"
+  es: "Entrada de ejemplo: las pruebas como herramienta de diseño"
+
+zusammenfassung:
+  de: >
+    Tests schreiben bevor der Code fertig ist hilft dabei, Schnittstellen
+    klarer zu definieren und Abhängigkeiten sichtbar zu machen.
+  es: >
+    Escribir pruebas antes de que el código esté listo ayuda a definir
+    interfaces con más claridad y a hacer visibles las dependencias.
+
+inhalt:
+  de: |
+    <p>Wer Tests erst nach dem Code schreibt, prüft lediglich ob die
+    Implementierung läuft. Wer Tests zuerst schreibt, klärt vorab, was
+    eine Funktion leisten soll — und entdeckt dabei oft, dass der erste
+    Entwurf schwerer testbar ist als nötig.</p>
+    <p>Testbarkeit ist ein Zeichen guter Modularität. Schwer testbarer
+    Code hat häufig zu viele Abhängigkeiten oder zu viele Aufgaben
+    in einer Einheit.</p>
+  es: |
+    <p>Quien escribe pruebas después del código solo verifica si la
+    implementación funciona. Quien las escribe primero aclara de antemano
+    qué debe hacer una función, y a menudo descubre que el primer diseño
+    es más difícil de probar de lo necesario.</p>
+    <p>La facilidad de prueba es un indicador de buena modularidad. El código
+    difícil de probar suele tener demasiadas dependencias o demasiadas
+    responsabilidades en una sola unidad.</p>
+
+tags:
+  - quality
+  - testing

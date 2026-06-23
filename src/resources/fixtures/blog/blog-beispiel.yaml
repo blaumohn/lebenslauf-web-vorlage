@@ -1,38 +1,35 @@
-slug: zwei-baum-deploy
-datum: "2026-06-19"
+slug: beispiel-beitrag-eins
+datum: "2026-06-01"
 status: published
 
 titel:
-  de: "Zero-Downtime-Deploy mit zwei Verzeichnisbäumen"
-  es: "Deploy sin tiempo de inactividad con dos árboles de directorios"
+  de: "Beispielbeitrag: Zuverlässigkeit durch einfache Strukturen"
+  es: "Entrada de ejemplo: fiabilidad mediante estructuras simples"
 
 zusammenfassung:
   de: >
-    Ein atomares rename(2) sorgt dafür, dass kein Request einen inkonsistenten
-    Zustand sieht — weder beim App-Wechsel noch beim Vendor-Tausch.
+    Einfache, klar abgegrenzte Komponenten sind zuverlässiger als
+    komplexe Systeme — ein Überblick über das Grundprinzip.
   es: >
-    Un rename(2) atómico garantiza que ninguna solicitud vea un estado
-    inconsistente, ni durante el cambio de app ni durante el de vendor.
+    Los componentes simples y bien delimitados son más fiables que los
+    sistemas complejos: un resumen del principio básico.
 
 inhalt:
   de: |
-    <p>Das Deployment nutzt zwei unabhängige Verzeichnisbäume (a/b). Der aktive
-    Baum wird per symbolischem Link eingebunden. Der Wechsel erfolgt durch ein
-    einzelnes <code>rename(2)</code>, das atomar ist: entweder der alte oder der
-    neue Stand ist aktiv, nie ein Mischzustand.</p>
-    <p>Vendor-Abhängigkeiten werden separat getauscht, bevor der App-Baum
-    umgeschaltet wird. Damit ist auch bei einem Doppelausfall kein inkonsistenter
-    Zustand möglich.</p>
+    <p>Systeme, die aus wenigen, klar abgegrenzten Teilen bestehen, sind
+    einfacher zu testen, zu verstehen und zu betreiben als solche, bei denen
+    viele Verantwortlichkeiten ineinandergreifen.</p>
+    <p>Das gilt für Softwarekomponenten ebenso wie für Deployment-Prozesse
+    und Datenstrukturen. Wer Komplexität reduziert, reduziert auch die Zahl
+    der möglichen Fehlerpunkte.</p>
   es: |
-    <p>El despliegue usa dos árboles de directorios independientes (a/b). El árbol
-    activo se enlaza simbólicamente. El cambio se realiza con un único
-    <code>rename(2)</code>, que es atómico: siempre está activo el estado antiguo
-    o el nuevo, nunca un estado mixto.</p>
-    <p>Las dependencias de vendor se intercambian por separado antes de cambiar el
-    árbol de la app, lo que impide cualquier estado inconsistente incluso ante un
-    fallo doble.</p>
+    <p>Los sistemas formados por pocas partes bien delimitadas son más fáciles
+    de probar, comprender y operar que aquellos en los que muchas
+    responsabilidades se entrelazan.</p>
+    <p>Esto se aplica tanto a los componentes de software como a los procesos
+    de despliegue y las estructuras de datos. Reducir la complejidad significa
+    reducir también el número de puntos de fallo posibles.</p>
 
 tags:
   - reliability
-  - deploy
-  - php
+  - architecture

@@ -18,19 +18,19 @@
   <main>
     <aside class="main-aside">
       {{ section.skills(
-        etiketten.faehigkeiten._,
+        etiketten.faehigkeiten.value,
         cv.faehigkeiten,
         'section-skills'
       ) }}
 
       {{ section.languages(
-        etiketten.sprachen._,
+        etiketten.sprachen.value,
         cv.sprachen,
         'section-languages'
       ) }}
 
       {{ section.interests(
-        etiketten.interessen._,
+        etiketten.interessen.value,
         cv.interessen,
         'section-interests'
       ) }}
@@ -38,20 +38,20 @@
 
     <section class="main-body">
       {{ section.motivation(
-        etiketten.motivation._,
+        etiketten.motivation.value,
         cv.motivation,
         'section-motivation'
       ) }}
 
       {{ section.entries(
-        etiketten.berufserfahrung._,
+        etiketten.berufserfahrung.value,
         cv.berufserfahrung,
         'section-experience'
       ) }}
 
       {% if cv.opensource is defined %}
         {{ section.entries(
-          etiketten.opensource._,
+          etiketten.opensource.value,
           cv.opensource,
           'section-opensource'
         ) }}
@@ -59,14 +59,14 @@
 
       {% if cv.vortraege is defined %}
         {{ section.talks(
-          etiketten.vortraege._,
+          etiketten.vortraege.value,
           cv.vortraege,
           'section-talks'
         ) }}
       {% endif %}
 
       {{ section.education(
-        etiketten.ausbildung._,
+        etiketten.ausbildung.value,
         cv.ausbildung,
         'section-education'
       ) }}

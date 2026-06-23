@@ -4,8 +4,7 @@ from pathlib import Path
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 
-SFTP_DATA_DIR = "etc/lebenslauf"
-DATA_GLOB = "daten-*.yaml"
+SFTP_DATA_DIR = "etc/content"
 
 
 def main() -> None:
@@ -13,10 +12,10 @@ def main() -> None:
     with SftpClient(deploy_cfg) as client:
         assert_dir_empty(client)
         build_cfg = PipelineCfg("build")
-        local_path = Path(build_cfg["CONTENT_PATH"]) / "lebenslauf"
+        local_path = Path(build_cfg["CONTENT_PATH"])
         if not local_path.is_dir():
             print(
-                f"FEHLER: Lebenslauf-Pfad nicht gefunden: {local_path}",
+                f"FEHLER: Content-Pfad nicht gefunden: {local_path}",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -30,7 +29,7 @@ def assert_dir_empty(client: SftpClient) -> None:
     if not entries:
         return
     print(
-        f"FEHLER: {SFTP_DATA_DIR} auf SFTP enthält {len(entries)} Datei(en). "
+        f"FEHLER: {SFTP_DATA_DIR} auf SFTP enthält {len(entries)} Einträge. "
         "Vorheriger Workflow hat nicht bereinigt.",
         file=sys.stderr,
     )
@@ -38,14 +37,17 @@ def assert_dir_empty(client: SftpClient) -> None:
 
 
 def upload(client: SftpClient, source: Path) -> None:
-    files = list(source.glob(DATA_GLOB))
-    if not files:
-        print(f"FEHLER: Keine {DATA_GLOB}-Dateien in {source}", file=sys.stderr)
-        sys.exit(1)
-    client.ensure_dir(SFTP_DATA_DIR)
-    for f in files:
-        client.put_file(f, f"{SFTP_DATA_DIR}/{f.name}")
-    print(f"[lebenslauf-vorbereiten] {len(files)} Datei(en) nach {SFTP_DATA_DIR}", flush=True)
+    total = 0
+    for subdir in sorted(source.iterdir()):
+        if not subdir.is_dir():
+            continue
+        remote_subdir = f"{SFTP_DATA_DIR}/{subdir.name}"
+        client.ensure_dir(remote_subdir)
+        for f in sorted(subdir.iterdir()):
+            if f.is_file():
+                client.put_file(f, f"{remote_subdir}/{f.name}")
+                total += 1
+    print(f"[content-upload] {total} Datei(en) nach {SFTP_DATA_DIR}", flush=True)
 
 
 if __name__ == "__main__":

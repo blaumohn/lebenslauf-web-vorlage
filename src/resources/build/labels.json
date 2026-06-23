@@ -1,63 +1,24 @@
 {
-  "_": {
-    "de": "Lebenslauf",
-    "en": "CV",
-    "es": "Currículum"
-  },
-  "motivation": {
-    "_": {
-      "de": "Motivation",
-      "en": "Objective",
-      "es": "Objetivo"
+  "cv": {
+    "value": { "de": "Lebenslauf", "en": "CV", "es": "Currículum" },
+    "childLabels": {
+      "motivation":      { "value": { "de": "Motivation",          "en": "Objective",              "es": "Objetivo" } },
+      "faehigkeiten":    { "value": { "de": "Fähigkeiten",         "en": "Skills",                 "es": "Habilidades" } },
+      "berufserfahrung": { "value": { "de": "Berufserfahrung",     "en": "Work Experience",        "es": "Experiencia laboral" } },
+      "opensource":      { "value": { "de": "Opensource",          "en": "Opensource Contributions","es": "Contribuciones de código abierto" } },
+      "sprachen":        { "value": { "de": "Sprachen",            "en": "Languages",              "es": "Idiomas" } },
+      "ausbildung":      { "value": { "de": "Ausbildung",          "en": "Education",              "es": "Educacion" } },
+      "vortraege":       { "value": { "de": "Öffentliche Vorträge","en": "Public Talks",           "es": "Charlas públicas" } },
+      "interessen":      { "value": { "de": "Interessen",          "en": "Interests",              "es": "Intereses" } }
     }
   },
-  "faehigkeiten": {
-    "_": {
-      "de": "Fähigkeiten",
-      "en": "Skills",
-      "es": "Habilidades"
-    }
-  },
-  "berufserfahrung": {
-    "_": {
-      "de": "Berufserfahrung",
-      "en": "Work Experience",
-      "es": "Experiencia laboral"
-    }
-  },
-  "opensource": {
-    "_": {
-      "de": "Opensource",
-      "en": "Opensource Contributions",
-      "es": "Contribuciones de código abierto"
-    }
-  },
-  "sprachen": {
-    "_": {
-      "de": "Sprachen",
-      "en": "Languages",
-      "es": "Idiomas"
-    }
-  },
-  "ausbildung": {
-    "_": {
-      "de": "Ausbildung",
-      "en": "Education",
-      "es": "Educacion"
-    }
-  },
-  "vortraege": {
-    "_": {
-      "de": "Öffentliche Vorträge",
-      "en": "Public Talks",
-      "es": "Charlas públicas"
-    }
-  },
-  "interessen": {
-    "_": {
-      "de": "Interessen",
-      "en": "Interests",
-      "es": "Intereses"
+  "contact": {
+    "value": { "de": "Kontakt", "en": "Contact", "es": "Contacto" },
+    "childLabels": {
+      "name":    { "value": { "de": "Name",      "en": "Name",    "es": "Nombre" } },
+      "email":   { "value": { "de": "E-Mail",    "en": "E-Mail",  "es": "Correo electrónico" } },
+      "message": { "value": { "de": "Nachricht", "en": "Message", "es": "Mensaje" } },
+      "submit":  { "value": { "de": "Senden",    "en": "Send",    "es": "Enviar" } }
     }
   }
 }

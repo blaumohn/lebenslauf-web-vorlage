@@ -55,7 +55,7 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
         ]);
 
         self::assertSame(0, $exitCode, $tester->getDisplay());
-        self::assertFileExists($this->root . '/var/cache/html/cv-private-sonderpfad.html');
+        self::assertFileExists($this->root . '/var/cache/html/cv-private-sonderpfad.de.html');
         self::assertStringContainsString('sonderpfad', $tester->getDisplay());
     }
 
@@ -64,7 +64,7 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
         $root = $this->root . '/' . $name;
         mkdir($root . '/lebenslauf', 0775, true);
         copy(
-            $this->projectRoot() . '/src/resources/fixtures/lebenslauf/daten-gueltig.yaml',
+            $this->projectRoot() . '/src/resources/fixtures/lebenslauf/daten-demo.yaml',
             $root . '/lebenslauf/daten-sonderpfad.yaml'
         );
         mkdir($root . '/blog', 0775, true);

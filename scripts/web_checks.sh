@@ -1,15 +1,14 @@
 run_http_smoke_checks() {
   local base="${1%/}"
-  local cv_name
 
-  cv_name="$(read_cv_name_kurz)"
   smoke_http_page_contains "${base}/" "Zum Lebenslauf"
-  smoke_http_page_contains "${base}/cv" "$cv_name"
+  smoke_http_page_contains "${base}/cv" "section-experience"
   smoke_http_page_contains "${base}/contact" "<form"
 }
 
 run_artifact_html_accessibility_checks() {
   local deploy_dir="${1:?deploy_dir fehlt}"
+  export CONTENT_LANGS="$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)"
 
   run_html_quality_checks "$deploy_dir/var/cache/html"
   with_dev_server "$deploy_dir/public" run_accessibility_checks
@@ -118,14 +117,6 @@ report_missing_http_header() {
   return 1
 }
 
-read_cv_name_kurz() {
-  local daten_pfad profile yaml_file
-
-  daten_pfad="$(cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build)"
-  profile="$(cli config "$PIPELINE" get LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  yaml_file="${daten_pfad}/daten-${profile}.yaml"
-  grep 'kurz:' "$yaml_file" | sed 's/.*kurz: *//'
-}
 
 smoke_http_page_contains() {
   local url="$1" needle="$2" body

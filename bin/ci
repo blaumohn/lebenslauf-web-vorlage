@@ -106,11 +106,12 @@ run_publish_smoke() {
 }
 
 run_token_smoke() {
-  local root_url token
+  local root_url token profile
   root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  token="$(cli token "$PIPELINE" rotate gueltig)"
+  profile="$(cli config "$PIPELINE" get LEBENSLAUF_PUBLIC_PROFILE --phase build)"
+  token="$(cli token "$PIPELINE" rotate "$profile")"
   smoke_http_page_contains \
-    "${root_url%/}/cv?token=${token}&profile=gueltig" \
+    "${root_url%/}/cv?token=${token}&profile=${profile}" \
     "</html>"
 }
 
