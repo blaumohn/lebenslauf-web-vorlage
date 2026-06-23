@@ -88,6 +88,18 @@ abstract class BaseContentRenderer implements ContentRendererInterface
         return new SiteHtmlCache(new FileStorage(), Path::join($this->rootPath, 'var', 'cache', 'html'));
     }
 
+    protected function loadHeaderFragment(string $lang): string
+    {
+        return $this->buildStorage()->getHeaderFragmentForLang($lang)
+            ?? throw new \RuntimeException("Header-Fragment fehlt ({$lang}). SiteHeaderRenderer muss zuerst laufen.");
+    }
+
+    protected function loadFooterFragment(string $lang): string
+    {
+        return $this->buildStorage()->getFooterFragmentForLang($lang)
+            ?? throw new \RuntimeException("Footer-Fragment fehlt ({$lang}). SiteFooterRenderer muss zuerst laufen.");
+    }
+
     protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void
     {
         $schemaPath = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', $schemaName);

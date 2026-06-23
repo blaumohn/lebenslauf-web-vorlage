@@ -14,7 +14,7 @@
     "qa:smoke": "playwright test tests/ci/smoke.spec.js",
     "qa:smoke:token": "playwright test tests/ci/token.spec.js",
     "qa:a11y:install": "playwright install chromium",
-    "qa:html": "html-validate --config htmlvalidate.config.cjs \"var/cache/html/*.html\""
+    "qa:html": "html-validate --config htmlvalidate.config.cjs var/cache/html"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

@@ -46,7 +46,11 @@ final class HomeContentRenderer extends BaseContentRenderer
     private function renderForLang(array $data, string $lang, OutputInterface $output): void
     {
         $resolved = $this->pickLang($data, $lang);
-        $html = $this->twig->render('home.html.twig', $resolved + ['lang' => $lang]);
+        $html = $this->twig->render('home.html.twig', $resolved + [
+            'lang'        => $lang,
+            'site_header' => $this->loadHeaderFragment($lang),
+            'site_footer' => $this->loadFooterFragment($lang),
+        ]);
         $this->storage->writeText(Path::join($this->htmlPath(), $lang, 'index.html'), $html);
         $output->writeln("Home gerendert ({$lang}).");
     }

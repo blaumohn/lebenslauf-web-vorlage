@@ -34,7 +34,7 @@ run_artifact_html_accessibility_checks() {
 run_html_quality_checks() {
   local html_dir="${1:?html_dir fehlt}"
 
-  npx html-validate --config htmlvalidate.config.cjs "$html_dir"/*.html
+  npx html-validate --config htmlvalidate.config.cjs "$html_dir"
 }
 
 run_accessibility_checks() {

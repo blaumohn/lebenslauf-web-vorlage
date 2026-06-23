@@ -66,6 +66,11 @@ final class BlogContentRenderer extends BaseContentRenderer
 
     private function renderForLang(array $posts, string $lang, OutputInterface $output): void
     {
+        $base = [
+            'lang'        => $lang,
+            'site_header' => $this->loadHeaderFragment($lang),
+            'site_footer' => $this->loadFooterFragment($lang),
+        ];
         $published = [];
         foreach ($posts as $post) {
             if (($post['status'] ?? '') !== 'published') {
@@ -73,17 +78,12 @@ final class BlogContentRenderer extends BaseContentRenderer
             }
             $resolved = $this->pickLang($post, $lang);
             $slug = (string) ($post['slug'] ?? '');
-            $html = $this->twig->render('blog_post.html.twig', ['post' => $resolved, 'lang' => $lang]);
+            $html = $this->twig->render('blog_post.html.twig', ['post' => $resolved] + $base);
             $this->storage->writeText(Path::join($this->htmlPath(), $lang, $slug . '.html'), $html);
             $published[] = $resolved;
             $output->writeln("Blog-Post gerendert: {$slug} ({$lang}).");
         }
-        $this->renderIndex($published, $lang, $output);
-    }
-
-    private function renderIndex(array $posts, string $lang, OutputInterface $output): void
-    {
-        $html = $this->twig->render('blog_index.html.twig', ['posts' => $posts, 'lang' => $lang]);
+        $html = $this->twig->render('blog_index.html.twig', ['posts' => $published] + $base);
         $this->storage->writeText(Path::join($this->htmlPath(), $lang, 'index.html'), $html);
         $output->writeln("Blog-Index gerendert ({$lang}).");
     }

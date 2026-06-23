@@ -62,7 +62,7 @@ class ContactSmokeTest(unittest.TestCase):
         }
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://ci-web"},
-            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid", "CONTENT_LANGS": "de,es"},
         )
         sftp = FakeSftpClient(files)
 
@@ -77,7 +77,7 @@ class ContactSmokeTest(unittest.TestCase):
     def test_missing_captcha_state_names_expected_sftp_path(self):
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://ci-web"},
-            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid", "CONTENT_LANGS": "de,es"},
         )
         sftp = FakeSftpClient({})
 
@@ -97,7 +97,7 @@ class ContactSmokeTest(unittest.TestCase):
         sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://ci-web"},
-            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid", "CONTENT_LANGS": "de,es"},
         )
 
         self.assertEqual(smoke.read_active_app_slot(sftp), "b")
@@ -107,7 +107,7 @@ class ContactSmokeTest(unittest.TestCase):
         sftp = FakeSftpClient(files)
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://ci-web"},
-            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid", "CONTENT_LANGS": "de,es"},
         )
 
         expected = "Aktiver App-Slot fehlt"
@@ -118,7 +118,7 @@ class ContactSmokeTest(unittest.TestCase):
     def test_submits_form_to_deployed_contact_url(self):
         smoke = contact_smoke.ContactSmoke(
             {"APP_ROOT_URL": "http://ci-web/"},
-            {"MAIL_TO_EMAIL": "ci-test@ci.invalid"},
+            {"MAIL_TO_EMAIL": "ci-test@ci.invalid", "CONTENT_LANGS": "de,es"},
         )
         response = MagicMock(status_code=200)
 

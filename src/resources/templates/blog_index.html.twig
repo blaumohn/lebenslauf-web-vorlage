@@ -11,7 +11,7 @@
     <ul class="blog-liste">
       {% for post in posts %}
         <li>
-          <p><strong>{{ ui.link(path('/blog/' ~ lang ~ '/' ~ post.slug), post.titel) }}</strong></p>
+          <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
           {{ ui.muted(post.datum) }}
           {{ ui.muted(post.zusammenfassung) }}
         </li>
