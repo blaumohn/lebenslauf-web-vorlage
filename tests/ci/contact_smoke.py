@@ -44,6 +44,7 @@ class ContactSmoke:
         self.root_url = deploy_cfg["APP_ROOT_URL"].rstrip("/")
         if not self.root_url:
             raise RuntimeError("[contact-smoke] APP_ROOT_URL fehlt")
+        self.lang = runtime_cfg["CONTENT_LANGS"].split(",")[0]
 
     def run(self) -> None:
         with SftpClient(self.deploy_cfg) as sftp:
@@ -59,7 +60,11 @@ class ContactSmoke:
         print("[contact-smoke] OK: Formular-Mail empfangen")
 
     def fetch_captcha_id(self) -> str:
-        response = requests.get(f"{self.root_url}/contact", timeout=10)
+        response = requests.get(
+            f"{self.root_url}/contact",
+            headers={"Accept-Language": self.lang},
+            timeout=10,
+        )
         response.raise_for_status()
         captcha_id = extract_captcha_id(response.text)
         if not captcha_id:
@@ -92,6 +97,7 @@ class ContactSmoke:
     def submit_contact_form(self, captcha_id: str, solution: str) -> None:
         response = requests.post(
             f"{self.root_url}/contact",
+            headers={"Accept-Language": self.lang},
             data={
                 "name": "CI Test",
                 "email": "ci@ci.invalid",
