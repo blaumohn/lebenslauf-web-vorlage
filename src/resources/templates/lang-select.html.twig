@@ -3,7 +3,7 @@
 {% block title %}Sprache wählen{% endblock %}
 
 {% block content %}
-<main>
+<div>
   <h1>Sprache wählen / Select language</h1>
   <p>Die bevorzugte Sprache konnte nicht automatisch erkannt werden.</p>
   <ul>
@@ -11,5 +11,5 @@
       <li><a href="?lang={{ lang }}">{{ lang|upper }}</a></li>
     {% endfor %}
   </ul>
-</main>
+</div>
 {% endblock %}

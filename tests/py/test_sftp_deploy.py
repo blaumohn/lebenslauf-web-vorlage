@@ -293,11 +293,7 @@ class PrepareSlotTest(unittest.TestCase):
     def test_app_slot_removed_before_upload(self):
         client = FakeClient()
         with tempfile.TemporaryDirectory() as tmp:
-            write_staging_bootstrap(tmp)
-            make_uploader(client, tmp).upload_app_tree(
-                "app-b",
-                "vendor-a",
-            )
+            make_uploader(client, tmp).prepare_app_slot("app-b")
 
         self.assertIn("app-b", client.removed_dirs)
 

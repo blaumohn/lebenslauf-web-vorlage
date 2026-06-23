@@ -48,7 +48,9 @@ def _smoke_check(cfg, log) -> None:
     if not url:
         log("Warnung: APP_ROOT_URL nicht konfiguriert — Smoke übersprungen")
         return
-    resp = requests.get(url, timeout=10, allow_redirects=True)
+    lang = cfg.get("CONTENT_LANGS", "de").split(",")[0].strip()
+    resp = requests.get(url, timeout=10, allow_redirects=True,
+                        headers={"Accept-Language": lang})
     if resp.status_code != 200:
         raise RuntimeError(f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}")
     if len(resp.text) < 500 or "<html" not in resp.text:
@@ -64,6 +66,7 @@ def _accessibility_check(cfg, log) -> None:
     env = os.environ.copy()
     env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
     log(f"Prüfe A11y: {env['PLAYWRIGHT_BASE_URL']}")
+    subprocess.run(["npm", "run", "qa:a11y:ensure-browser"], check=True, env=env)
     subprocess.run(["npm", "run", "qa:a11y"], check=True, env=env)
 
 

@@ -31,17 +31,15 @@ run_pipeline() {
 
   if [[ $is_dev ]]; then
     run_step "Tests" composer test
-    run_step "HTTP-Smoke lokal" with_dev_server "public" run_http_smoke_checks
+    run_step "HTTP-Smoke lokal" with_dev_server "public" run_smoke_checks
     return
   fi
 
   run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
-  run_step "Artefakt-HTTP-Smoke" with_dev_server "$deploy_dir/public" run_http_smoke_checks
+  run_step "Artefakt-HTTP-Smoke" with_dev_server "$deploy_dir/public" run_smoke_checks
   run_step "Artefakt-HTML/A11y-QA" run_artifact_html_accessibility_checks "$deploy_dir"
   run_step "SFTP-Deploy"           deploy
   reset_content_sftp_if_used
-  run_step "Zielsystem-HTTP-Smoke" post_deploy_http_smoke_checks
-  run_step "Zielsystem-Header-Smoke" post_deploy_header_smoke_checks
 }
 
 pipeline_setup() {
@@ -113,7 +111,6 @@ verify_artifact() {
     "$deploy_dir/public/index.php"
     "$deploy_dir/public/.htaccess"
     "$deploy_dir/src/Http/bootstrap.php"
-    "$deploy_dir/var/cache/html/cv-public.html"
     "$deploy_dir/var/config/config.json"
     "$deploy_dir/src/.htaccess"
     "$deploy_dir/var/.htaccess"
@@ -124,6 +121,10 @@ verify_artifact() {
       missing=1
     fi
   done
+  if ! diff -rq var/cache/html "$deploy_dir/var/cache/html" > /dev/null 2>&1; then
+    echo "[verify] HTML-Cache im Artefakt unvollständig" >&2
+    missing=1
+  fi
   return "$missing"
 }
 

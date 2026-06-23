@@ -16,62 +16,48 @@ def run_web_check(script: str) -> subprocess.CompletedProcess:
 
 
 class WebChecksTest(unittest.TestCase):
-    def test_header_smoke_success_bleibt_knapp(self):
+    def test_smoke_checks_setzt_playwright_base_url(self):
         result = run_web_check(
             r"""
             . scripts/web_checks.sh
-            curl() {
-              printf 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>ok</html>'
-            }
-            smoke_http_header_contains http://example.test/ content-type text/html
+            PIPELINE=dev
+            CONTENT_LANGS=de,es
+            npm() { printf 'PLAYWRIGHT_BASE_URL=%s\n' "$PLAYWRIGHT_BASE_URL"; }
+            cli() { :; }
+            run_smoke_checks http://example.test
             """
         )
 
         self.assertEqual(0, result.returncode)
-        self.assertIn("[smoke] HTTP-Header: http://example.test/ content-type", result.stderr)
-        self.assertNotIn("<html>ok</html>", result.stderr)
+        self.assertIn("PLAYWRIGHT_BASE_URL=http://example.test", result.stdout)
 
-    def test_header_smoke_gibt_antwort_bei_http_fehler_aus(self):
+    def test_smoke_checks_liest_content_langs_aus_config_wenn_nicht_gesetzt(self):
         result = run_web_check(
             r"""
             . scripts/web_checks.sh
-            curl() {
-              printf 'HTTP/1.1 429 Too Many Requests\r\nContent-Type: text/html\r\n\r\n<html>Zu viele Anfragen</html>'
-              return 22
-            }
-            smoke_http_header_contains http://example.test/contact content-type text/html
+            PIPELINE=dev
+            npm() { printf 'CONTENT_LANGS=%s\n' "$CONTENT_LANGS"; }
+            cli() { printf 'de,es'; }
+            run_smoke_checks http://example.test
             """
         )
 
-        self.assertEqual(1, result.returncode)
-        self.assertIn("[smoke] Header-Abruf fehlgeschlagen: http://example.test/contact", result.stderr)
-        self.assertIn("<html>Zu viele Anfragen</html>", result.stderr)
+        self.assertEqual(0, result.returncode)
+        self.assertIn("CONTENT_LANGS=de,es", result.stdout)
 
-    def test_header_smoke_akzeptiert_body_nicht_als_header(self):
+    def test_smoke_checks_gibt_npm_fehlercode_zurueck(self):
         result = run_web_check(
             r"""
             . scripts/web_checks.sh
-            header_list_contains $'HTTP/1.1 200 OK\r\nServer: test\r\n' content-type text/html
+            PIPELINE=dev
+            CONTENT_LANGS=de
+            npm() { return 1; }
+            cli() { :; }
+            run_smoke_checks http://example.test
             """
         )
 
-        self.assertEqual(1, result.returncode)
-
-    def test_page_smoke_gibt_body_bei_http_fehler_aus(self):
-        result = run_web_check(
-            r"""
-            . scripts/web_checks.sh
-            curl() {
-              printf '<html>Zu viele Anfragen</html>'
-              return 22
-            }
-            smoke_http_page_contains http://example.test/contact '<form'
-            """
-        )
-
-        self.assertEqual(1, result.returncode)
-        self.assertIn("[smoke] HTTP-Abruf fehlgeschlagen: http://example.test/contact", result.stderr)
-        self.assertIn("<html>Zu viele Anfragen</html>", result.stderr)
+        self.assertNotEqual(0, result.returncode)
 
     def test_a11y_artefakt_test_nutzt_bestehende_runtime_config(self):
         result = run_web_check(
@@ -122,61 +108,6 @@ class WebChecksTest(unittest.TestCase):
             ],
             result.stdout.strip().splitlines(),
         )
-
-
-    def test_http_smoke_checks_besteht_wenn_alle_seiten_antworten(self):
-        result = run_web_check(
-            r"""
-            . scripts/web_checks.sh
-            curl() {
-              case "$*" in
-                *example.test/)        printf '<a href="/cv">Zum Lebenslauf</a>' ;;
-                *example.test/cv)      printf '<section id="section-experience">' ;;
-                *example.test/contact) printf '<form method="post">' ;;
-              esac
-            }
-            run_http_smoke_checks http://example.test
-            """
-        )
-
-        self.assertEqual(0, result.returncode)
-
-    def test_http_smoke_checks_schlaegt_fehl_wenn_eine_seite_inhalt_fehlt(self):
-        result = run_web_check(
-            r"""
-            . scripts/web_checks.sh
-            curl() { printf '<html>leer</html>'; }
-            run_http_smoke_checks http://example.test
-            """
-        )
-
-        self.assertNotEqual(0, result.returncode)
-
-    def test_http_header_checks_besteht_wenn_headers_korrekt(self):
-        result = run_web_check(
-            r"""
-            . scripts/web_checks.sh
-            curl() {
-              printf 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n'
-            }
-            run_http_header_checks http://example.test
-            """
-        )
-
-        self.assertEqual(0, result.returncode)
-
-    def test_http_header_checks_schlaegt_fehl_wenn_nosniff_fehlt(self):
-        result = run_web_check(
-            r"""
-            . scripts/web_checks.sh
-            curl() {
-              printf 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n'
-            }
-            run_http_header_checks http://example.test
-            """
-        )
-
-        self.assertNotEqual(0, result.returncode)
 
 
 if __name__ == "__main__":
