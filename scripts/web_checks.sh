@@ -1,3 +1,21 @@
+smoke_http_page_contains() {
+  local url="$1" needle="$2" body
+
+  echo "[smoke] HTTP-Abruf: ${url}" >&2
+  if ! body="$(curl --fail-with-body --silent --show-error "$url")"; then
+    echo "[smoke] HTTP-Abruf fehlgeschlagen: ${url}" >&2
+    if [[ -n "$body" ]]; then
+      echo "[smoke] Antwort-Body:" >&2
+      printf '%s\n' "$body" >&2
+    fi
+    return 1
+  fi
+  if ! printf '%s' "$body" | grep -q "$needle"; then
+    echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
+    return 1
+  fi
+}
+
 run_smoke_checks() {
   local base="${1%/}"
   local content_langs="${CONTENT_LANGS:-$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)}"
