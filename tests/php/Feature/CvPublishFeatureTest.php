@@ -46,14 +46,14 @@ final class CvPublishFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
         file_put_contents(
-            $this->root . '/var/tmp/html-publish/cv-public.html',
+            $this->root . '/var/tmp/html-publish/cv-public.de.html',
             '<html><body>Frisch</body></html>'
         );
         $this->placeTask();
         $app->handle((new ServerRequestFactory())->createServerRequest('GET', '/tasks/dispatch'));
 
         $response = $app->handle(
-            (new ServerRequestFactory())->createServerRequest('GET', '/cv')
+            (new ServerRequestFactory())->createServerRequest('GET', '/cv?lang=de')
         );
 
         $this->assertSame(200, $response->getStatusCode());

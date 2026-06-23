@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sprache wählen{% endblock %}
+
+{% block content %}
+<main>
+  <h1>Sprache wählen / Select language</h1>
+  <p>Die bevorzugte Sprache konnte nicht automatisch erkannt werden.</p>
+  <ul>
+    {% for lang in supported_langs %}
+      <li><a href="?lang={{ lang }}">{{ lang|upper }}</a></li>
+    {% endfor %}
+  </ul>
+</main>
+{% endblock %}

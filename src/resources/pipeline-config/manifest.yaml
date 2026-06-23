@@ -38,12 +38,6 @@ variable-groups:
           lebenslauf/, blog/, home/home.yaml.
           Absoluter oder relativer Pfad (relativ zu app-root).
         example: ".local"
-    CONTENT_LANG_DEFAULT:
-      meta:
-        desc: "Standard-Sprache der Site"
-        notes: >-
-          Muss in CONTENT_LANGS enthalten sein.
-        example: "de"
     CONTENT_LANGS:
       meta:
         desc: "Kommagetrennte Liste unterstützter Sprachen"
@@ -199,7 +193,6 @@ phases:
       - TRUST_PROXY
       - APP_LOG_CHANNEL
     content:
-      - CONTENT_LANG_DEFAULT
       - CONTENT_LANGS
     captcha: "*"
     contact: "*"

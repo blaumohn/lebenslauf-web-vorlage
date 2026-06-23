@@ -67,7 +67,7 @@ final class TokenCommandTest extends TestCase
     public function testRotatesLocallyForDevPipeline(): void
     {
         $root = $this->makeTempRoot();
-        file_put_contents($root . '/var/cache/html/cv-private-default.html', '<html/>');
+        file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
 
         $tester = $this->testerForRoot($root);
         $exitCode = $tester->execute([

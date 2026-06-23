@@ -10,8 +10,7 @@ final class CvFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
 
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv');
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/cv?lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(404, $response->getStatusCode());
@@ -20,15 +19,39 @@ final class CvFeatureTest extends FeatureTestCase
     public function testPublicCvFound(): void
     {
         $app = $this->app();
-        $htmlPath = $this->root . '/var/cache/html/cv-public.html';
+        $htmlPath = $this->root . '/var/cache/html/cv-public.de.html';
         file_put_contents($htmlPath, '<h1>Public</h1>');
 
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv');
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/cv?lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringContainsString('Public', (string) $response->getBody());
+    }
+
+    public function testPublicCvResolvedViaHeader(): void
+    {
+        $app = $this->app();
+        $htmlPath = $this->root . '/var/cache/html/cv-public.de.html';
+        file_put_contents($htmlPath, '<h1>Lebenslauf</h1>');
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/cv')
+            ->withHeader('Accept-Language', 'de-DE,de;q=0.9');
+        $response = $app->handle($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('Lebenslauf', (string) $response->getBody());
+    }
+
+    public function testPublicCvLangSelectWhenUnresolvable(): void
+    {
+        $app = $this->app();
+
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/cv');
+        $response = $app->handle($request);
+
+        $this->assertSame(300, $response->getStatusCode());
     }
 
     public function testPublicCvLanguageSelection(): void
@@ -39,8 +62,7 @@ final class CvFeatureTest extends FeatureTestCase
         file_put_contents($dePath, '<h1>Deutsch</h1>');
         file_put_contents($esPath, '<h1>Español</h1>');
 
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv?lang=es');
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/cv?lang=es');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -52,7 +74,7 @@ final class CvFeatureTest extends FeatureTestCase
         $app = $this->app();
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv?token=bad');
+            ->createServerRequest('GET', '/cv?token=bad&lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(403, $response->getStatusCode());
@@ -67,11 +89,11 @@ final class CvFeatureTest extends FeatureTestCase
         $tokenService = $this->buildTokenService();
         $tokenService->rotate($profile, [$token]);
 
-        $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.html';
+        $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
         file_put_contents($htmlPath, '<h1>Private</h1>');
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/cv?token=' . urlencode($token));
+            ->createServerRequest('GET', '/cv?token=' . urlencode($token) . '&lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());

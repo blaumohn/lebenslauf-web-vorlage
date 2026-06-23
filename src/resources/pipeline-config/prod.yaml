@@ -5,11 +5,10 @@ app:
 
 content:
   CONTENT_PATH: .local
-  CONTENT_LANG_DEFAULT: de
   CONTENT_LANGS: "de,en"
 
 lebenslauf:
-  LEBENSLAUF_PUBLIC_PROFILE: gueltig
+  LEBENSLAUF_PUBLIC_PROFILE: demo
 
 captcha:
   CAPTCHA_TTL_SECONDS: 600

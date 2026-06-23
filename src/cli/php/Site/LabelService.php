@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Cv;
+namespace App\Cli\Site;
 
 final class LabelService
 {

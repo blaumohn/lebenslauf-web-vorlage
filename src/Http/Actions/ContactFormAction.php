@@ -22,10 +22,10 @@ final class ContactFormAction
         $ipHash = $this->resolveIpHash($request);
 
         if ($this->isRateLimited($ipHash)) {
-            return $this->renderError($response, 429);
+            return $this->renderError($request, $response, 429);
         }
 
-        return $this->renderForm($response, $ipHash, null);
+        return $this->renderForm($request, $response, $ipHash, null);
     }
 
     private function resolveIpHash(ServerRequestInterface $request): string
@@ -42,12 +42,12 @@ final class ContactFormAction
         return !$this->context->rateLimiter->allow('contact_get_' . $ipHash, $maxGet, $window);
     }
 
-    private function renderError(ResponseInterface $response, int $status): ResponseInterface
+    private function renderError(ServerRequestInterface $request, ResponseInterface $response, int $status): ResponseInterface
     {
-        $lang = $this->defaultLang();
+        $lang = (string) $request->getAttribute('lang');
         $base = PageViewBuilder::base(
-            $this->context->cvStorage->getHeaderFragmentForLang($lang),
-            $this->context->cvStorage->getFooterFragmentForLang($lang)
+            $this->context->htmlCache->getHeaderFragmentForLang($lang),
+            $this->context->htmlCache->getFooterFragmentForLang($lang)
         );
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Zu viele Anfragen',
@@ -56,17 +56,17 @@ final class ContactFormAction
         return ResponseHelper::html($response, $html, $status);
     }
 
-    private function renderForm(ResponseInterface $response, string $ipHash, ?string $error): ResponseInterface
+    private function renderForm(ServerRequestInterface $request, ResponseInterface $response, string $ipHash, ?string $error): ResponseInterface
     {
-        $lang = $this->defaultLang();
+        $lang = (string) $request->getAttribute('lang');
         $base = PageViewBuilder::base(
-            $this->context->cvStorage->getHeaderFragmentForLang($lang),
-            $this->context->cvStorage->getFooterFragmentForLang($lang)
+            $this->context->htmlCache->getHeaderFragmentForLang($lang),
+            $this->context->htmlCache->getFooterFragmentForLang($lang)
         );
         $challenge = $this->context->captchaService->createChallenge($ipHash);
         $captchaId = $challenge['captcha_id'];
         $captchaUrl = '/captcha.png?id=' . urlencode($captchaId);
-        $html = $this->context->twig->render($this->contactTemplate(), [
+        $html = $this->context->twig->render("@generated/contact/{$lang}.twig", [
             'title' => 'Kontakt',
             'form' => [
                 'show_error' => $error !== null,
@@ -77,23 +77,5 @@ final class ContactFormAction
             ],
         ] + $base);
         return ResponseHelper::html($response, $html);
-    }
-
-    private function defaultLang(): string
-    {
-        $lang = strtolower(trim($this->context->config->get('CONTENT_LANG_DEFAULT')));
-        if ($lang === '') {
-            throw new \RuntimeException('Konfiguration fehlt: CONTENT_LANG_DEFAULT');
-        }
-        return $lang;
-    }
-
-    private function contactTemplate(): string
-    {
-        $lang = strtolower(trim($this->context->config->get('CONTENT_LANG_DEFAULT')));
-        if ($lang === '') {
-            throw new \RuntimeException('Konfiguration fehlt: CONTENT_LANG_DEFAULT');
-        }
-        return "@generated/contact/{$lang}.twig";
     }
 }

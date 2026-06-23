@@ -14,7 +14,6 @@ final class SiteFooterRenderer extends BaseContentRenderer
         $twig = $this->buildTwig();
         $storage = $this->buildStorage();
         $langs = $this->resolveLangs();
-        $primary = $langs[0];
 
         foreach ($langs as $lang) {
             $vars = $this->resolveVars($footer, $lang);
@@ -24,10 +23,6 @@ final class SiteFooterRenderer extends BaseContentRenderer
             $cvHtml = $twig->render('components/site/footer.html.twig', $cvVars);
             $storage->saveFooterFragmentForLang($lang, $siteHtml);
             $storage->saveCvFooterFragmentForLang($lang, $cvHtml);
-            if ($lang === $primary) {
-                $storage->saveFooterFragment($siteHtml);
-                $storage->saveCvFooterFragment($cvHtml);
-            }
             $output->writeln("Footer-Fragment generiert ({$lang}).");
         }
     }

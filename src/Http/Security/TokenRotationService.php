@@ -2,18 +2,18 @@
 
 namespace App\Http\Security;
 
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 
 final class TokenRotationService
 {
     public function __construct(
-        private readonly CvStorage $cvStorage,
+        private readonly SiteHtmlCache $htmlCache,
         private readonly TokenService $tokenService,
     ) {}
 
     public function rotate(string $profile, int $count): array
     {
-        if (!$this->cvStorage->hasPrivate($profile)) {
+        if (!$this->htmlCache->hasPrivate($profile)) {
             throw new \InvalidArgumentException("Profil '{$profile}' hat keine Lebenslauf-Seite.");
         }
 

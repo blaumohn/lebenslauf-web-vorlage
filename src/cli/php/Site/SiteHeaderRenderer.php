@@ -15,18 +15,16 @@ final class SiteHeaderRenderer extends BaseContentRenderer
         $twig = $this->buildTwig();
         $storage = $this->buildStorage();
         $langs = $this->resolveLangs();
-        $primary = $langs[0];
 
         foreach ($langs as $lang) {
             $navItems = $this->resolveNavItems($nav, $lang);
+            $langItems = $this->resolveLangItems($langs, $lang);
             $html = $twig->render('components/site/header.html.twig', [
                 'site_name' => $siteName,
                 'nav_items' => $navItems,
+                'lang_items' => $langItems,
             ]);
             $storage->saveHeaderFragmentForLang($lang, $html);
-            if ($lang === $primary) {
-                $storage->saveHeaderFragment($html);
-            }
             $output->writeln("Header-Fragment generiert ({$lang}).");
         }
     }
@@ -58,9 +56,22 @@ final class SiteHeaderRenderer extends BaseContentRenderer
         return $data;
     }
 
+    private function resolveLangItems(array $langs, string $currentLang): array
+    {
+        $items = [];
+        foreach ($langs as $lang) {
+            $items[] = [
+                'code'    => strtoupper($lang),
+                'href'    => $lang !== $currentLang ? '?lang=' . $lang : null,
+                'current' => $lang === $currentLang,
+            ];
+        }
+        return $items;
+    }
+
     private function resolveNavItems(array $nav, string $lang): array
     {
-        $routes = ['home' => '/', 'cv' => '/cv', 'contact' => '/contact'];
+        $routes = ['home' => '/', 'cv' => '/cv', 'blog' => '/blog', 'contact' => '/contact'];
         $items = [];
         foreach ($routes as $key => $href) {
             $entry = $nav[$key] ?? [];

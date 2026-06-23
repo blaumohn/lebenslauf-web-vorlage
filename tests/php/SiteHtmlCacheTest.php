@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
 
-final class CvStorageTest extends TestCase
+final class SiteHtmlCacheTest extends TestCase
 {
     private string $tempDir;
 
@@ -23,15 +23,15 @@ final class CvStorageTest extends TestCase
 
     public function testHasPrivateReturnsTrueWhenFileExists(): void
     {
-        $storage = new CvStorage(new FileStorage(), $this->tempDir);
-        file_put_contents($this->tempDir . '/cv-private-test.html', '<h1>Test</h1>');
+        $storage = new SiteHtmlCache(new FileStorage(), $this->tempDir);
+        file_put_contents($this->tempDir . '/cv-private-test.de.html', '<h1>Test</h1>');
 
         $this->assertTrue($storage->hasPrivate('test'));
     }
 
     public function testHasPrivateReturnsFalseWhenFileMissing(): void
     {
-        $storage = new CvStorage(new FileStorage(), $this->tempDir);
+        $storage = new SiteHtmlCache(new FileStorage(), $this->tempDir);
 
         $this->assertFalse($storage->hasPrivate('nicht-vorhanden'));
     }

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\ConfigCompiled;
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Mail\MailService;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
@@ -219,7 +219,7 @@ final class TaskDeployTest extends TestCase
     public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void
     {
         $profile = 'default';
-        file_put_contents($this->dir . '/var/cache/html/cv-private-' . $profile . '.html', '<html/>');
+        file_put_contents($this->dir . '/var/cache/html/cv-private-' . $profile . '.de.html', '<html/>');
         $taskDir = $this->dir . '/var/tasks';
         mkdir($taskDir, 0775, true);
         $taskFile = $taskDir . '/20260505T000000Z-cv-token-rotation.ini';
@@ -299,9 +299,9 @@ final class TaskDeployTest extends TestCase
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($this->dir . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
-        $cvStorage = new CvStorage($storage, $this->dir . '/var/cache/html');
+        $htmlCache = new SiteHtmlCache($storage, $this->dir . '/var/cache/html');
         $tokenService = new TokenService($storage, $lockRunner, $writer, $this->dir . '/var/state/tokens');
-        return new CvTokenRotationTaskHandler(new TokenRotationService($cvStorage, $tokenService));
+        return new CvTokenRotationTaskHandler(new TokenRotationService($htmlCache, $tokenService));
     }
 
     private function buildMailService(): MailService

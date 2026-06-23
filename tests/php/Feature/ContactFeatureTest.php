@@ -29,8 +29,7 @@ final class ContactFeatureTest extends FeatureTestCase
     private function generateContactTemplate(): void
     {
         $config = new ConfigValues([
-            'CONTENT_LANG_DEFAULT' => 'de',
-            'CONTENT_LANGS' => 'de,en',
+            'CONTENT_LANGS' => 'de,es',
         ]);
         $renderer = new ContactContentRenderer($config, $this->root);
         $renderer->render(new NullOutput());
@@ -41,7 +40,7 @@ final class ContactFeatureTest extends FeatureTestCase
         $app = $this->app();
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/contact');
+            ->createServerRequest('GET', '/contact?lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -68,7 +67,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -101,7 +100,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -128,7 +127,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',

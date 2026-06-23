@@ -5,11 +5,10 @@ app:
 
 content:
   CONTENT_PATH: src/resources/fixtures
-  CONTENT_LANG_DEFAULT: de
   CONTENT_LANGS: "de,es"
 
 lebenslauf:
-  LEBENSLAUF_PUBLIC_PROFILE: default
+  LEBENSLAUF_PUBLIC_PROFILE: demo
 
 captcha:
   CAPTCHA_TTL_SECONDS: 600

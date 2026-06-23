@@ -7,7 +7,7 @@ use App\Http\Cv\CvDataNormalizer;
 use App\Http\Cv\CvRenderer;
 use App\Http\SchemaValidator;
 use App\Http\Cv\CvViewModelBuilder;
-use App\Http\Cv\LabelService;
+use App\Cli\Site\LabelService;
 use App\Http\Cv\RedactionService;
 use App\Http\Templating\TwigFactory;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -17,7 +17,7 @@ use Symfony\Component\Yaml\Yaml;
 
 final class CvContentRenderer extends BaseContentRenderer
 {
-    private \App\Http\Cv\CvStorage $cvStorage;
+    private \App\Http\SiteHtmlCache $htmlCache;
     private SchemaValidator $validator;
     private CvRenderer $renderer;
     private CvViewModelBuilder $viewBuilder;
@@ -27,12 +27,17 @@ final class CvContentRenderer extends BaseContentRenderer
     public function __construct(ConfigValues $config, string $rootPath)
     {
         parent::__construct($config, $rootPath);
-        $this->cvStorage = $this->buildStorage();
+        $this->htmlCache = $this->buildStorage();
         $this->validator = $this->buildValidator();
         $this->renderer = $this->buildCvRenderer();
         $this->viewBuilder = new CvViewModelBuilder();
         $this->redactor = new RedactionService();
         $this->labelsPath = Path::join($rootPath, 'src', 'resources', 'build', 'labels.json');
+    }
+
+    public function sectionKey(): ?string
+    {
+        return 'lebenslauf';
     }
 
     public function render(OutputInterface $output): void
@@ -96,9 +101,8 @@ final class CvContentRenderer extends BaseContentRenderer
         $decoded = $this->loadJson($jsonPath);
         $this->validate($decoded['raw'], $output);
         $langs = $this->resolveLangs();
-        $primary = $langs[0];
         foreach ($langs as $lang) {
-            $this->renderForLang($profile, $lang, $primary, $decoded['data'], $output);
+            $this->renderForLang($profile, $lang, $decoded['data'], $output);
         }
         $output->writeln("CV build completed: {$profile} ({$yamlPath})");
     }
@@ -143,36 +147,33 @@ final class CvContentRenderer extends BaseContentRenderer
         throw new \RuntimeException('Schema-Validierung fehlgeschlagen.');
     }
 
-    private function renderForLang(string $profile, string $lang, string $primary, array $data, OutputInterface $output): void
+    private function renderForLang(string $profile, string $lang, array $data, OutputInterface $output): void
     {
         $cvFooter = $this->loadCvFooter($lang);
         $labels = LabelService::fromJsonFile($this->labelsPath, $lang)->all();
         $normalized = (new CvDataNormalizer($lang))->normalize($data);
-        $this->savePrivate($profile, $lang, $primary, $normalized, $labels, $cvFooter);
-        $this->renderPublicIfDefault($profile, $lang, $primary, $normalized, $labels, $cvFooter, $output);
+        $this->savePrivate($profile, $lang, $normalized, $labels, $cvFooter);
+        $this->renderPublicIfDefault($profile, $lang, $normalized, $labels, $cvFooter, $output);
         $output->writeln("Privates CV gerendert: Profil {$profile} ({$lang}).");
     }
 
     private function loadCvFooter(string $lang): string
     {
-        $html = $this->cvStorage->getCvFooterFragmentForLang($lang);
+        $html = $this->htmlCache->getCvFooterFragmentForLang($lang);
         if ($html === null) {
             throw new \RuntimeException("CV-Footer-Fragment nicht gefunden für Sprache: {$lang}. SiteFooterRenderer muss zuerst laufen.");
         }
         return $html;
     }
 
-    private function savePrivate(string $profile, string $lang, string $primary, array $normalized, array $labels, string $cvFooter): void
+    private function savePrivate(string $profile, string $lang, array $normalized, array $labels, string $cvFooter): void
     {
         $view = $this->viewBuilder->build($normalized);
         $html = $this->renderer->renderPrivate($view, $labels, $lang, $cvFooter);
-        $this->cvStorage->savePrivateHtmlForLang($profile, $html, $lang);
-        if ($lang === $primary) {
-            $this->cvStorage->savePrivateHtml($profile, $html);
-        }
+        $this->htmlCache->savePrivateHtmlForLang($profile, $html, $lang);
     }
 
-    private function renderPublicIfDefault(string $profile, string $lang, string $primary, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
+    private function renderPublicIfDefault(string $profile, string $lang, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
     {
         if (!$this->isDefaultProfile($profile)) {
             return;
@@ -180,10 +181,7 @@ final class CvContentRenderer extends BaseContentRenderer
         $publicData = $this->redactor->redact($normalized);
         $view = $this->viewBuilder->build($publicData);
         $html = $this->renderer->renderPublic($view, $labels, $lang, $cvFooter);
-        $this->cvStorage->savePublicHtmlForLang($html, $lang);
-        if ($lang === $primary) {
-            $this->cvStorage->savePublicHtml($html);
-        }
+        $this->htmlCache->savePublicHtmlForLang($html, $lang);
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
     }
 
