@@ -3,9 +3,16 @@ import process from 'node:process';
 import { $, which } from 'zx';
 
 export class A11yQa {
+  static langs() {
+    const raw = process.env.CONTENT_LANGS;
+    if (!raw) {
+      throw new Error('CONTENT_LANGS muss explizit gesetzt sein');
+    }
+    return raw.split(',').map(l => l.trim()).filter(Boolean);
+  }
+
   static pages() {
-    const langs = (process.env.CONTENT_LANGS || 'de')
-      .split(',').map(l => l.trim()).filter(Boolean);
+    const langs = this.langs();
     const langPages = langs.map(l => ({ path: `/cv?lang=${l}`, name: `public CV ${l}` }));
     return [
       { path: '/', name: 'home' },

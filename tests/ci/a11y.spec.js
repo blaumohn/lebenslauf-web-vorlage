@@ -19,8 +19,7 @@ for (const pageCase of A11yQa.pages()) {
   });
 }
 
-const langs = (process.env.CONTENT_LANGS || 'de')
-  .split(',').map(l => l.trim()).filter(Boolean);
+const langs = A11yQa.langs();
 
 for (const lang of langs) {
   test(`CV setzt Dokumentsprache ${lang}`, async ({ page }) => {

@@ -32,7 +32,7 @@ def vendor_checksum() -> str:
     return ComposerInputChecksum.from_repo()
 
 
-def smoke_check(cfg, log) -> None:
+def smoke_check(cfg, smoke_cfg, log) -> None:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
         log(
@@ -43,7 +43,7 @@ def smoke_check(cfg, log) -> None:
     log(f"Smoke: {url}")
     proc_env = os.environ.copy()
     proc_env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
-    proc_env["CONTENT_LANGS"] = cfg.get("CONTENT_LANGS", "de")
+    proc_env["CONTENT_LANGS"] = smoke_cfg["CONTENT_LANGS"]
     silent = os.environ.get("LOG_FORMAT") == "json"
     result = subprocess.run(
         ["npm", "run", "qa:smoke"],
@@ -57,16 +57,18 @@ def smoke_check(cfg, log) -> None:
 def main():
     logger = Logger("sftp")
     cfg = PipelineCfg("deploy")
+    smoke_cfg = PipelineCfg("runtime")
     run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
     logger(f"Verbinde zu {format_target(cfg)}")
-    SftpDeploy(cfg, run_id, logger=logger).start()
+    SftpDeploy(cfg, smoke_cfg, run_id, logger=logger).start()
 
 
 class SftpDeploy:
     STAGING_DIR = Path("var/deploy")
 
-    def __init__(self, cfg, run_id, logger: Logger):
+    def __init__(self, cfg, smoke_cfg, run_id, logger: Logger):
         self.cfg = cfg
+        self.smoke_cfg = smoke_cfg
         self.run_id = run_id
         self.log = logger
         self.client = None
@@ -103,7 +105,7 @@ class SftpDeploy:
             switch_dispatcher=self._switch_dispatcher(publisher),
             logger=self.log,
             vendor_checksum=vendor_checksum,
-            smoke_check=smoke_check,
+            smoke_check=lambda cfg, log: smoke_check(cfg, self.smoke_cfg, log),
         )
 
     def _tree_uploader(self):

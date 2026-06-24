@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-const langs = (process.env.CONTENT_LANGS || 'de')
-  .split(',').map(l => l.trim()).filter(Boolean);
+const contentLangs = process.env.CONTENT_LANGS;
+if (!contentLangs) {
+  throw new Error('CONTENT_LANGS muss explizit gesetzt sein');
+}
+
+const langs = contentLangs.split(',').map(l => l.trim()).filter(Boolean);
 
 const pages = ['/', '/cv', '/contact'];
 

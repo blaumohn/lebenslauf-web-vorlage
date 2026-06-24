@@ -29,7 +29,7 @@ final class PublishCommand extends BasePipelineCommand
         if (!$this->runBuild($buildConfig, $output)) {
             return Command::FAILURE;
         }
-        $deployValues = $this->getValuesByPhase(['deploy'], $output);
+        $deployValues = $this->getValuesByPhase(['deploy', 'runtime'], $output);
         if ($deployValues === null) {
             return Command::FAILURE;
         }

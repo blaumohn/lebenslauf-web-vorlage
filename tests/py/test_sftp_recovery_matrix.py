@@ -114,7 +114,12 @@ class FakeClient:
 
 
 def make_swap_deploy(module, run_id="run-2"):
-    deploy = module.SftpDeploy({}, run_id, logger=FakeLogger())
+    deploy = module.SftpDeploy(
+        {},
+        {"CONTENT_LANGS": "de"},
+        run_id,
+        logger=FakeLogger(),
+    )
     client = FakeClient()
     client.set_file(".htaccess", ACTIVE_HTACCESS)
     client.set_file("app-a/public/index.php", ACTIVE_BOOTSTRAP)
@@ -300,7 +305,10 @@ class Szenario3Test(unittest.TestCase):
 
     def _make_fresh_deploy(self, tmp):
         deploy = self.module.SftpDeploy(
-            {}, "run-1", logger=FakeLogger()
+            {},
+            {"CONTENT_LANGS": "de"},
+            "run-1",
+            logger=FakeLogger(),
         )
         client = FakeClient()
         deploy.client = client

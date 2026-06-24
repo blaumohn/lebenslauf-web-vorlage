@@ -83,6 +83,22 @@ class WebChecksTest(unittest.TestCase):
             result.stdout.strip().splitlines(),
         )
 
+    def test_sftp_upload_importiert_deploy_und_runtime_config(self):
+        result = run_web_check(
+            r"""
+            . scripts/pipeline_lib.sh
+            PIPELINE=preview
+            cli() { printf '%s\n' "$*"; }
+            sftp_upload
+            """
+        )
+
+        self.assertEqual(0, result.returncode)
+        self.assertEqual(
+            "python preview --phase deploy --phase runtime scripts/sftp-deploy.py",
+            result.stdout.strip(),
+        )
+
     def test_a11y_artefakt_test_gibt_server_fehler_zurueck(self):
         result = run_web_check(
             r"""

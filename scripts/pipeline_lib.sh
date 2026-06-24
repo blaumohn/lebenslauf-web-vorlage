@@ -179,5 +179,5 @@ sftp_upload() {
   local overrides_arg=()
   [[ -n "${SFTP_DEPLOY_OVERRIDES:-}" ]] \
     && overrides_arg=(--overrides "$SFTP_DEPLOY_OVERRIDES")
-  cli python "$PIPELINE" --phase deploy "${overrides_arg[@]}" scripts/sftp-deploy.py
+  cli python "$PIPELINE" --phase deploy --phase runtime "${overrides_arg[@]}" scripts/sftp-deploy.py
 }
