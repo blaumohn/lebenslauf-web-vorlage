@@ -22,7 +22,17 @@ abstract class BaseContentRenderer implements ContentRendererInterface
 
     protected function resolveLangs(): array
     {
-        return $this->normalizeLangs(preg_split('/\s*,\s*/', $this->config->get('CONTENT_LANGS')) ?: []);
+        $parts = preg_split('/\s*,\s*/', $this->config->get('CONTENT_LANGS'));
+        if ($parts === false) {
+            throw new \RuntimeException('Konfiguration ungültig: CONTENT_LANGS');
+        }
+
+        $langs = $this->normalizeLangs($parts);
+        if ($langs === []) {
+            throw new \RuntimeException('Konfiguration ungültig: CONTENT_LANGS');
+        }
+
+        return $langs;
     }
 
     protected function normalizeLangs(array $parts): array
@@ -100,17 +110,30 @@ abstract class BaseContentRenderer implements ContentRendererInterface
             ?? throw new \RuntimeException("Footer-Fragment fehlt ({$lang}). SiteFooterRenderer muss zuerst laufen.");
     }
 
+    public function validateContent(OutputInterface $output): bool
+    {
+        return true;
+    }
+
     protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void
+    {
+        if ($this->checkValid($data, $schemaName, $output)) {
+            return;
+        }
+        throw new \RuntimeException("{$schemaName}: Schema-Validierung fehlgeschlagen.");
+    }
+
+    protected function checkValid(mixed $data, string $schemaName, OutputInterface $output): bool
     {
         $schemaPath = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', $schemaName);
         $errors = (new SchemaValidator($schemaPath))->validate($data);
         if ($errors === []) {
-            return;
+            return true;
         }
         $output->writeln("<error>{$schemaName}: Schema-Validierung fehlgeschlagen:</error>");
         foreach ($errors as $error) {
-            $output->writeln("- {$error}");
+            $output->writeln("  - {$error}");
         }
-        throw new \RuntimeException("{$schemaName}: Schema-Validierung fehlgeschlagen.");
+        return false;
     }
 }

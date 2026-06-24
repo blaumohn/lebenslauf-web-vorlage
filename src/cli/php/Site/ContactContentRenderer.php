@@ -9,9 +9,31 @@ use Symfony\Component\Yaml\Yaml;
 
 final class ContactContentRenderer extends BaseContentRenderer
 {
+    public const SCHEMA = 'contact.schema.json';
+
     public function sectionKey(): ?string
     {
         return 'contact';
+    }
+
+    public function validateContent(OutputInterface $output): bool
+    {
+        $yamlPath = $this->dataPath();
+        if (!is_file($yamlPath)) {
+            $output->writeln("Contact: YAML fehlt ({$yamlPath}) — übersprungen.");
+            return true;
+        }
+        $data = Yaml::parseFile($yamlPath);
+        if (!is_array($data)) {
+            $output->writeln('<error>Contact: kein gültiges YAML-Mapping.</error>');
+            return false;
+        }
+        if ($this->checkValid($data, self::SCHEMA, $output)) {
+            $output->writeln('Contact: OK');
+            return true;
+        }
+        $output->writeln('<error>Contact: ungültig.</error>');
+        return false;
     }
 
     public function render(OutputInterface $output): void
@@ -25,7 +47,7 @@ final class ContactContentRenderer extends BaseContentRenderer
         if (!is_array($data)) {
             throw new \RuntimeException("Ungültiges Contact-YAML: {$yamlPath}");
         }
-        $this->assertValid($data, 'contact.schema.json', $output);
+        $this->assertValid($data, self::SCHEMA, $output);
         foreach ($this->resolveLangs() as $lang) {
             $this->renderForLang($data, $lang, $output);
         }

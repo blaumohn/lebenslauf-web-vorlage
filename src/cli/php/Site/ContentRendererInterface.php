@@ -8,5 +8,7 @@ interface ContentRendererInterface
 {
     public function render(OutputInterface $output): void;
 
+    public function validateContent(OutputInterface $output): bool;
+
     public function sectionKey(): ?string;
 }

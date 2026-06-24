@@ -35,6 +35,19 @@ final class ContactFeatureTest extends FeatureTestCase
         $renderer->render(new NullOutput());
     }
 
+    public function testContactRendererRejectsEmptyContentLangs(): void
+    {
+        $config = new ConfigValues([
+            'CONTENT_LANGS' => ' , ',
+        ]);
+        $renderer = new ContactContentRenderer($config, $this->root);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Konfiguration ungültig: CONTENT_LANGS');
+
+        $renderer->render(new NullOutput());
+    }
+
     public function testContactFormRenders(): void
     {
         $app = $this->app();

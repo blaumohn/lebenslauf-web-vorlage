@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Cv\CvDataNormalizer;
-use App\Http\Cv\CvRenderer;
+use App\Cli\Site\CvRenderer;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Http\Templating\TwigFactory;
 use PHPUnit\Framework\TestCase;

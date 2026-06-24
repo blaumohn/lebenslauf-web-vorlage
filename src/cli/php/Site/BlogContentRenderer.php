@@ -11,6 +11,8 @@ use Twig\Environment;
 
 final class BlogContentRenderer extends BaseContentRenderer
 {
+    public const SCHEMA = 'blog-post.schema.json';
+
     private Environment $twig;
     private FileStorage $storage;
 
@@ -43,6 +45,36 @@ final class BlogContentRenderer extends BaseContentRenderer
         }
     }
 
+    public function validateContent(OutputInterface $output): bool
+    {
+        $dataPath = $this->dataPath();
+        if (!is_dir($dataPath)) {
+            $output->writeln("Blog: Verzeichnis fehlt ({$dataPath}) — übersprungen.");
+            return true;
+        }
+        $entries = scandir($dataPath) ?: [];
+        $valid = true;
+        foreach ($entries as $entry) {
+            if (!str_ends_with($entry, '.yaml')) {
+                continue;
+            }
+            $filePath = Path::join($dataPath, $entry);
+            $data = Yaml::parseFile($filePath);
+            if (!is_array($data)) {
+                $output->writeln("<error>Blog: {$entry}: kein gültiges YAML-Mapping.</error>");
+                $valid = false;
+                continue;
+            }
+            if ($this->checkValid($data, self::SCHEMA, $output)) {
+                $output->writeln("Blog: {$entry}: OK");
+            } else {
+                $output->writeln("<error>Blog: {$entry}: ungültig.</error>");
+                $valid = false;
+            }
+        }
+        return $valid;
+    }
+
     private function discoverPosts(string $dataPath, OutputInterface $output): array
     {
         $entries = scandir($dataPath);
@@ -58,7 +90,7 @@ final class BlogContentRenderer extends BaseContentRenderer
             if (!is_array($data)) {
                 continue;
             }
-            $this->assertValid($data, 'blog-post.schema.json', $output);
+            $this->assertValid($data, self::SCHEMA, $output);
             $posts[] = $data;
         }
         return $posts;

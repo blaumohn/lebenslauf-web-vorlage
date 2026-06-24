@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Cv;
+namespace App\Cli\Site;
 
 use Twig\Environment;
 
@@ -11,11 +11,6 @@ final class CvRenderer
     public function __construct(Environment $twig)
     {
         $this->twig = $twig;
-    }
-
-    public function renderFragment(string $template, array $data): string
-    {
-        return $this->twig->render($template, $data);
     }
 
     public function renderPrivate(array $data, array $labels, string $lang, string $cvFooter): string

@@ -4,7 +4,6 @@ namespace App\Cli\Site;
 
 use App\Cli\ConfigValues;
 use App\Http\Cv\CvDataNormalizer;
-use App\Http\Cv\CvRenderer;
 use App\Http\SchemaValidator;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Cli\Site\LabelService;
@@ -17,6 +16,9 @@ use Symfony\Component\Yaml\Yaml;
 
 final class CvContentRenderer extends BaseContentRenderer
 {
+    public const CV_SCHEMA = 'lebenslauf.schema.json';
+    public const LABELS_SCHEMA = 'labels.schema.json';
+
     private \App\Http\SiteHtmlCache $htmlCache;
     private SchemaValidator $validator;
     private CvRenderer $renderer;
@@ -52,13 +54,45 @@ final class CvContentRenderer extends BaseContentRenderer
         }
     }
 
+    public function validateContent(OutputInterface $output): bool
+    {
+        $dataPath = $this->dataPath();
+        if (!is_dir($dataPath)) {
+            $output->writeln("CV: Verzeichnis fehlt ({$dataPath}) — übersprungen.");
+            return true;
+        }
+        $valid = true;
+        foreach ($this->collectTargets($dataPath) as $target) {
+            $entry = basename((string) ($target['yaml'] ?? ''));
+            try {
+                $data = Yaml::parseFile((string) ($target['yaml'] ?? ''));
+            } catch (ParseException $e) {
+                $output->writeln("<error>CV: {$entry}: YAML-Fehler: {$e->getMessage()}</error>");
+                $valid = false;
+                continue;
+            }
+            if (!is_array($data)) {
+                $output->writeln("<error>CV: {$entry}: kein gültiges YAML-Mapping.</error>");
+                $valid = false;
+                continue;
+            }
+            if ($this->checkValid($data, self::CV_SCHEMA, $output)) {
+                $output->writeln("CV: {$entry}: OK");
+            } else {
+                $output->writeln("<error>CV: {$entry}: ungültig.</error>");
+                $valid = false;
+            }
+        }
+        return $valid;
+    }
+
     private function validateLabels(OutputInterface $output): void
     {
         $raw = json_decode((string) file_get_contents($this->labelsPath));
         if ($raw === null) {
             throw new \RuntimeException("Labels-Datei ungültig oder nicht lesbar: {$this->labelsPath}");
         }
-        $this->assertValid($raw, 'labels.schema.json', $output);
+        $this->assertValid($raw, self::LABELS_SCHEMA, $output);
     }
 
     private function resolveTargets(): array
@@ -198,7 +232,7 @@ final class CvContentRenderer extends BaseContentRenderer
 
     private function buildValidator(): SchemaValidator
     {
-        $schema = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', 'lebenslauf.schema.json');
+        $schema = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', self::CV_SCHEMA);
         return new SchemaValidator($schema);
     }
 
