@@ -13,6 +13,7 @@ final class SiteValidateService
     public static function create(ConfigValues $config, string $rootPath): self
     {
         return new self([
+            new SiteFooterRenderer($config, $rootPath),
             new CvContentRenderer($config, $rootPath),
             new BlogContentRenderer($config, $rootPath),
             new HomeContentRenderer($config, $rootPath),

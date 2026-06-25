@@ -8,9 +8,11 @@ use Symfony\Component\Yaml\Yaml;
 
 final class SiteFooterRenderer extends BaseContentRenderer
 {
+    public const SCHEMA = 'site.schema.json';
+
     public function render(OutputInterface $output): void
     {
-        $footer = $this->loadFooterData();
+        $footer = $this->loadFooterData($output);
         $twig = $this->buildTwig();
         $storage = $this->buildStorage();
         $langs = $this->resolveLangs();
@@ -27,18 +29,35 @@ final class SiteFooterRenderer extends BaseContentRenderer
         }
     }
 
-    private function loadFooterData(): array
+    public function validateContent(OutputInterface $output): bool
+    {
+        $path = $this->siteYamlPath();
+        if (!is_file($path)) {
+            $output->writeln("Site: YAML fehlt ({$path}) — übersprungen.");
+            return true;
+        }
+        $data = Yaml::parseFile($path);
+        if (!is_array($data)) {
+            $output->writeln('<error>Site: kein gültiges YAML-Mapping.</error>');
+            return false;
+        }
+        if ($this->checkValid($data, self::SCHEMA, $output)) {
+            $output->writeln('Site: OK');
+            return true;
+        }
+        $output->writeln('<error>Site: ungültig.</error>');
+        return false;
+    }
+
+    private function loadFooterData(OutputInterface $output): array
     {
         $path = $this->siteYamlPath();
         $data = Yaml::parseFile($path);
         if (!is_array($data)) {
             throw new \RuntimeException("Ungültiges site.yaml: {$path}");
         }
-        $footer = $data['footer'] ?? null;
-        if (!is_array($footer)) {
-            throw new \RuntimeException("site.yaml: footer fehlt");
-        }
-        return $footer;
+        $this->assertValid($data, self::SCHEMA, $output);
+        return $data['footer'];
     }
 
     private function resolveVars(array $footer, string $lang): array
