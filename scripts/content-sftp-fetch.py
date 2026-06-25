@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from cli.py.deploy.content_tree import fetch_content_tree
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 
@@ -19,15 +20,7 @@ def main() -> None:
 
 
 def fetch_to(client: SftpClient, local_dir: Path) -> None:
-    total = 0
-    for entry in client.listdir_attr(SFTP_DATA_DIR):
-        remote_subdir = f"{SFTP_DATA_DIR}/{entry.filename}"
-        local_subdir = local_dir / entry.filename
-        local_subdir.mkdir(parents=True, exist_ok=True)
-        for file_entry in client.listdir_attr(remote_subdir):
-            remote_file = f"{remote_subdir}/{file_entry.filename}"
-            client.get_file(remote_file, local_subdir / file_entry.filename)
-            total += 1
+    total = fetch_content_tree(client, SFTP_DATA_DIR, local_dir)
     print(f"[content-fetch] {total} Datei(en) nach {local_dir}", flush=True)
 
 

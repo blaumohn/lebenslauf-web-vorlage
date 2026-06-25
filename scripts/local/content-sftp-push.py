@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from cli.py.deploy.content_tree import upload_content_tree as upload_tree
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.util.envvar import env
@@ -27,16 +28,7 @@ def upload_content_tree(client: SftpClient, source: Path) -> None:
     if not source.is_dir():
         print(f"FEHLER: Content-Pfad nicht gefunden: {source}", file=sys.stderr)
         sys.exit(1)
-    total = 0
-    for subdir in sorted(source.iterdir()):
-        if not subdir.is_dir():
-            continue
-        remote_subdir = f"{SFTP_DATA_DIR}/{subdir.name}"
-        client.ensure_dir(remote_subdir)
-        for f in sorted(subdir.iterdir()):
-            if f.is_file():
-                client.put_file(f, f"{remote_subdir}/{f.name}")
-                total += 1
+    total = upload_tree(client, source, SFTP_DATA_DIR)
     print(f"[content-push] {total} Datei(en) nach {SFTP_DATA_DIR}", flush=True)
 
 

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from cli.py.deploy.content_tree import upload_content_tree
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
 
@@ -37,16 +38,7 @@ def assert_dir_empty(client: SftpClient) -> None:
 
 
 def upload(client: SftpClient, source: Path) -> None:
-    total = 0
-    for subdir in sorted(source.iterdir()):
-        if not subdir.is_dir():
-            continue
-        remote_subdir = f"{SFTP_DATA_DIR}/{subdir.name}"
-        client.ensure_dir(remote_subdir)
-        for f in sorted(subdir.iterdir()):
-            if f.is_file():
-                client.put_file(f, f"{remote_subdir}/{f.name}")
-                total += 1
+    total = upload_content_tree(client, source, SFTP_DATA_DIR)
     print(f"[content-upload] {total} Datei(en) nach {SFTP_DATA_DIR}", flush=True)
 
 
