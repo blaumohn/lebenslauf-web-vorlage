@@ -5,6 +5,8 @@
 
   {{ ui.page_title('Blog') }}
 
+  {% if intro %}{{ ui.muted(intro) }}{% endif %}
+
   {% if posts is empty %}
     {{ ui.muted('Noch keine Beiträge vorhanden.') }}
   {% else %}

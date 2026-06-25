@@ -11,7 +11,8 @@ use Twig\Environment;
 
 final class BlogContentRenderer extends BaseContentRenderer
 {
-    public const SCHEMA = 'blog-post.schema.json';
+    public const SCHEMA         = 'blog-post.schema.json';
+    public const SECTION_SCHEMA = 'blog.schema.json';
 
     private Environment $twig;
     private FileStorage $storage;
@@ -52,10 +53,10 @@ final class BlogContentRenderer extends BaseContentRenderer
             $output->writeln("Blog: Verzeichnis fehlt ({$dataPath}) — übersprungen.");
             return true;
         }
+        $valid = $this->validateBlogSection($dataPath, $output);
         $entries = scandir($dataPath) ?: [];
-        $valid = true;
         foreach ($entries as $entry) {
-            if (!str_ends_with($entry, '.yaml')) {
+            if (!str_ends_with($entry, '.yaml') || $entry === 'blog.yaml') {
                 continue;
             }
             $filePath = Path::join($dataPath, $entry);
@@ -75,6 +76,25 @@ final class BlogContentRenderer extends BaseContentRenderer
         return $valid;
     }
 
+    private function validateBlogSection(string $dataPath, OutputInterface $output): bool
+    {
+        $path = Path::join($dataPath, 'blog.yaml');
+        if (!is_file($path)) {
+            return true;
+        }
+        $data = Yaml::parseFile($path);
+        if (!is_array($data)) {
+            $output->writeln('<error>Blog: blog.yaml: kein gültiges YAML-Mapping.</error>');
+            return false;
+        }
+        if ($this->checkValid($data, self::SECTION_SCHEMA, $output)) {
+            $output->writeln('Blog: blog.yaml: OK');
+            return true;
+        }
+        $output->writeln('<error>Blog: blog.yaml: ungültig.</error>');
+        return false;
+    }
+
     private function discoverPosts(string $dataPath, OutputInterface $output): array
     {
         $entries = scandir($dataPath);
@@ -83,7 +103,7 @@ final class BlogContentRenderer extends BaseContentRenderer
         }
         $posts = [];
         foreach ($entries as $entry) {
-            if (!str_ends_with($entry, '.yaml')) {
+            if (!str_ends_with($entry, '.yaml') || $entry === 'blog.yaml') {
                 continue;
             }
             $data = Yaml::parseFile(Path::join($dataPath, $entry));
@@ -93,6 +113,7 @@ final class BlogContentRenderer extends BaseContentRenderer
             $this->assertValid($data, self::SCHEMA, $output);
             $posts[] = $data;
         }
+        usort($posts, static fn(array $a, array $b) => strcmp($b['datum'], $a['datum']));
         return $posts;
     }
 
@@ -102,6 +123,7 @@ final class BlogContentRenderer extends BaseContentRenderer
             'lang'        => $lang,
             'site_header' => $this->loadHeaderFragment($lang),
             'site_footer' => $this->loadFooterFragment($lang),
+            'intro'       => $this->loadIntro($lang, $output),
         ];
         $published = [];
         foreach ($posts as $post) {
@@ -118,6 +140,34 @@ final class BlogContentRenderer extends BaseContentRenderer
         $html = $this->twig->render('blog_index.html.twig', ['posts' => $published] + $base);
         $this->storage->writeText(Path::join($this->htmlPath(), $lang, 'index.html'), $html);
         $output->writeln("Blog-Index gerendert ({$lang}).");
+    }
+
+    private function loadIntro(string $lang, OutputInterface $output): ?string
+    {
+        $path = Path::join($this->dataPath(), 'blog.yaml');
+        if (!is_file($path)) {
+            return null;
+        }
+        $data = Yaml::parseFile($path);
+        if (!is_array($data)) {
+            throw new \RuntimeException("Ungültiges blog.yaml: {$path}");
+        }
+        $this->assertValid($data, self::SECTION_SCHEMA, $output);
+        return self::resolveBlogIntro($data['intro'] ?? null, $lang);
+    }
+
+    public static function resolveBlogIntro(mixed $intro, string $lang): ?string
+    {
+        if ($intro === null) {
+            return null;
+        }
+        if (!is_array($intro)) {
+            return (string) $intro;
+        }
+        if (!isset($intro[$lang])) {
+            throw new \RuntimeException("blog.yaml: intro.{$lang} fehlt");
+        }
+        return (string) $intro[$lang];
     }
 
     private function dataPath(): string
