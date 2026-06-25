@@ -34,7 +34,8 @@ main() {
 ensure_content_path() {
   local content_path
   content_path="$(cli config "$PIPELINE" get CONTENT_PATH --phase build)"
-  if [[ -d "$content_path/lebenslauf" ]]; then
+  if find "$content_path" -mindepth 1 -type d -print -quit \
+      2>/dev/null | grep -q .; then
     CONTENT_PATH_CREATED=0
     return 0
   fi
