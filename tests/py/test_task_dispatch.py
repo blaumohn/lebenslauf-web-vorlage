@@ -146,13 +146,13 @@ class AppRootTest(unittest.TestCase):
     def test_returns_active_app_dir(self):
         client = MagicMock()
         slot_map = SlotMap.from_labels(app="b", vendor="a")
-        with patch.object(dispatch.SlotStore, "current_slot_map", return_value=slot_map):
+        with patch.object(dispatch.SlotStore, "require_current_slot_map", return_value=slot_map):
             result = dispatch.TaskDispatch({})._resolve_app_root(client)
         self.assertEqual(result, "app-b")
 
     def test_raises_when_no_active_slot(self):
         client = MagicMock()
-        with patch.object(dispatch.SlotStore, "current_slot_map", return_value=None):
+        with patch.object(dispatch.SlotStore, "require_current_slot_map", side_effect=RuntimeError("Kein aktiver Slot")):
             with self.assertRaises(RuntimeError):
                 dispatch.TaskDispatch({})._resolve_app_root(client)
 

@@ -48,9 +48,7 @@ class TaskDispatch:
             self._await_result(client, task, app_root)
 
     def _resolve_app_root(self, client) -> str:
-        slot_map = SlotStore(client).current_slot_map()
-        if slot_map is None:
-            raise RuntimeError("Kein aktiver Slot — TaskDispatch nicht möglich")
+        slot_map = SlotStore(client).require_current_slot_map()
         return slot_map.app.dir
 
     def _enqueue(self, client, task: Task, app_root: str) -> None:
