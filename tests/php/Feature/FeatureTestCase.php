@@ -37,6 +37,10 @@ abstract class FeatureTestCase extends TestCase
             $this->projectRoot() . '/src/resources/nav.yaml',
             $this->root . '/src/resources/nav.yaml'
         );
+        $this->copyDir(
+            $this->projectRoot() . '/src/resources/lang-select',
+            $this->root . '/src/resources/lang-select'
+        );
         $this->ensureDirs([
             $this->root . '/var/tmp/captcha',
             $this->root . '/var/tmp/ratelimit',

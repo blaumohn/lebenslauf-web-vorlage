@@ -40,6 +40,7 @@ final class AppContext
     public MailService $mailService;
     public IpResolver $ipResolver;
     public TaskRunner $taskRunner;
+    public string $appRoot;
 
     public static function fromConfig(
         ConfigCompiled $config,
@@ -55,6 +56,7 @@ final class AppContext
             : $deployRoot . '/log';
 
         $context = new self();
+        $context->appRoot = $appRoot;
         $context->config = $config;
         $context->logger = AppLogger::create($logDir, $config->get('APP_LOG_CHANNEL'));
         $context->twig = TwigFactory::create($appRoot . '/src/resources/templates');

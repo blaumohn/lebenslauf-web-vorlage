@@ -9,6 +9,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Yaml\Yaml;
 
 final class LangMiddleware implements MiddlewareInterface
 {
@@ -40,13 +42,40 @@ final class LangMiddleware implements MiddlewareInterface
 
     private function langSelectResponse(array $supported): ResponseInterface
     {
+        $translations = $this->loadTranslations($supported);
         $base = PageViewBuilder::base(null, null);
         $html = $this->context->twig->render('lang-select.html.twig', [
             'supported_langs' => $supported,
+            'translations'    => $translations,
         ] + $base);
         $response = $this->context->responseFactory->createResponse(300);
         $response->getBody()->write($html);
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    private function loadTranslations(array $supported): array
+    {
+        $path = Path::join($this->context->appRoot, 'src', 'resources', 'lang-select', 'lang-select.yaml');
+        $data = Yaml::parseFile($path);
+        $translations = [];
+        foreach ($supported as $lang) {
+            $translations[$lang] = $this->resolveTranslationForLang($lang, $data);
+        }
+        return $translations;
+    }
+
+    private function resolveTranslationForLang(string $lang, array $data): array
+    {
+        $keys = ['title', 'heading', 'description', 'link'];
+        $translation = [];
+        foreach ($keys as $key) {
+            $value = $data[$key][$lang] ?? null;
+            if ($value === null) {
+                throw new \RuntimeException("lang-select.yaml: '{$key}.{$lang}' fehlt");
+            }
+            $translation[$key] = $value;
+        }
+        return $translation;
     }
 
     private function supportedLangs(): array

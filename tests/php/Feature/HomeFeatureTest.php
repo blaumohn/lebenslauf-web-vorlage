@@ -52,7 +52,10 @@ final class HomeFeatureTest extends FeatureTestCase
 
         $request = (new ServerRequestFactory())->createServerRequest('GET', '/');
         $response = $app->handle($request);
+        $body = (string) $response->getBody();
 
         $this->assertSame(300, $response->getStatusCode());
+        $this->assertStringContainsString('Die bevorzugte Sprache konnte nicht automatisch erkannt werden.', $body);
+        $this->assertStringContainsString('No se pudo detectar autom', $body);
     }
 }

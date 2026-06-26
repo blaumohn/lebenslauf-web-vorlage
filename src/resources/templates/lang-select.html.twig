@@ -1,14 +1,16 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Sprache wählen{% endblock %}
+{% block title %}{% for lang in supported_langs %}{{ translations[lang].title }}{% if not loop.last %} / {% endif %}{% endfor %}{% endblock %}
 
 {% block content %}
 <div>
-  <h1>Sprache wählen / Select language</h1>
-  <p>Die bevorzugte Sprache konnte nicht automatisch erkannt werden.</p>
+  <h1>{% for lang in supported_langs %}{{ translations[lang].heading }}{% if not loop.last %} / {% endif %}{% endfor %}</h1>
+  {% for lang in supported_langs %}
+    <p>{{ translations[lang].description }}</p>
+  {% endfor %}
   <ul>
     {% for lang in supported_langs %}
-      <li><a href="?lang={{ lang }}">{{ lang|upper }}</a></li>
+      <li><a href="?lang={{ lang }}">{{ translations[lang].link }}</a></li>
     {% endfor %}
   </ul>
 </div>
