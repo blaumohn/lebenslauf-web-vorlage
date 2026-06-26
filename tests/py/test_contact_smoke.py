@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTACT_SMOKE_PATH = REPO_ROOT / "tests" / "ci" / "contact_smoke.py"
 sys.path.insert(0, str(REPO_ROOT / "src"))
+sys.path.insert(0, str(REPO_ROOT / "tests" / "ci"))
 sys.modules.setdefault(
     "paramiko",
     types.SimpleNamespace(RejectPolicy=object, SSHClient=object),

@@ -107,13 +107,7 @@ run_publish_smoke() {
 }
 
 run_token_smoke() {
-  local root_url token profile content_langs
-  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  profile="$(cli config "$PIPELINE" get LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  token="$(cli token "$PIPELINE" rotate "$profile")"
-  content_langs="$(cli config "$PIPELINE" get CONTENT_LANGS --phase runtime)"
-  PLAYWRIGHT_BASE_URL="$root_url" CI_TOKEN="$token" CI_PROFILE="$profile" \
-    CONTENT_LANGS="$content_langs" npm run qa:smoke:token
+  cli python "$PIPELINE" --phase deploy --phase runtime -- tests/ci/token_smoke.py
 }
 
 setup_rollback_test() {
