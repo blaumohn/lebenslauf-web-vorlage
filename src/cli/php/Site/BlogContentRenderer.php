@@ -131,6 +131,7 @@ final class BlogContentRenderer extends BaseContentRenderer
                 continue;
             }
             $resolved = $this->pickLang($post, $lang);
+            $resolved['inhalt'] = $this->encodeCodeBlocks((string) ($resolved['inhalt'] ?? ''));
             $slug = (string) ($post['slug'] ?? '');
             $html = $this->twig->render('blog_post.html.twig', ['post' => $resolved] + $base);
             $this->storage->writeText(Path::join($this->htmlPath(), $lang, $slug . '.html'), $html);
@@ -173,6 +174,18 @@ final class BlogContentRenderer extends BaseContentRenderer
     private function dataPath(): string
     {
         return Path::join($this->resolveContentBase(), 'blog');
+    }
+
+    private function encodeCodeBlocks(string $html): string
+    {
+        return (string) preg_replace_callback(
+            '/<code>(.*?)<\/code>/s',
+            function (array $m): string {
+                $decoded = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return '<code>' . htmlspecialchars($decoded, ENT_NOQUOTES | ENT_HTML5, 'UTF-8') . '</code>';
+            },
+            $html
+        );
     }
 
     private function htmlPath(): string

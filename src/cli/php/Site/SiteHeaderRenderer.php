@@ -75,7 +75,7 @@ final class SiteHeaderRenderer extends BaseContentRenderer
         $items = [];
         foreach ($routes as $key => $href) {
             $entry = $nav[$key] ?? [];
-            $items[] = ['href' => $href, 'label' => $this->resolveLabel($entry, $lang)];
+            $items[] = ['href' => $href . '?lang=' . $lang, 'label' => $this->resolveLabel($entry, $lang)];
         }
         return $items;
     }
