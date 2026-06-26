@@ -20,7 +20,8 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        process: 'readonly'
+        process: 'readonly',
+        console: 'readonly'
       }
     }
   },

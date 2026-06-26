@@ -25,10 +25,11 @@ run_smoke_checks() {
 
 run_artifact_html_accessibility_checks() {
   local deploy_dir="${1:?deploy_dir fehlt}"
-  export CONTENT_LANGS="$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)"
+  local content_langs
+  content_langs="$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)"
 
   run_html_quality_checks "$deploy_dir/var/cache/html"
-  with_dev_server "$deploy_dir/public" run_accessibility_checks
+  CONTENT_LANGS="$content_langs" with_dev_server "$deploy_dir/public" run_accessibility_checks
 }
 
 run_html_quality_checks() {
@@ -40,7 +41,7 @@ run_html_quality_checks() {
 run_accessibility_checks() {
   local base="${1%/}"
 
-  PLAYWRIGHT_BASE_URL="$base" npm run qa:a11y
+  PLAYWRIGHT_BASE_URL="$base" CONTENT_LANGS="$CONTENT_LANGS" npm run qa:a11y
 }
 
 with_dev_server() {
