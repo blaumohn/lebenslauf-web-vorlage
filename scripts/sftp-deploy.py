@@ -1,5 +1,6 @@
 import os
 import subprocess
+from contextlib import suppress
 from pathlib import Path
 
 from cli.py.deploy.history import DeployHistoryEntry, DeployHistoryWriter
@@ -14,6 +15,7 @@ from cli.py.deploy.slot_switch import (
 from cli.py.deploy.token_migrator import RuntimeTokenMigrator
 from cli.py.deploy.sftp_deploy_uploader import SftpDeployUploader
 from cli.py.deploy.vendor_sentinel import ComposerInputChecksum
+from cli.py.mail.smtp_lib import send_notify
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
@@ -85,7 +87,7 @@ class SftpDeploy:
         machine = DeployMachine(
             self._build_ops(),
             on_transition=self._log_deploy_state,
-            on_error=self.log.error,
+            on_error=self._on_error,
         )
         machine.run()
         self.deploy_phase = machine.current_state
@@ -133,6 +135,15 @@ class SftpDeploy:
         self.log(f"Deploy-State: {source.id} → {target.id}")
         if target.id in {"smoke_passed", "deploy_failed", "rolled_back"}:
             self._history.record(target.id)
+
+    def _on_error(self, exc: Exception) -> None:
+        self.log.error(exc)
+        with suppress(Exception):
+            send_notify(
+                self.cfg,
+                subject="Deploy fehlgeschlagen",
+                body=str(exc),
+            )
 
     def _log_deploy_result(self, state):
         if state == DeployMachine.manual_intervention_required:
