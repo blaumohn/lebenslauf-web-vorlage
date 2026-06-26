@@ -78,6 +78,11 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
             $this->projectRoot() . '/src/resources/fixtures/site/site.yaml',
             $root . '/site/site.yaml'
         );
+        mkdir($this->root . '/src/resources/contact', 0775, true);
+        copy(
+            $this->projectRoot() . '/src/resources/contact/contact.yaml',
+            $this->root . '/src/resources/contact/contact.yaml'
+        );
     }
 
     private function readCompiledConfigValue(string $key): mixed

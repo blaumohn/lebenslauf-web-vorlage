@@ -32,14 +32,12 @@ main() {
 }
 
 ensure_content_path() {
-  local content_path
-  content_path="$(cli config "$PIPELINE" get CONTENT_PATH --phase build)"
-  if find "$content_path" -mindepth 1 -type d -print -quit \
-      2>/dev/null | grep -q .; then
+  if content_path_has_data; then
     CONTENT_PATH_CREATED=0
     return 0
   fi
-
+  local content_path
+  content_path="$(content_base_path)"
   mkdir -p "$content_path"
   cp -r src/resources/fixtures/. "$content_path/"
   CONTENT_PATH_CREATED=1

@@ -141,8 +141,12 @@ is_first_deploy_commit() {
   [[ "$1" == "$zero_sha" ]]
 }
 
+content_path_has_data() {
+  find "$(content_base_path)" -mindepth 1 -type d -print -quit 2>/dev/null | grep -q .
+}
+
 prepare_content_data() {
-  if [[ -d "$(content_base_path)/lebenslauf" ]]; then
+  if content_path_has_data; then
     CONTENT_SFTP_FETCHED=0
     return 0
   fi

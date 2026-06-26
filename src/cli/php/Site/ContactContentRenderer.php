@@ -40,8 +40,7 @@ final class ContactContentRenderer extends BaseContentRenderer
     {
         $yamlPath = $this->dataPath();
         if (!is_file($yamlPath)) {
-            $output->writeln("Contact: YAML nicht gefunden ({$yamlPath}), übersprungen.");
-            return;
+            throw new \RuntimeException("Contact-YAML nicht gefunden: {$yamlPath}");
         }
         $data = Yaml::parseFile($yamlPath);
         if (!is_array($data)) {

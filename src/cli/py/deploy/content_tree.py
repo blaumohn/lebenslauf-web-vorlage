@@ -32,10 +32,29 @@ def iter_remote_files(
 ) -> Iterator[tuple[str, PurePosixPath]]:
     for entry in sorted(client.listdir_attr(remote_path(remote_root, relative_root)), key=filename):
         relative_path = relative_root / entry.filename
-        if stat.S_ISDIR(entry.st_mode):
+        path = remote_path(remote_root, relative_path)
+        if is_remote_dir(client, entry, path):
             yield from iter_remote_files(client, remote_root, relative_path)
         else:
-            yield remote_path(remote_root, relative_path), relative_path
+            yield path, relative_path
+
+
+def is_remote_dir(client: SftpClient, entry, path: str) -> bool:
+    if entry.st_mode is not None:
+        return _is_dir_from_mode_bits(entry.st_mode)
+    return _is_dir_by_listing_probe(client, path)
+
+
+def _is_dir_from_mode_bits(mode: int) -> bool:
+    return stat.S_ISDIR(mode)
+
+
+def _is_dir_by_listing_probe(client: SftpClient, path: str) -> bool:
+    try:
+        client.listdir_attr(path)
+        return True
+    except IOError:
+        return False
 
 
 def iter_local_files(source: Path) -> Iterator[tuple[Path, PurePosixPath]]:
