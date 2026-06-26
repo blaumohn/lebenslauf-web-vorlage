@@ -191,6 +191,15 @@ final class CvContentRenderer extends BaseContentRenderer
         $output->writeln("Privates CV gerendert: Profil {$profile} ({$lang}).");
     }
 
+    private function loadSiteHeader(string $lang): string
+    {
+        $html = $this->htmlCache->getHeaderFragmentForLang($lang);
+        if ($html === null) {
+            throw new \RuntimeException("Site-Header-Fragment nicht gefunden für Sprache: {$lang}. SiteHeaderRenderer muss zuerst laufen.");
+        }
+        return $html;
+    }
+
     private function loadCvFooter(string $lang): string
     {
         $html = $this->htmlCache->getCvFooterFragmentForLang($lang);
@@ -212,9 +221,10 @@ final class CvContentRenderer extends BaseContentRenderer
         if (!$this->isDefaultProfile($profile)) {
             return;
         }
+        $siteHeader = $this->loadSiteHeader($lang);
         $publicData = $this->redactor->redact($normalized);
         $view = $this->viewBuilder->build($publicData);
-        $html = $this->renderer->renderPublic($view, $labels, $lang, $cvFooter);
+        $html = $this->renderer->renderPublic($view, $labels, $lang, $siteHeader, $cvFooter);
         $this->htmlCache->savePublicHtmlForLang($html, $lang);
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
     }

@@ -1,23 +1,25 @@
 @layer components {
-.name {
-  --name-title-font-size: 30px;
+  article {
+    .name {
+      --name-title-font-size: 30px;
 
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
 
-  .name-title {
-    font-size: var(--name-title-font-size);
-    font-weight: var(--font-weight-semibold);
-    color: #000;
-  }
+    .name-title {
+      font-size: var(--name-title-font-size);
+      font-weight: var(--font-weight-semibold);
+      color: #000;
+    }
 
-  .name-role {
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--line-height-tight);
-    color: var(--gray-500);
+    .name-role {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--line-height-tight);
+      color: var(--gray-500);
+    }
   }
 }

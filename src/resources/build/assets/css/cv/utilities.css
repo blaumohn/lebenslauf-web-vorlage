@@ -1,7 +1,11 @@
 @layer utilities {
-  @media print {
-    .no-print {
-      display: none;
+  article {
+    @media print {
+      .no-print {
+        display: none;
+      }
     }
   }
+
+
 }

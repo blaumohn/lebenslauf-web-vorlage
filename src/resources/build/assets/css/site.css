@@ -35,24 +35,24 @@
 }
 
 @layer base {
-  header {
+  .site {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 16px;
   }
 
-  nav a {
+  .site nav a {
     margin-right: 12px;
     text-decoration: none;
   }
 
-  nav a:last-child {
+  .site nav a:last-child {
     margin-right: 0;
   }
 
   @media (width <= 600px) {
-    header {
+    .site {
       flex-direction: column;
       align-items: flex-start;
     }
@@ -60,7 +60,8 @@
 }
 
 @layer base {
-  main {
+  main,
+  article {
     margin-top: 24px;
   }
 
