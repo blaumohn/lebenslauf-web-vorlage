@@ -6,7 +6,7 @@ import sys
 import time
 import urllib.request
 
-from cli.py.mail.smtp_lib import SmtpClient, build_message
+from cli.py.mail.smtp_lib import send_notify
 from cli.py.pipeline_cfg import PipelineCfg
 
 MAILPIT_API_URL = "http://mailpit:8025"
@@ -60,9 +60,12 @@ def assert_bad_password_rejected(cfg, cafile):
 
 
 def send_test_mail(cfg, cafile):
-    message = build_message(cfg, subject="[SMTP-Smoke] Testmail", body="SMTP-Smoke-Test erfolgreich.")
-    with SmtpClient(cfg, cafile=cafile) as client:
-        client.send_message(message)
+    send_notify(
+        cfg,
+        subject="[SMTP-Smoke] Testmail",
+        body="SMTP-Smoke-Test erfolgreich.",
+        cafile=cafile,
+    )
     print("[smtp-smoke] Testmail gesendet.")
 
 

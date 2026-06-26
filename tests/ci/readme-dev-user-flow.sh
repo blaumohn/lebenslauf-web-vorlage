@@ -43,7 +43,7 @@ schnellstart() {
 
 private_ansicht_einrichten() {
   local token
-  token="$(cli token dev rotate default)"
+  token="$(cli token dev rotate demo)"
   curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
     | grep -q '</html>'
 }

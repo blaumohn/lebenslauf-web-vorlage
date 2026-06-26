@@ -20,11 +20,12 @@ _STAGING_SUBPATH = "var/tmp/html-publish"
 def main() -> None:
     log = Logger("publish")
     cfg = PipelineCfg("deploy")
+    smoke_cfg = PipelineCfg("runtime")
     log(f"Verbinde zu {_format_target(cfg)}")
     _html_quality_check(log)
     _upload_and_dispatch(cfg, log)
-    _smoke_check(cfg, log)
-    _accessibility_check(cfg, log)
+    _smoke_check(cfg, smoke_cfg, log)
+    _accessibility_check(cfg, smoke_cfg, log)
 
 
 def _html_quality_check(log) -> None:
@@ -43,12 +44,14 @@ def _upload_and_dispatch(cfg, log) -> None:
         TaskDispatch(cfg, log).submit(Task("cv_publish", {}))
 
 
-def _smoke_check(cfg, log) -> None:
+def _smoke_check(cfg, smoke_cfg, log) -> None:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
         log("Warnung: APP_ROOT_URL nicht konfiguriert — Smoke übersprungen")
         return
-    resp = requests.get(url, timeout=10, allow_redirects=True)
+    lang = smoke_cfg["CONTENT_LANGS"].split(",")[0].strip()
+    resp = requests.get(url, timeout=10, allow_redirects=True,
+                        headers={"Accept-Language": lang})
     if resp.status_code != 200:
         raise RuntimeError(f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}")
     if len(resp.text) < 500 or "<html" not in resp.text:
@@ -56,14 +59,16 @@ def _smoke_check(cfg, log) -> None:
     log(f"Smoke bestanden: {url}")
 
 
-def _accessibility_check(cfg, log) -> None:
+def _accessibility_check(cfg, smoke_cfg, log) -> None:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
         log("Warnung: APP_ROOT_URL nicht konfiguriert — A11y-QA übersprungen")
         return
     env = os.environ.copy()
     env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
+    env["CONTENT_LANGS"] = smoke_cfg["CONTENT_LANGS"]
     log(f"Prüfe A11y: {env['PLAYWRIGHT_BASE_URL']}")
+    subprocess.run(["npm", "run", "qa:a11y:ensure-browser"], check=True, env=env)
     subprocess.run(["npm", "run", "qa:a11y"], check=True, env=env)
 
 

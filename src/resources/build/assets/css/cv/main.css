@@ -1,86 +1,91 @@
 @layer base {
-  main {
-    display: flex;
-    gap: 16px;
-    flex-direction: row;
-  }
+  article {
+    .cv-body {
+      display: flex;
+      gap: 16px;
+      flex-direction: row;
+      margin-top: 0;
+    }
 
-  @media (width <= 40rem) {
-    main {
-      -webkit-hyphens: auto;
-      hyphens: auto;
-      flex-direction: column;
+    @media (width <= 40rem) {
+      .cv-body {
+        -webkit-hyphens: auto;
+        hyphens: auto;
+        flex-direction: column;
+      }
     }
   }
 }
 
 @layer patterns {
-  main {
-    --main-aside-width-compact: 33.3333%;
-    --main-aside-width: 21.875%;
-  }
-
-  main .main-body {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    flex: 0 0 66.6667%;
-  }
-
-  main .main-aside {
-    flex: 0 0 var(--main-aside-width-compact);
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  @media (width >= 28rem) {
-    main .main-aside {
-      flex: 0 0 var(--main-aside-width);
+  article {
+    .cv-body {
+      --main-aside-width-compact: 33.3333%;
+      --main-aside-width: 21.875%;
     }
 
-    main .main-body {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-  }
-
-  @media (width <= 40rem) {
-    main .main-body,
-    main .main-aside {
-      display: contents;
+    .cv-body .cv-main-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 0 0 66.6667%;
     }
 
-    .section-motivation {
-      order: 1;
+    .cv-body .cv-aside-col {
+      flex: 0 0 var(--main-aside-width-compact);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
-    .section-skills {
-      order: 2;
+    @media (width >= 28rem) {
+      .cv-body .cv-aside-col {
+        flex: 0 0 var(--main-aside-width);
+      }
+
+      .cv-body .cv-main-col {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
     }
 
-    .section-experience {
-      order: 3;
-    }
+    @media (width <= 40rem) {
+      .cv-body .cv-main-col,
+      .cv-body .cv-aside-col {
+        display: contents;
+      }
 
-    .section-opensource {
-      order: 4;
-    }
+      .section-motivation {
+        order: 1;
+      }
 
-    .section-talks {
-      order: 5;
-    }
+      .section-skills {
+        order: 2;
+      }
 
-    .section-education {
-      order: 6;
-    }
+      .section-experience {
+        order: 3;
+      }
 
-    .section-languages {
-      order: 7;
-    }
+      .section-opensource {
+        order: 4;
+      }
 
-    .section-interests {
-      order: 8;
+      .section-talks {
+        order: 5;
+      }
+
+      .section-education {
+        order: 6;
+      }
+
+      .section-languages {
+        order: 7;
+      }
+
+      .section-interests {
+        order: 8;
+      }
     }
   }
 }

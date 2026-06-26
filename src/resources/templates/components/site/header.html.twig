@@ -1,8 +1,17 @@
-<header>
+<header class="site" aria-label="Seitennavigation">
   <a href="{{ path('/') }}" class="site-name">{{ site_name }}</a>
-  <nav>
-    <a href="{{ path('/') }}">Home</a>
-    <a href="{{ path('/cv') }}">Lebenslauf</a>
-    <a href="{{ path('/contact') }}">Kontakt</a>
+  <nav aria-label="Navigation">
+    {% for item in nav_items %}
+      <a href="{{ path(item.href) }}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+  <nav class="lang-nav" aria-label="Sprache">
+    {% for item in lang_items %}
+      {% if item.current %}
+        <span class="lang-current">{{ item.code }}</span>
+      {% else %}
+        <a href="{{ item.href }}">{{ item.code }}</a>
+      {% endif %}
+    {% endfor %}
   </nav>
 </header>

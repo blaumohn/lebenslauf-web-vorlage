@@ -22,11 +22,13 @@ class SftpDeployUploader:
         self.vendor_checksum = vendor_checksum
         self.log = log
 
+    def prepare_app_slot(self, app_dir: str) -> None:
+        self._prepare_slot(app_dir)
+
     def upload_app_tree(self, app_dir: str, vendor_dir: str) -> None:
         self._inject_vendor_dir(vendor_dir)
         started_at = time.monotonic()
         self.log(f"Upload App-Slot: {app_dir}")
-        self._prepare_slot(app_dir)
         stats = UploadStats()
         for item in sorted(self.staging_dir.iterdir()):
             if item.name == "vendor":

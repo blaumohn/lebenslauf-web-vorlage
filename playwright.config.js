@@ -3,6 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 import { A11yQa } from './tests/ci/a11y.mjs';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8080';
+if (!process.env.PLAYWRIGHT_BASE_URL) {
+  console.warn(`[playwright.config] baseURL: ${baseURL} (Fallback — PLAYWRIGHT_BASE_URL nicht gesetzt)`);
+}
 const webServer = process.env.PLAYWRIGHT_BASE_URL
   ? undefined
   : {

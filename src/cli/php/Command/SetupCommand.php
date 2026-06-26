@@ -33,16 +33,15 @@ final class SetupCommand extends BasePipelinePhaseCommand
 
     protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
-        $configValues = $this->commandConfig()->all();
         $action = (string) $input->getArgument('action');
 
         if ($action === self::ACTION_SAMPLE_CONTENT) {
-            return $this->copySampleContent($configValues, $output)
+            return $this->copySampleContent($output)
                 ? Command::SUCCESS
                 : Command::FAILURE;
         }
         if ($input->getOption('with-sample-content')) {
-            if (!$this->copySampleContent($configValues, $output)) {
+            if (!$this->copySampleContent($output)) {
                 return Command::FAILURE;
             }
         }
@@ -68,26 +67,16 @@ final class SetupCommand extends BasePipelinePhaseCommand
         return $this->ensureA11yBrowser($input, $output);
     }
 
-    private function copySampleContent(array $configValues, OutputInterface $output): bool
+    private function copySampleContent(OutputInterface $output): bool
     {
         try {
-            $profile = $this->requirePublicProfile($configValues);
-            $target = $this->sampleContentCopier()->copy($profile);
+            $target = $this->sampleContentCopier()->copy();
         } catch (\RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return false;
         }
         $output->writeln('<info>Sample-Inhalt kopiert: ' . $target . '</info>');
         return true;
-    }
-
-    private function requirePublicProfile(array $configValues): string
-    {
-        $profile = trim((string) ($configValues['LEBENSLAUF_PUBLIC_PROFILE'] ?? ''));
-        if ($profile === '') {
-            throw new \RuntimeException('LEBENSLAUF_PUBLIC_PROFILE fehlt fuer den Sample-Inhalt.');
-        }
-        return $profile;
     }
 
     private function ensureVenv(PythonResolver $resolver, InputInterface $input, OutputInterface $output): bool

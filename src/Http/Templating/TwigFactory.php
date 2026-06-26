@@ -17,6 +17,16 @@ final class TwigFactory
         ]);
     }
 
+    public static function addGeneratedPath(Environment $twig, string $generatedPath): void
+    {
+        if (!is_dir($generatedPath)) {
+            mkdir($generatedPath, 0775, true);
+        }
+        /** @var FilesystemLoader $loader */
+        $loader = $twig->getLoader();
+        $loader->addPath($generatedPath, 'generated');
+    }
+
     public static function configure(Environment $twig, string $basePath): void
     {
         $normalized = self::normalizeBasePath($basePath);

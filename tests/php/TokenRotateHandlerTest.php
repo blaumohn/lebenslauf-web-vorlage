@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
@@ -48,7 +48,7 @@ final class TokenRotateHandlerTest extends TestCase
 
     public function testRotatesTokensForExistingProfile(): void
     {
-        file_put_contents($this->tempDir . '/html/cv-private-test.html', '<h1>Test</h1>');
+        file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
 
         $tokens = $this->handler()->rotate('test', 2);
 
@@ -58,7 +58,7 @@ final class TokenRotateHandlerTest extends TestCase
 
     public function testRotatedTokenIsVerifiable(): void
     {
-        file_put_contents($this->tempDir . '/html/cv-private-test.html', '<h1>Test</h1>');
+        file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
         $tokenService = $this->tokenService();
 
         $tokens = $this->handlerWith($tokenService)->rotate('test', 1);
@@ -73,8 +73,8 @@ final class TokenRotateHandlerTest extends TestCase
 
     private function handlerWith(TokenService $tokenService): TokenRotationService
     {
-        $cvStorage = new CvStorage(new FileStorage(), $this->tempDir . '/html');
-        return new TokenRotationService($cvStorage, $tokenService);
+        $htmlCache = new SiteHtmlCache(new FileStorage(), $this->tempDir . '/html');
+        return new TokenRotationService($htmlCache, $tokenService);
     }
 
     private function tokenService(): TokenService

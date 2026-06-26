@@ -62,6 +62,12 @@ class SlotStore:
             return None
         return self._slot_map_from_htaccess(content)
 
+    def require_current_slot_map(self) -> SlotMap:
+        slot_map = self.current_slot_map()
+        if slot_map is None:
+            raise RuntimeError("Kein aktiver Slot")
+        return slot_map
+
     def _slot_map_from_htaccess(self, content: str) -> SlotMap:
         app = self._app_slot_from_htaccess(content)
         vendor = self.vendor_slot_for_app_slot(app)

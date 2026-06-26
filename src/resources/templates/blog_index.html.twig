@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+  {% import 'components/site/lib.html.twig' as ui %}
+
+  {{ ui.page_title('Blog') }}
+
+  {% if intro %}{{ ui.muted(intro) }}{% endif %}
+
+  {% if posts is empty %}
+    {{ ui.muted('Noch keine Beiträge vorhanden.') }}
+  {% else %}
+    <ul class="blog-liste">
+      {% for post in posts %}
+        <li>
+          <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
+          {{ ui.muted(post.datum) }}
+          {{ ui.muted(post.zusammenfassung) }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

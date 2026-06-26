@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+  {% import 'components/site/lib.html.twig' as ui %}
+
+  <article>
+    {{ ui.page_title(post.titel) }}
+    <p class="muted">{{ post.datum }}</p>
+    <div class="blog-inhalt">
+      {{ post.inhalt|raw }}
+    </div>
+    {% if post.tags is defined and post.tags %}
+      <p class="muted">
+        {% for tag in post.tags %}{{ tag }}{% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+    {% endif %}
+    <p>{{ ui.link(path('/blog'), '← Alle Posts') }}</p>
+  </article>
+{% endblock %}

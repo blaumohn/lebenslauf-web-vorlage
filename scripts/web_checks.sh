@@ -1,132 +1,3 @@
-run_http_smoke_checks() {
-  local base="${1%/}"
-  local cv_name
-
-  cv_name="$(read_cv_name_kurz)"
-  smoke_http_page_contains "${base}/" "Zum Lebenslauf"
-  smoke_http_page_contains "${base}/cv" "$cv_name"
-  smoke_http_page_contains "${base}/contact" "<form"
-}
-
-run_artifact_html_accessibility_checks() {
-  local deploy_dir="${1:?deploy_dir fehlt}"
-
-  run_html_quality_checks "$deploy_dir/var/cache/html"
-  with_dev_server "$deploy_dir/public" run_accessibility_checks
-}
-
-run_html_quality_checks() {
-  local html_dir="${1:?html_dir fehlt}"
-
-  npx html-validate --config htmlvalidate.config.cjs "$html_dir"/*.html
-}
-
-run_accessibility_checks() {
-  local base="${1%/}"
-
-  PLAYWRIGHT_BASE_URL="$base" npm run qa:a11y
-}
-
-post_deploy_http_smoke_checks() {
-  local root_url
-
-  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  run_http_smoke_checks "$root_url"
-}
-
-post_deploy_header_smoke_checks() {
-  local root_url
-
-  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  run_http_header_checks "$root_url"
-}
-
-run_http_header_checks() {
-  local base="${1%/}"
-
-  smoke_http_header_contains "${base}/" "content-type" "text/html"
-  smoke_http_header_contains "${base}/cv" "content-type" "text/html"
-  smoke_http_header_contains "${base}/contact" "content-type" "text/html"
-  smoke_http_header_contains "${base}/" "x-content-type-options" "nosniff"
-  smoke_http_header_contains "${base}/cv" "x-content-type-options" "nosniff"
-  smoke_http_header_contains "${base}/contact" "x-content-type-options" "nosniff"
-}
-
-smoke_http_header_contains() {
-  local url="$1" header="$2" needle="$3" headers
-
-  echo "[smoke] HTTP-Header: ${url} ${header}" >&2
-  headers="$(fetch_http_headers "$url")" || return 1
-  if header_list_contains "$headers" "$header" "$needle"; then
-    return 0
-  fi
-  report_missing_http_header "$url" "$header" "$needle" "$headers"
-}
-
-fetch_http_headers() {
-  local url="$1" headers response
-
-  if headers="$(curl --fail --silent --show-error \
-    --dump-header - \
-    --output /dev/null \
-    "$url")"
-  then
-    printf '%s' "$headers"
-    return 0
-  fi
-
-  echo "[smoke] Header-Abruf fehlgeschlagen: ${url}" >&2
-  response="$(curl --include --fail-with-body --silent --show-error "$url" 2>&1)" || true
-  if [[ -n "$response" ]]; then
-    echo "[smoke] Antwort:" >&2
-    printf '%s\n' "$response" >&2
-  fi
-  return 1
-}
-
-header_list_contains() {
-  local headers="$1" header="$2" needle="$3"
-
-  printf '%s' "$headers" \
-    | tr -d '\r' \
-    | awk -v header="$header" -v needle="$needle" '
-        BEGIN {
-          header = tolower(header)
-          needle = tolower(needle)
-          found = 0
-        }
-        {
-          line = tolower($0)
-          if (index(line, header ":") == 1 && index(line, needle) > 0) {
-            found = 1
-          }
-        }
-        END {
-          if (found) {
-            exit 0
-          }
-          exit 1
-        }
-      '
-}
-
-report_missing_http_header() {
-  local url="$1" header="$2" needle="$3" headers="$4"
-
-  echo "[smoke] Header fehlt: ${header} enthält ${needle} in ${url}" >&2
-  printf '%s\n' "$headers" >&2
-  return 1
-}
-
-read_cv_name_kurz() {
-  local daten_pfad profile yaml_file
-
-  daten_pfad="$(cli config "$PIPELINE" get LEBENSLAUF_DATEN_PFAD --phase build)"
-  profile="$(cli config "$PIPELINE" get LEBENSLAUF_PUBLIC_PROFILE --phase build)"
-  yaml_file="${daten_pfad}/daten-${profile}.yaml"
-  grep 'kurz:' "$yaml_file" | sed 's/.*kurz: *//'
-}
-
 smoke_http_page_contains() {
   local url="$1" needle="$2" body
 
@@ -141,9 +12,36 @@ smoke_http_page_contains() {
   fi
   if ! printf '%s' "$body" | grep -q "$needle"; then
     echo "[smoke] Inhalt fehlt: ${needle} in ${url}" >&2
-    echo "$body"
-    exit 1
+    return 1
   fi
+}
+
+run_smoke_checks() {
+  local base="${1%/}"
+  local content_langs="${CONTENT_LANGS:-$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)}"
+
+  PLAYWRIGHT_BASE_URL="$base" CONTENT_LANGS="$content_langs" npm run qa:smoke
+}
+
+run_artifact_html_accessibility_checks() {
+  local deploy_dir="${1:?deploy_dir fehlt}"
+  local content_langs
+  content_langs="$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)"
+
+  run_html_quality_checks "$deploy_dir/var/cache/html"
+  CONTENT_LANGS="$content_langs" with_dev_server "$deploy_dir/public" run_accessibility_checks
+}
+
+run_html_quality_checks() {
+  local html_dir="${1:?html_dir fehlt}"
+
+  npx html-validate --config htmlvalidate.config.cjs "$html_dir"
+}
+
+run_accessibility_checks() {
+  local base="${1%/}"
+
+  PLAYWRIGHT_BASE_URL="$base" CONTENT_LANGS="$CONTENT_LANGS" npm run qa:a11y
 }
 
 with_dev_server() {

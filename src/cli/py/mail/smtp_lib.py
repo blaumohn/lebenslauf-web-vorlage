@@ -51,3 +51,19 @@ class SmtpClient:
             return smtp
         smtp.quit()
         raise RuntimeError(f"SMTP_ENCRYPTION unbekannt: {encryption!r} (erwartet: tls oder none)")
+
+
+def send_notify(cfg, *, subject: str, body: str, cafile: str | None = None) -> None:
+    message = build_message(cfg, subject=subject, body=body)
+    with SmtpClient(cfg, cafile=cafile) as client:
+        client.send_message(message)
+
+
+def verify_auth(cfg, cafile: str | None = None) -> None:
+    try:
+        with SmtpClient(cfg, cafile=cafile) as _:
+            pass
+    except smtplib.SMTPAuthenticationError as exc:
+        raise RuntimeError(f"SMTP-Auth fehlgeschlagen: {exc}") from exc
+    except (smtplib.SMTPException, OSError) as exc:
+        raise RuntimeError(f"SMTP-Verbindung fehlgeschlagen: {exc}") from exc

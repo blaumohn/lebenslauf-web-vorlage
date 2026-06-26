@@ -13,68 +13,56 @@ final class SampleContentCopier
         $this->rootPath = $rootPath;
     }
 
-    public function copy(string $profile): string
+    public function copy(): string
     {
         $source = $this->sourcePath();
-        $target = $this->targetPath($profile);
+        $target = $this->targetPath();
         $this->assertSourceExists($source);
         $this->assertTargetMissing($target);
-        $this->ensureTargetDir($target);
-        $this->copyFile($source, $target);
+        $this->copyDir($source, $target);
         return $target;
     }
 
     public function sourcePath(): string
     {
-        return Path::join(
-            $this->rootPath,
-            'src',
-            'resources',
-            'fixtures',
-            'lebenslauf',
-            'daten-gueltig.yaml'
-        );
+        return Path::join($this->rootPath, 'src', 'resources', 'fixtures');
     }
 
-    public function targetPath(string $profile): string
+    public function targetPath(): string
     {
-        $this->assertProfileName($profile);
-        return Path::join($this->rootPath, '.local', 'lebenslauf', "daten-{$profile}.yaml");
-    }
-
-    private function assertProfileName(string $profile): void
-    {
-        if (!preg_match('/^[A-Za-z0-9_.-]+$/', $profile)) {
-            throw new \RuntimeException("Profilname ist ungueltig: {$profile}");
-        }
+        return Path::join($this->rootPath, '.local', 'content');
     }
 
     private function assertSourceExists(string $source): void
     {
-        if (!is_file($source)) {
-            throw new \RuntimeException("Datei fehlt: {$source}");
+        if (!is_dir($source)) {
+            throw new \RuntimeException("Fixtures-Verzeichnis fehlt: {$source}");
         }
     }
 
     private function assertTargetMissing(string $target): void
     {
-        if (is_file($target)) {
+        if (is_dir($target)) {
             throw new \RuntimeException("Sample-Ziel existiert bereits: {$target}");
         }
     }
 
-    private function ensureTargetDir(string $target): void
+    private function copyDir(string $source, string $target): void
     {
-        $dir = dirname($target);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
+        if (!mkdir($target, 0775, true) && !is_dir($target)) {
+            throw new \RuntimeException("Verzeichnis konnte nicht angelegt werden: {$target}");
         }
-    }
-
-    private function copyFile(string $source, string $target): void
-    {
-        if (!copy($source, $target)) {
-            throw new \RuntimeException("Kopieren fehlgeschlagen: {$target}");
+        foreach (scandir($source) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $src = $source . DIRECTORY_SEPARATOR . $item;
+            $dst = $target . DIRECTORY_SEPARATOR . $item;
+            if (is_dir($src)) {
+                $this->copyDir($src, $dst);
+            } elseif (!copy($src, $dst)) {
+                throw new \RuntimeException("Kopieren fehlgeschlagen: {$dst}");
+            }
         }
     }
 }

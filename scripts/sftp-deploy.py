@@ -1,7 +1,7 @@
+import os
+import subprocess
+from contextlib import suppress
 from pathlib import Path
-
-import requests
-import requests.exceptions
 
 from cli.py.deploy.history import DeployHistoryEntry, DeployHistoryWriter
 from cli.py.deploy.machine import DeployMachine
@@ -15,6 +15,7 @@ from cli.py.deploy.slot_switch import (
 from cli.py.deploy.token_migrator import RuntimeTokenMigrator
 from cli.py.deploy.sftp_deploy_uploader import SftpDeployUploader
 from cli.py.deploy.vendor_sentinel import ComposerInputChecksum
+from cli.py.mail.smtp_lib import send_notify
 from cli.py.pipeline_cfg import PipelineCfg
 from cli.py.task.dispatch import TaskDispatch
 from cli.py.task.task import Task
@@ -33,7 +34,7 @@ def vendor_checksum() -> str:
     return ComposerInputChecksum.from_repo()
 
 
-def smoke_check(cfg, log) -> None:
+def smoke_check(cfg, smoke_cfg, log) -> None:
     url = cfg.get("APP_ROOT_URL", "")
     if not url:
         log(
@@ -41,26 +42,35 @@ def smoke_check(cfg, log) -> None:
             "Smoke übersprungen"
         )
         return
-    resp = requests.get(url, timeout=10, allow_redirects=True)
-    if resp.status_code != 200:
-        raise RuntimeError(
-            f"Smoke fehlgeschlagen: HTTP {resp.status_code} — {url}"
-        )
+    log(f"Smoke: {url}")
+    proc_env = os.environ.copy()
+    proc_env["PLAYWRIGHT_BASE_URL"] = url.rstrip("/")
+    proc_env["CONTENT_LANGS"] = smoke_cfg["CONTENT_LANGS"]
+    silent = os.environ.get("LOG_FORMAT") == "json"
+    result = subprocess.run(
+        ["npm", "run", "qa:smoke"],
+        env=proc_env,
+        capture_output=silent,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Smoke fehlgeschlagen — {url}")
 
 
 def main():
     logger = Logger("sftp")
     cfg = PipelineCfg("deploy")
+    smoke_cfg = PipelineCfg("runtime")
     run_id = env("PIPELINE_RUN_ID").require_nonempty().value()
     logger(f"Verbinde zu {format_target(cfg)}")
-    SftpDeploy(cfg, run_id, logger=logger).start()
+    SftpDeploy(cfg, smoke_cfg, run_id, logger=logger).start()
 
 
 class SftpDeploy:
     STAGING_DIR = Path("var/deploy")
 
-    def __init__(self, cfg, run_id, logger: Logger):
+    def __init__(self, cfg, smoke_cfg, run_id, logger: Logger):
         self.cfg = cfg
+        self.smoke_cfg = smoke_cfg
         self.run_id = run_id
         self.log = logger
         self.client = None
@@ -77,7 +87,7 @@ class SftpDeploy:
         machine = DeployMachine(
             self._build_ops(),
             on_transition=self._log_deploy_state,
-            on_error=self.log.error,
+            on_error=self._on_error,
         )
         machine.run()
         self.deploy_phase = machine.current_state
@@ -97,7 +107,7 @@ class SftpDeploy:
             switch_dispatcher=self._switch_dispatcher(publisher),
             logger=self.log,
             vendor_checksum=vendor_checksum,
-            smoke_check=smoke_check,
+            smoke_check=lambda cfg, log: smoke_check(cfg, self.smoke_cfg, log),
         )
 
     def _tree_uploader(self):
@@ -125,6 +135,15 @@ class SftpDeploy:
         self.log(f"Deploy-State: {source.id} → {target.id}")
         if target.id in {"smoke_passed", "deploy_failed", "rolled_back"}:
             self._history.record(target.id)
+
+    def _on_error(self, exc: Exception) -> None:
+        self.log.error(exc)
+        with suppress(Exception):
+            send_notify(
+                self.cfg,
+                subject="Deploy fehlgeschlagen",
+                body=str(exc),
+            )
 
     def _log_deploy_result(self, state):
         if state == DeployMachine.manual_intervention_required:

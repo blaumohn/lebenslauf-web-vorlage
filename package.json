@@ -5,14 +5,17 @@
   "scripts": {
     "build:css": "postcss src/resources/build/assets/css/cv/index.css -o public/css/cv.css && postcss src/resources/build/assets/css/site.css -o public/css/site.css",
     "css:watch": "python3 src/cli/py/dev/css-watch.py || python src/cli/py/dev/css-watch.py",
-    "lint": "npm run lint:js && npm run lint:css",
+    "lint": "npm run lint:js && npm run lint:css && npm run lint:html",
     "lint:css": "stylelint \"src/resources/build/assets/css/**/*.css\"",
-    "lint:js": "eslint eslint.config.js playwright.config.js htmlvalidate.config.cjs stylelint.config.cjs tests/ci/a11y.mjs tests/ci/a11y.ensure-browser.mjs tests/ci/a11y.web-server.mjs tests/ci/a11y.spec.js",
-    "qa": "npm run qa:html && npm run lint && npm run qa:a11y",
+    "lint:html": "html-validate --config htmlvalidate.config.cjs var/cache/html",
+    "lint:js": "eslint eslint.config.js playwright.config.js htmlvalidate.config.cjs stylelint.config.cjs tests/ci/a11y.mjs tests/ci/a11y.ensure-browser.mjs tests/ci/a11y.web-server.mjs tests/ci/a11y.spec.js tests/ci/smoke.spec.js tests/ci/token.spec.js",
+    "qa": "npm run qa:a11y",
+    "qa:html": "npm run lint:html",
     "qa:a11y:ensure-browser": "node tests/ci/a11y.ensure-browser.mjs",
     "qa:a11y": "playwright test tests/ci/a11y.spec.js",
-    "qa:a11y:install": "playwright install chromium",
-    "qa:html": "html-validate --config htmlvalidate.config.cjs \"var/cache/html/*.html\""
+    "qa:smoke": "playwright test tests/ci/smoke.spec.js",
+    "qa:smoke:token": "playwright test tests/ci/token.spec.js",
+    "qa:a11y:install": "playwright install chromium"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

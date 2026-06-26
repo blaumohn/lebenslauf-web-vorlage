@@ -19,8 +19,11 @@ for (const pageCase of A11yQa.pages()) {
   });
 }
 
-test('English CV declares the English document language', async ({ page }) => {
-  await page.goto('/cv?lang=en');
+const langs = A11yQa.langs();
 
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-});
+for (const lang of langs) {
+  test(`CV setzt Dokumentsprache ${lang}`, async ({ page }) => {
+    await page.goto(`/cv?lang=${lang}`);
+    await expect(page.locator('html')).toHaveAttribute('lang', lang);
+  });
+}

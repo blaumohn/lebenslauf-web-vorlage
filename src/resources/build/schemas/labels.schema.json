@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cv", "contact"],
+  "properties": {
+    "cv":      { "$ref": "#/definitions/labelGroup" },
+    "contact": { "$ref": "#/definitions/labelGroup" }
+  },
+  "definitions": {
+    "intlString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
+    },
+    "labelGroup": {
+      "type": "object",
+      "required": ["value"],
+      "additionalProperties": false,
+      "properties": {
+        "value":    { "$ref": "#/definitions/intlString" },
+        "childLabels": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/labelGroup" }
+        }
+      }
+    }
+  }
+}

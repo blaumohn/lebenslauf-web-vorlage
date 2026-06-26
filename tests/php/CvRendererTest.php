@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Cv\CvDataNormalizer;
-use App\Http\Cv\CvRenderer;
+use App\Cli\Site\CvRenderer;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Http\Templating\TwigFactory;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,7 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels());
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '');
 
         $this->assertStringContainsString(
             '<li>Zertifikat Webentwicklung, BFI Wien</li>',
@@ -33,7 +33,7 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '');
 
         $this->assertStringContainsString('<html lang="en">', $html);
     }
@@ -52,21 +52,25 @@ final class CvRendererTest extends TestCase
 
     private function validFixturePath(): string
     {
-        return dirname(__DIR__, 2) . '/src/resources/fixtures/lebenslauf/daten-gueltig.yaml';
+        return dirname(__DIR__, 2) . '/src/resources/fixtures/lebenslauf/daten-demo.yaml';
     }
 
     private function labels(): array
     {
         return [
-            '_' => 'Lebenslauf',
-            'faehigkeiten' => ['_' => 'Fähigkeiten'],
-            'sprachen' => ['_' => 'Sprachen'],
-            'interessen' => ['_' => 'Interessen'],
-            'motivation' => ['_' => 'Motivation'],
-            'berufserfahrung' => ['_' => 'Berufserfahrung'],
-            'opensource' => ['_' => 'Open Source'],
-            'vortraege' => ['_' => 'Vorträge'],
-            'ausbildung' => ['_' => 'Ausbildung'],
+            'cv' => [
+                'value' => 'Lebenslauf',
+                'childLabels' => [
+                    'faehigkeiten'    => ['value' => 'Fähigkeiten'],
+                    'sprachen'        => ['value' => 'Sprachen'],
+                    'interessen'      => ['value' => 'Interessen'],
+                    'motivation'      => ['value' => 'Motivation'],
+                    'berufserfahrung' => ['value' => 'Berufserfahrung'],
+                    'opensource'      => ['value' => 'Open Source'],
+                    'vortraege'       => ['value' => 'Vorträge'],
+                    'ausbildung'      => ['value' => 'Ausbildung'],
+                ],
+            ],
         ];
     }
 }

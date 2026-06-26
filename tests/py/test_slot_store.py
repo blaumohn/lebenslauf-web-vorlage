@@ -218,6 +218,10 @@ class SlotStoreReadTest(unittest.TestCase):
             SlotStore(_FakeClient({})).current_slot_map()
         )
 
+    def test_require_current_slot_map_wirft_ohne_htaccess(self):
+        with self.assertRaisesRegex(RuntimeError, "Kein aktiver Slot"):
+            SlotStore(_FakeClient({})).require_current_slot_map()
+
     def test_konflikt_bei_ungueltigem_htaccess(self):
         client = _FakeClient({".htaccess": "RewriteEngine On\n"})
         with self.assertRaises(DeployConflictError):

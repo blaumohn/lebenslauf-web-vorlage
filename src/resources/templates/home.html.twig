@@ -3,12 +3,12 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title('Willkommen') }}
-  {{ ui.muted('Kurzprofil und Kontakt in reduzierter Form.') }}
+  {{ ui.page_title(titel|default('Willkommen')) }}
+  {{ ui.muted(beschreibung|default('Kurzprofil und Kontakt in reduzierter Form.')) }}
 
   <section>
-    <p>{{ ui.link(path('/cv'), 'Zum Lebenslauf') }}</p>
-    <p>{{ ui.link(path('/contact'), 'Kontakt aufnehmen') }}</p>
-    {{ ui.muted(public_cv_message) }}
+    <p>{{ ui.link(path('/cv'), link_lebenslauf|default('Zum Lebenslauf')) }}</p>
+    <p>{{ ui.link(path('/contact'), link_kontakt|default('Kontakt aufnehmen')) }}</p>
+    {% if public_cv_message is defined %}{{ ui.muted(public_cv_message) }}{% endif %}
   </section>
 {% endblock %}

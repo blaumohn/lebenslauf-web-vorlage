@@ -29,33 +29,32 @@ variable-groups:
           erscheint als Container-stdout).
         example: "file"
 
-  lebenslauf:
-    LEBENSLAUF_DATEN_PFAD:
+  content:
+    CONTENT_PATH:
       meta:
-        desc: "Pfad zum Lebenslauf-Datenverzeichnis"
+        desc: "Wurzelpfad aller Inhaltsdaten"
         notes: >-
-          Zeigt auf ein Verzeichnis mit daten-<profil>.yaml-Dateien.
-        example: ".local/lebenslauf"
-    LEBENSLAUF_PUBLIC_PROFILE:
-      meta:
-        desc: "Profilname für den öffentlichen Lebenslauf"
-        notes: >-
-          Nur im Build relevant. Das Profil muss zu einer vorhandenen
-          daten-<profil>.yaml-Datei im YAML-Pfad passen.
-        example: "default"
-    LEBENSLAUF_LANG_DEFAULT:
-      meta:
-        desc: "Standard-Sprache des Lebenslaufs"
-        notes: >-
-          Muss in LEBENSLAUF_LANGS enthalten sein.
-        example: "de"
-    LEBENSLAUF_LANGS:
+          Unterverzeichnisse werden je Inhaltstyp automatisch aufgelöst:
+          lebenslauf/, blog/, home/home.yaml.
+          Absoluter oder relativer Pfad (relativ zu app-root).
+        example: ".local"
+    CONTENT_LANGS:
       meta:
         desc: "Kommagetrennte Liste unterstützter Sprachen"
         notes: >-
           Muss die Standard-Sprache enthalten und zum vorhandenen
           Übersetzungsstand der Labels passen.
         example: "de,en"
+
+  lebenslauf:
+    LEBENSLAUF_PUBLIC_PROFILE:
+      meta:
+        desc: "Profilname für den öffentlichen Lebenslauf"
+        notes: >-
+          Nur im Build relevant. Das Profil muss zu einer vorhandenen
+          daten-<profil>.yaml-Datei im CV-Unterverzeichnis passen.
+          Wird entfallen, sobald Token-URLs als Modul extrahiert sind.
+        example: "default"
 
   captcha:
     CAPTCHA_TTL_SECONDS:
@@ -185,6 +184,7 @@ phases:
   build:
     app:
       - APP_BASE_PATH
+    content: "*"
     lebenslauf: "*"
 
   runtime:
@@ -192,9 +192,8 @@ phases:
       - APP_BASE_PATH
       - TRUST_PROXY
       - APP_LOG_CHANNEL
-    lebenslauf:
-      - LEBENSLAUF_LANG_DEFAULT
-      - LEBENSLAUF_LANGS
+    content:
+      - CONTENT_LANGS
     captcha: "*"
     contact: "*"
     mail: "*"

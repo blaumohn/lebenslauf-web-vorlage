@@ -9,12 +9,15 @@ use App\Http\Task\Cv\CvPublishTaskHandler;
 use App\Http\Task\Token\CvTokenRotationTaskHandler;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Mail\MailService;
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;
 use App\Http\Security\RateLimiter;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
+use App\Http\Lang\LangResolver;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Slim\Psr7\Factory\ResponseFactory;
 use App\Http\Security\TokenRotationService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
@@ -27,7 +30,9 @@ final class AppContext
     public ConfigCompiled $config;
     public LoggerInterface $logger;
     public Environment $twig;
-    public CvStorage $cvStorage;
+    public SiteHtmlCache $htmlCache;
+    public LangResolver $langResolver;
+    public ResponseFactoryInterface $responseFactory;
     public TokenService $tokenService;
     public CaptchaService $captchaService;
     public RateLimiter $rateLimiter;
@@ -35,6 +40,7 @@ final class AppContext
     public MailService $mailService;
     public IpResolver $ipResolver;
     public TaskRunner $taskRunner;
+    public string $appRoot;
 
     public static function fromConfig(
         ConfigCompiled $config,
@@ -50,11 +56,15 @@ final class AppContext
             : $deployRoot . '/log';
 
         $context = new self();
+        $context->appRoot = $appRoot;
         $context->config = $config;
         $context->logger = AppLogger::create($logDir, $config->get('APP_LOG_CHANNEL'));
         $context->twig = TwigFactory::create($appRoot . '/src/resources/templates');
         TwigFactory::configure($context->twig, $basePath);
-        $context->cvStorage = new CvStorage($storage, $appRoot . '/var/cache/html');
+        TwigFactory::addGeneratedPath($context->twig, $appRoot . '/var/cache/templates');
+        $context->htmlCache = new SiteHtmlCache($storage, $appRoot . '/var/cache/html');
+        $context->langResolver = new LangResolver();
+        $context->responseFactory = new ResponseFactory();
         $context->tokenService = new TokenService($storage, $lockRunner, $writer, $appRoot . '/var/state/tokens');
         $context->captchaService = new CaptchaService(
             $storage,
@@ -69,7 +79,7 @@ final class AppContext
         $context->mailService = new MailService($config);
         $context->ipResolver = new IpResolver();
         $context->taskRunner = self::buildTaskRunner(
-            $writer, $lockRunner, $appRoot, $deployRoot, $config, $context->mailService, $context->cvStorage, $context->tokenService, $context->logger
+            $writer, $lockRunner, $appRoot, $deployRoot, $config, $context->mailService, $context->htmlCache, $context->tokenService, $context->logger
         );
 
         return $context;
@@ -82,12 +92,12 @@ final class AppContext
         string $deployRoot,
         ConfigCompiled $config,
         MailService $mailService,
-        CvStorage $cvStorage,
+        SiteHtmlCache $htmlCache,
         TokenService $tokenService,
         LoggerInterface $logger,
     ): TaskRunner {
         $switcher = new DeploySwitcher($writer, $lockRunner, $deployRoot);
-        $rotateHandler = new TokenRotationService($cvStorage, $tokenService);
+        $rotateHandler = new TokenRotationService($htmlCache, $tokenService);
         $handlers = [
             new DeploySwitchTaskHandler($switcher, $deployRoot),
             new CvTokenRotationTaskHandler($rotateHandler),

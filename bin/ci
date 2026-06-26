@@ -82,9 +82,10 @@ run_deploy_test_case_checks() {
 }
 
 run_push_deploy_checks() {
-  local history="$1" root_url
+  local history="$1" root_url url
   root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  smoke_http_page_contains "${root_url%/}/ci-diff-test.html" "ci-diff-test"
+  url="${root_url%/}/ci-diff-test.html"
+  smoke_http_page_contains "$url" "ci-diff-test"
   check_vendor_not_reuploaded "$history"
 }
 
@@ -106,12 +107,7 @@ run_publish_smoke() {
 }
 
 run_token_smoke() {
-  local root_url token
-  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  token="$(cli token "$PIPELINE" rotate gueltig)"
-  smoke_http_page_contains \
-    "${root_url%/}/cv?token=${token}&profile=gueltig" \
-    "</html>"
+  cli python "$PIPELINE" --phase deploy --phase runtime -- tests/ci/token_smoke.py
 }
 
 setup_rollback_test() {

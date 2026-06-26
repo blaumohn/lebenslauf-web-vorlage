@@ -8,8 +8,7 @@ from cli.py.deploy.exceptions import DeployConflictError
 from cli.py.deploy.slot_store import SlotStore
 from cli.py.deploy.sftp_lib import SftpClient
 from cli.py.pipeline_cfg import PipelineCfg
-
-MAILPIT_API_URL = "http://mailpit:8025"
+from mailpit import MailpitClient, message_subject, message_to_address
 
 
 class CaptchaParser(HTMLParser):
@@ -41,9 +40,11 @@ class ContactSmoke:
     def __init__(self, deploy_cfg, runtime_cfg):
         self.deploy_cfg = deploy_cfg
         self.runtime_cfg = runtime_cfg
+        self.mailpit = MailpitClient()
         self.root_url = deploy_cfg["APP_ROOT_URL"].rstrip("/")
         if not self.root_url:
             raise RuntimeError("[contact-smoke] APP_ROOT_URL fehlt")
+        self.lang = runtime_cfg["CONTENT_LANGS"].split(",")[0]
 
     def run(self) -> None:
         with SftpClient(self.deploy_cfg) as sftp:
@@ -59,7 +60,11 @@ class ContactSmoke:
         print("[contact-smoke] OK: Formular-Mail empfangen")
 
     def fetch_captcha_id(self) -> str:
-        response = requests.get(f"{self.root_url}/contact", timeout=10)
+        response = requests.get(
+            f"{self.root_url}/contact",
+            headers={"Accept-Language": self.lang},
+            timeout=10,
+        )
         response.raise_for_status()
         captcha_id = extract_captcha_id(response.text)
         if not captcha_id:
@@ -92,6 +97,7 @@ class ContactSmoke:
     def submit_contact_form(self, captcha_id: str, solution: str) -> None:
         response = requests.post(
             f"{self.root_url}/contact",
+            headers={"Accept-Language": self.lang},
             data={
                 "name": "CI Test",
                 "email": "ci@ci.invalid",
@@ -108,9 +114,7 @@ class ContactSmoke:
             )
 
     def mailpit_message_total(self) -> int:
-        response = requests.get(f"{MAILPIT_API_URL}/api/v1/messages", timeout=10)
-        response.raise_for_status()
-        return int(response.json()["total"])
+        return self.mailpit.message_total()
 
     def assert_mail_received(self, total_before: int, total_after: int) -> None:
         if total_after > total_before:
@@ -126,14 +130,8 @@ class ContactSmoke:
             raise RuntimeError(f"[contact-smoke] Unerwarteter Empfänger: {to_address!r}")
 
     def latest_mail_subject_and_to(self) -> tuple[str, str]:
-        response = requests.get(f"{MAILPIT_API_URL}/api/v1/messages", timeout=10)
-        response.raise_for_status()
-        messages = response.json()["messages"]
-        if not messages:
-            raise RuntimeError("[contact-smoke] Keine Mailpit-Nachricht gefunden")
-        message = messages[0]
-        to_list = message.get("To") or [{}]
-        return str(message.get("Subject", "")), str(to_list[0].get("Address", ""))
+        message = self.mailpit.latest_message()
+        return message_subject(message), message_to_address(message)
 
 
 def extract_captcha_id(html: str) -> str:

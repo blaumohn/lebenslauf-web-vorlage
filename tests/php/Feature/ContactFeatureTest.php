@@ -2,16 +2,58 @@
 
 declare(strict_types=1);
 
+use App\Cli\ConfigValues;
+use App\Cli\Site\ContactContentRenderer;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Symfony\Component\Console\Output\NullOutput;
 
 final class ContactFeatureTest extends FeatureTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->copyContactResource();
+        $this->generateContactTemplate();
+    }
+
+    private function copyContactResource(): void
+    {
+        $src = $this->projectRoot() . '/src/resources/contact/contact.yaml';
+        $dest = $this->root . '/src/resources/contact/contact.yaml';
+        if (!is_dir(dirname($dest))) {
+            mkdir(dirname($dest), 0775, true);
+        }
+        copy($src, $dest);
+    }
+
+    private function generateContactTemplate(): void
+    {
+        $config = new ConfigValues([
+            'CONTENT_LANGS' => 'de,es',
+        ]);
+        $renderer = new ContactContentRenderer($config, $this->root);
+        $renderer->render(new NullOutput());
+    }
+
+    public function testContactRendererRejectsEmptyContentLangs(): void
+    {
+        $config = new ConfigValues([
+            'CONTENT_LANGS' => ' , ',
+        ]);
+        $renderer = new ContactContentRenderer($config, $this->root);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Konfiguration ungültig: CONTENT_LANGS');
+
+        $renderer->render(new NullOutput());
+    }
+
     public function testContactFormRenders(): void
     {
         $app = $this->app();
 
         $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/contact');
+            ->createServerRequest('GET', '/contact?lang=de');
         $response = $app->handle($request);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -38,7 +80,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -71,7 +113,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',
@@ -98,7 +140,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $server = ['REMOTE_ADDR' => $ip];
         $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/contact', $server)
+            ->createServerRequest('POST', '/contact?lang=de', $server)
             ->withParsedBody([
                 'name' => 'Max Mustermann',
                 'email' => 'max@example.com',

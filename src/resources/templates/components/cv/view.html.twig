@@ -1,57 +1,55 @@
-{% macro view(cv, etiketten, is_private, name) %}
+{% macro view(cv, etiketten, is_private, name, cv_footer) %}
   {% import 'components/cv/lib.html.twig' as ui %}
   {% import 'components/cv/page.html.twig' as page %}
   {% import 'components/cv/sections.html.twig' as section %}
-  <header>
+  <header class="cv-header" aria-label="Lebenslauf">
     <div class="header-main">
       {{ ui.name_block(name, cv.kopfdaten.bereich) }}
     </div>
-    <div class="header-aside">
-      {% if is_private %}
+    {% if is_private %}
+      <div class="header-aside">
         {{ page.contact_private(cv) }}
-      {% else %}
-        {{ page.contact_public() }}
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   </header>
 
-  <main>
-    <aside class="main-aside">
+  <div class="cv-body">
+    <div class="cv-aside-col">
       {{ section.skills(
-        etiketten.faehigkeiten._,
+        etiketten.faehigkeiten.value,
         cv.faehigkeiten,
         'section-skills'
       ) }}
 
       {{ section.languages(
-        etiketten.sprachen._,
+        etiketten.sprachen.value,
         cv.sprachen,
         'section-languages'
       ) }}
 
       {{ section.interests(
-        etiketten.interessen._,
+        etiketten.interessen.value,
         cv.interessen,
         'section-interests'
       ) }}
-    </aside>
+    </div>
 
-    <section class="main-body">
+    <section class="cv-main-col">
       {{ section.motivation(
-        etiketten.motivation._,
+        etiketten.motivation.value,
         cv.motivation,
         'section-motivation'
       ) }}
 
       {{ section.entries(
-        etiketten.berufserfahrung._,
+        etiketten.berufserfahrung.value,
         cv.berufserfahrung,
         'section-experience'
       ) }}
 
       {% if cv.opensource is defined %}
         {{ section.entries(
-          etiketten.opensource._,
+          etiketten.opensource.value,
           cv.opensource,
           'section-opensource'
         ) }}
@@ -59,21 +57,21 @@
 
       {% if cv.vortraege is defined %}
         {{ section.talks(
-          etiketten.vortraege._,
+          etiketten.vortraege.value,
           cv.vortraege,
           'section-talks'
         ) }}
       {% endif %}
 
       {{ section.education(
-        etiketten.ausbildung._,
+        etiketten.ausbildung.value,
         cv.ausbildung,
         'section-education'
       ) }}
     </section>
-  </main>
+  </div>
 
-  {% if cv.footer.show %}
-    {{ page.footer(name, cv.footer) }}
+  {% if cv_footer %}
+    {{ cv_footer|raw }}
   {% endif %}
 {% endmacro %}

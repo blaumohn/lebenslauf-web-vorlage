@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name_kurz", "footer"],
+  "properties": {
+    "name_kurz": { "type": "string", "minLength": 1 },
+    "footer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["footer2", "source_url"],
+      "properties": {
+        "footer1":    { "$ref": "#/definitions/intlString" },
+        "footer2":    { "$ref": "#/definitions/intlString" },
+        "source_url": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "definitions": {
+    "intlString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
+    }
+  }
+}

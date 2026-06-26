@@ -10,6 +10,7 @@ use App\Cli\Command\IpHashCommand;
 use App\Cli\Command\PublishCommand;
 use App\Cli\Command\StartCommand;
 use App\Cli\Command\SetupCommand;
+use App\Cli\Command\TemplateCommand;
 use App\Cli\Command\TokenCommand;
 use App\Cli\Util\PythonCommand;
 use Symfony\Component\Console\Application as SymfonyApplication;
@@ -28,6 +29,7 @@ final class Application extends SymfonyApplication
         $this->addCommand(new SetupCommand($this->context));
         $this->addCommand(new StartCommand($this->context));
         $this->addCommand(new BuildCommand($this->context));
+        $this->addCommand(new TemplateCommand($this->context));
         $this->addCommand(new CiCommand($this->context));
         $this->addCommand(new PythonCommand($this->context));
         $this->addCommand(new TokenCommand($this->context));

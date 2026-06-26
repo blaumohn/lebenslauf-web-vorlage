@@ -293,11 +293,7 @@ class PrepareSlotTest(unittest.TestCase):
     def test_app_slot_removed_before_upload(self):
         client = FakeClient()
         with tempfile.TemporaryDirectory() as tmp:
-            write_staging_bootstrap(tmp)
-            make_uploader(client, tmp).upload_app_tree(
-                "app-b",
-                "vendor-a",
-            )
+            make_uploader(client, tmp).prepare_app_slot("app-b")
 
         self.assertIn("app-b", client.removed_dirs)
 
@@ -316,7 +312,7 @@ class SftpDeployScenarioTest(unittest.TestCase):
         FakeDispatch.submitted = []
 
     def _make_deploy(self, module, active=False):
-        deploy = module.SftpDeploy({}, "run-1", logger=FakeLogger())
+        deploy = module.SftpDeploy({}, {"CONTENT_LANGS": "de"}, "run-1", logger=FakeLogger())
         client = FakeClient()
         if active:
             client.set_file(".htaccess", ACTIVE_HTACCESS)
@@ -383,6 +379,40 @@ class SftpDeployScenarioTest(unittest.TestCase):
             deploy.deploy()
 
         self.assertIn(STATE_FILE, client.texts)
+
+
+class SmokeCheckTest(unittest.TestCase):
+    def test_ueberspringt_wenn_url_fehlt(self):
+        module = load_sftp_deploy_module()
+        with patch.object(module.subprocess, "run") as mock_run:
+            module.smoke_check({}, {}, lambda m: None)
+        mock_run.assert_not_called()
+
+    def test_setzt_content_langs_explizit(self):
+        module = load_sftp_deploy_module()
+        result = MagicMock()
+        result.returncode = 0
+        with patch.object(module.subprocess, "run", return_value=result) as mock_run:
+            module.smoke_check(
+                {"APP_ROOT_URL": "http://example.com/"},
+                {"CONTENT_LANGS": "de,es"},
+                lambda m: None,
+            )
+
+        _, kwargs = mock_run.call_args
+        self.assertEqual(kwargs["env"]["PLAYWRIGHT_BASE_URL"], "http://example.com")
+        self.assertEqual(kwargs["env"]["CONTENT_LANGS"], "de,es")
+
+    def test_wirft_fehler_wenn_content_langs_fehlt(self):
+        module = load_sftp_deploy_module()
+        with patch.object(module.subprocess, "run") as mock_run:
+            with self.assertRaises(KeyError):
+                module.smoke_check(
+                    {"APP_ROOT_URL": "http://example.com/"},
+                    {},
+                    lambda m: None,
+                )
+        mock_run.assert_not_called()
 
 
 class TokenMigrationTest(unittest.TestCase):

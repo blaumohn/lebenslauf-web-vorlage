@@ -1,0 +1,63 @@
+set -euo pipefail
+set -E
+trap 'echo "[content-vorbereiten] Fehler in Zeile $LINENO: $BASH_COMMAND" >&2' ERR
+
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  set -x
+fi
+
+SOURCE_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$SOURCE_REPO_DIR/scripts/shell_env.sh"
+. "$SOURCE_REPO_DIR/scripts/ci_clone_lib.sh"
+
+require_nonempty PIPELINE CI_WORK_BASE
+
+[ "$PIPELINE" != dev ] && require_nonempty PIPELINE_RUN_ID
+
+CONTENT_PATH_CREATED=0
+
+main() {
+  WORK_REPO_DIR="$(prepare_repo_dir)"
+  cd "$WORK_REPO_DIR"
+  export PATH="$WORK_REPO_DIR/bin:$PATH"
+  . scripts/pipeline_lib.sh
+
+  write_pipeline_config_from_stdin
+
+  run_step "Abhängigkeiten installieren" composer install:ci
+  run_step "Setup ($PIPELINE)"           cli setup "$PIPELINE"
+  run_step "Contact-RateLimit-Reset"     reset_contact_get_ratelimit
+  run_step "Content-Pfad"               ensure_content_path
+  upload_content_if_needed
+}
+
+ensure_content_path() {
+  if content_path_has_data; then
+    CONTENT_PATH_CREATED=0
+    return 0
+  fi
+  local content_path
+  content_path="$(content_base_path)"
+  mkdir -p "$content_path"
+  cp -r src/resources/fixtures/. "$content_path/"
+  CONTENT_PATH_CREATED=1
+}
+
+upload_content_if_needed() {
+  [[ "$CONTENT_PATH_CREATED" == "1" ]] || return 0
+  run_step "Content hochladen" upload_content
+}
+
+upload_content() {
+  cli python "$PIPELINE" --phase build --phase deploy -- \
+    scripts/content-sftp-upload.py
+}
+
+reset_contact_get_ratelimit() {
+  if [[ "$PIPELINE" == "dev" ]]; then
+    return 0
+  fi
+  cli python "$PIPELINE" --phase deploy tests/ci/reset_contact_get_ratelimit.py
+}
+
+main "$@"

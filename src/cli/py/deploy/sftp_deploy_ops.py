@@ -46,8 +46,8 @@ class SftpDeployOps:
         self._log_vendor_mismatch(stored, computed)
         return True
 
-    def prepare_target(self, _plan: DeploymentPlan) -> None:
-        pass
+    def prepare_target(self, plan: DeploymentPlan) -> None:
+        self.uploader.prepare_app_slot(plan.target_slot_map.app.dir)
 
     def upload_app(self, plan: DeploymentPlan) -> None:
         self.uploader.upload_app_tree(

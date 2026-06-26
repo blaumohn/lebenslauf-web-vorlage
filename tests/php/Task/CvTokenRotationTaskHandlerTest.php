@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Task;
 
-use App\Http\Cv\CvStorage;
+use App\Http\SiteHtmlCache;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Security\TokenRotationService;
@@ -50,7 +50,7 @@ final class CvTokenRotationTaskHandlerTest extends TestCase
 
     public function testRotatesTokensForKnownProfile(): void
     {
-        file_put_contents($this->root . '/var/cache/html/cv-private-default.html', '<html/>');
+        file_put_contents($this->root . '/var/cache/html/cv-private-default.de.html', '<html/>');
         $handler = $this->makeHandler();
         $task = $this->makeTask('default', 2);
 
@@ -68,9 +68,9 @@ final class CvTokenRotationTaskHandlerTest extends TestCase
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($this->root . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
-        $cvStorage = new CvStorage($storage, $this->root . '/var/cache/html');
+        $htmlCache = new SiteHtmlCache($storage, $this->root . '/var/cache/html');
         $tokenService = new TokenService($storage, $lockRunner, $writer, $this->root . '/var/state/tokens');
-        return new CvTokenRotationTaskHandler(new TokenRotationService($cvStorage, $tokenService));
+        return new CvTokenRotationTaskHandler(new TokenRotationService($htmlCache, $tokenService));
     }
 
     private function makeTask(string $profile, int $count): QueuedTask

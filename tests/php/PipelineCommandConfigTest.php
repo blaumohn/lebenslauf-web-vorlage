@@ -25,7 +25,7 @@ final class PipelineCommandConfigTest extends TestCase
 
         self::assertSame(0, $exitCode);
         self::assertStringContainsString('pipeline=dev', $tester->getDisplay());
-        self::assertStringContainsString('config=.local/lebenslauf', $tester->getDisplay());
+        self::assertStringContainsString('config=src/resources/fixtures', $tester->getDisplay());
     }
 
     public function testBuildPhaseCliOverrideIsAccepted(): void
@@ -48,7 +48,7 @@ final class PipelineCommandConfigTest extends TestCase
 
         $exitCode = $tester->execute([
             'pipeline'    => 'dev',
-            '--overrides' => json_encode(['LEBENSLAUF_DATEN_PFAD' => '.local/alt-cv']),
+            '--overrides' => json_encode(['CONTENT_PATH' => '.local/alt-cv']),
         ]);
 
         self::assertSame(0, $exitCode);
@@ -101,7 +101,7 @@ final class PipelineCommandConfigTestCommand extends BasePipelinePhaseCommand
     protected function runPipelineCommand(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('pipeline=' . $this->pipelineName());
-        $output->writeln('config=' . (string) $this->commandConfig()->get('LEBENSLAUF_DATEN_PFAD', ''));
+        $output->writeln('config=' . (string) $this->commandConfig()->get('CONTENT_PATH', ''));
         return 0;
     }
 }

@@ -42,7 +42,11 @@ final class ErrorHandler
             $message .= ' ' . $exception->getMessage();
         }
 
-        $base = PageViewBuilder::base($this->context->cvStorage->getHeaderFragment());
+        $lang = (string) $request->getAttribute('lang');
+        $base = PageViewBuilder::base(
+            $this->context->htmlCache->getHeaderFragmentForLang($lang),
+            $this->context->htmlCache->getFooterFragmentForLang($lang)
+        );
         $html = $this->context->twig->render('error.html.twig', [
             'title' => 'Serverfehler',
             'message' => $message,

@@ -45,34 +45,43 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
 
     public function testBuildCvUsesDataPathOverride(): void
     {
-        $this->copySchema();
-        mkdir($this->root . '/custom-cv');
-        copy(
-            $this->projectRoot() . '/src/resources/fixtures/lebenslauf/daten-gueltig.yaml',
-            $this->root . '/custom-cv/daten-sonderpfad.yaml'
-        );
+        $this->prepareCustomContentRoot('custom-content');
 
         $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
         $exitCode = $tester->execute([
             'pipeline'    => 'dev',
-            'task'        => 'cv',
-            '--overrides' => json_encode(['LEBENSLAUF_DATEN_PFAD' => 'custom-cv']),
+            'task'        => 'site',
+            '--overrides' => json_encode(['CONTENT_PATH' => 'custom-content']),
         ]);
 
         self::assertSame(0, $exitCode, $tester->getDisplay());
-        self::assertFileExists($this->root . '/var/cache/html/cv-private-sonderpfad.html');
+        self::assertFileExists($this->root . '/var/cache/html/cv-private-sonderpfad.de.html');
         self::assertStringContainsString('sonderpfad', $tester->getDisplay());
     }
 
-    private function copySchema(): void
+    private function prepareCustomContentRoot(string $name): void
     {
-        $target = $this->root . '/src/resources/build/schemas/lebenslauf.schema.json';
-        if (!is_dir(dirname($target))) {
-            mkdir(dirname($target), 0775, true);
-        }
+        $root = $this->root . '/' . $name;
+        mkdir($root . '/lebenslauf', 0775, true);
         copy(
-            $this->projectRoot() . '/src/resources/build/schemas/lebenslauf.schema.json',
-            $target
+            $this->projectRoot() . '/src/resources/fixtures/lebenslauf/daten-demo.yaml',
+            $root . '/lebenslauf/daten-sonderpfad.yaml'
+        );
+        mkdir($root . '/blog', 0775, true);
+        mkdir($root . '/home', 0775, true);
+        copy(
+            $this->projectRoot() . '/src/resources/fixtures/home/home.yaml',
+            $root . '/home/home.yaml'
+        );
+        mkdir($root . '/site', 0775, true);
+        copy(
+            $this->projectRoot() . '/src/resources/fixtures/site/site.yaml',
+            $root . '/site/site.yaml'
+        );
+        mkdir($this->root . '/src/resources/contact', 0775, true);
+        copy(
+            $this->projectRoot() . '/src/resources/contact/contact.yaml',
+            $this->root . '/src/resources/contact/contact.yaml'
         );
     }
 

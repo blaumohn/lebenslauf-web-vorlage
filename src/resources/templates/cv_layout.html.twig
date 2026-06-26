@@ -7,12 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ path('/css/site.css') }}">
   <link rel="stylesheet" href="{{ path('/css/cv.css') }}">
   <script defer src="{{ path('/js/cv/tag-breite.js') }}"></script>
 </head>
 <body>
   <div class="page">
-    {% block content %}{% endblock %}
+    {{ site_header|raw }}
+    <main>
+      <article class="card">
+        {% block content %}{% endblock %}
+      </article>
+    </main>
   </div>
 </body>
 </html>
