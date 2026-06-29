@@ -33,14 +33,37 @@ final class CvPublishTaskHandler implements TaskHandler
 
     private function publishHtmlFiles(string $staging, string $target): int
     {
-        $files = glob(Path::join($staging, '*.html')) ?: [];
+        $files = $this->findHtmlFiles($staging);
         if ($files === []) {
             throw new \RuntimeException("Keine HTML-Dateien in: {$staging}");
         }
         foreach ($files as $file) {
-            $this->publishFile($file, Path::join($target, basename($file)));
+            $this->publishFile($file, Path::join($target, $this->relativePath($staging, $file)));
         }
         return count($files);
+    }
+
+    private function findHtmlFiles(string $staging): array
+    {
+        if (!is_dir($staging)) {
+            return [];
+        }
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($staging, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $file) {
+            if ($file->isFile() && strtolower($file->getExtension()) === 'html') {
+                $files[] = $file->getPathname();
+            }
+        }
+        sort($files);
+        return $files;
+    }
+
+    private function relativePath(string $base, string $path): string
+    {
+        return substr($path, strlen(rtrim($base, DIRECTORY_SEPARATOR)) + 1);
     }
 
     private function publishFile(string $source, string $target): void
@@ -54,8 +77,19 @@ final class CvPublishTaskHandler implements TaskHandler
 
     private function cleanupStaging(string $staging): void
     {
-        foreach (glob(Path::join($staging, '*')) ?: [] as $file) {
-            @unlink($file);
+        if (!is_dir($staging)) {
+            return;
+        }
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($staging, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $entry) {
+            if ($entry->isDir()) {
+                @rmdir($entry->getPathname());
+                continue;
+            }
+            @unlink($entry->getPathname());
         }
         @rmdir($staging);
     }
