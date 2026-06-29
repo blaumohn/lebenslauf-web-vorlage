@@ -31,6 +31,25 @@ final class CvPublishFeatureTest extends FeatureTestCase
         );
     }
 
+    public function testPublishTaskMovesNestedHtmlToCache(): void
+    {
+        $app = $this->app();
+        mkdir($this->root . '/var/tmp/html-publish/blog/de', 0775, true);
+        file_put_contents(
+            $this->root . '/var/tmp/html-publish/blog/de/index.html',
+            '<html><body>Blog frisch</body></html>'
+        );
+        $this->placeTask();
+
+        $app->handle((new ServerRequestFactory())->createServerRequest('GET', '/tasks/dispatch'));
+
+        $this->assertFileExists($this->root . '/var/cache/html/blog/de/index.html');
+        $this->assertStringEqualsFile(
+            $this->root . '/var/cache/html/blog/de/index.html',
+            '<html><body>Blog frisch</body></html>'
+        );
+    }
+
     public function testPublishTaskStagingIsCleanedUp(): void
     {
         $app = $this->app();
