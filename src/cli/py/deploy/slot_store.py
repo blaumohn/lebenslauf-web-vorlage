@@ -26,7 +26,6 @@ _APP_SLOT_RE, _VENDOR_SLOT_RE = _load_slot_patterns()
 
 # deploy: Format von generate() kommt aus SlotSwitchCommand.php.
 # erzeugt und von current_slot_map() per Regex gelesen.
-# Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
 class HtaccessSlotFile:
     @staticmethod
     def read_slot(content):

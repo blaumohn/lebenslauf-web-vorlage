@@ -43,6 +43,8 @@
     }
   },
   "scripts": {
+    "post-install-cmd": "sh scripts/install-hooks.sh",
+    "post-update-cmd": "sh scripts/install-hooks.sh",
     "dev": [
       "Composer\\Config::disableProcessTimeout",
       "php bin/cli python dev --phase build src/cli/py/dev/dev.py --"
@@ -66,7 +68,8 @@
       "@lint:structured",
       "@lint:line-length",
       "@lint:js",
-      "@lint:css"
+      "@lint:css",
+      "@lint:readme"
     ],
     "lint:php": [
       "@lint:phpcs",
@@ -76,6 +79,7 @@
     "lint:phpstan": "phpstan analyse --debug --memory-limit=512M",
     "lint:python": ".venv/bin/python tools/lint-python.py",
     "lint:shell": "shellcheck bin/cd bin/ci scripts/*.sh tests/ci/readme-dev-user-flow.sh",
+    "lint:readme": ".venv/bin/python scripts/gen-readme.py --check",
     "lint:structured": "python3 tools/lint-structured-files.py",
     "lint:line-length": ".venv/bin/python tools/lint-line-length.py",
     "lint:css": "npm run lint:css",

@@ -89,7 +89,6 @@ final class SlotSwitchCommand
 
     // deploy: Dieses Format wird von HtaccessSlotFile.read_slot() per Regex gelesen.
     // Änderung hier → _APP_SLOT_RE in src/cli/py/deploy/slot_store.py anpassen.
-    // Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
     public function toHtaccess(): string
     {
         $app = $this->appSlot->label();

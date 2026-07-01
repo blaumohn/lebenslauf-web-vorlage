@@ -64,7 +64,6 @@ class SftpDeployUploader:
                 "Vendor-Inject fehlgeschlagen. "
                 "Wenn diese Zeile geändert wurde, muss auch "
                 "_inject_vendor_dir() angepasst werden. "
-                "Siehe: https://docs.template.ysdani.com/de/areas/deploy/slot-switch/"
             )
         index_php.write_text(original.replace(old, new, 1), encoding="utf-8")
 

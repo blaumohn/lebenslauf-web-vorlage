@@ -1,0 +1,25 @@
+.blog-liste > li + li {
+  margin-top: 24px;
+}
+
+.blog-liste p + p {
+  margin-top: 6px;
+}
+
+.blog-inhalt {
+  margin-top: 24px;
+}
+
+.blog-inhalt > * + * {
+  margin-top: 16px;
+}
+
+.blog-inhalt > h2,
+.blog-inhalt > h3 {
+  margin-top: 28px;
+}
+
+.blog-inhalt > ul,
+.blog-inhalt > ol {
+  padding-left: 22px;
+}
