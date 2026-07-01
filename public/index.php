@@ -11,7 +11,6 @@ function main(): void
     $appSlot    = dirname(__DIR__);
 
     // deploy-inject: Zeile wird per Regex erkannt.
-    // https://docs.template.ysdani.com/de/areas/deploy/slot-switch/
     $vendorDir  = $appSlot . '/vendor';
 
     ini_set('error_log', $deployRoot . ERROR_LOG_PATH);
