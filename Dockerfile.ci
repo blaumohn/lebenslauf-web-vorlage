@@ -3,16 +3,19 @@ RUN apk add --no-cache \
     bash \
     chromium \
     curl \
+    gcc \
     git \
     git-daemon \
     jq \
     libjpeg-turbo-dev \
     libpng-dev \
+    musl-dev \
     nodejs \
     npm \
     openssh-client \
     perl \
-    python3
+    python3 \
+    python3-dev
 RUN docker-php-ext-configure gd --with-jpeg && docker-php-ext-install -j$(nproc) gd
 RUN curl -sS https://getcomposer.org/installer \
     | php -- --install-dir=/usr/local/bin --filename=composer
