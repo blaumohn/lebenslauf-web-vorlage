@@ -1,6 +1,7 @@
 @layer reset, base, patterns, components, utilities;
 
 @import url("./normalise.css") layer(reset);
+@import url("./blog.css") layer(components);
 
 @layer base {
   :root {
