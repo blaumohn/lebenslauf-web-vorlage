@@ -30,22 +30,13 @@ prepare_readme_dev_repo() {
 }
 
 schnellstart() {
-  git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
-  cd lebenslauf-web-vorlage
-  PATH="$PWD/bin:$PATH"  # Hinweis: alternativ `php bin/cli ...` verwenden.
-  composer install
-  cli setup dev --with-sample-content
-  cli build dev
-  cli start dev > /tmp/readme-dev-ux-server.log 2>&1 &
+  . "$SOURCE_REPO_DIR/readme-scripts/1-schnellstart.sh"
   dev_server_pid="$!"
   wait_for_dev_server
 }
 
 private_ansicht_einrichten() {
-  local token
-  token="$(cli token dev rotate demo)"
-  curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
-    | grep -q '</html>'
+  . "$SOURCE_REPO_DIR/readme-scripts/2-private-ansicht.sh"
 }
 
 start_git_server() {
@@ -82,7 +73,7 @@ wait_for_dev_server() {
     sleep 1
   done
   echo "[readme-dev-ux] Dev-Server antwortet nicht rechtzeitig" >&2
-  cat /tmp/readme-dev-ux-server.log >&2 || true
+  cat /tmp/lebenslauf-dev-server.log >&2 || true
   return 1
 }
 

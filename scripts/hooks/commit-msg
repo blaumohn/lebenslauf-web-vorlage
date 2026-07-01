@@ -1,0 +1,11 @@
+#!/bin/sh
+# shellcheck shell=sh
+# Commit-Msg-Hook: erzwingt Conventional Commits mit Jira-Key.
+# Einrichtung: sh scripts/install-hooks.sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
+
+cd "$REPO_ROOT"
+sh scripts/validate-commit-msg.sh "$1"
