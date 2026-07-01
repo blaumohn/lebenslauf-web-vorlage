@@ -63,7 +63,11 @@ final class CvPublishTaskHandler implements TaskHandler
 
     private function relativePath(string $base, string $path): string
     {
-        return substr($path, strlen(rtrim($base, DIRECTORY_SEPARATOR)) + 1);
+        $prefix = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($path, $prefix)) {
+            throw new \RuntimeException("Pfad liegt nicht im Staging: {$path}");
+        }
+        return substr($path, strlen($prefix));
     }
 
     private function publishFile(string $source, string $target): void

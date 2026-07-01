@@ -103,7 +103,50 @@ run_contact_smoke() {
 }
 
 run_publish_smoke() {
+  local blog_dir content_path root_url sentinel
+
+  content_path="$(content_base_path)"
+  blog_dir="${content_path%/}/blog"
+  sentinel="ci-publish-blog-${PIPELINE_RUN_ID}"
+  mkdir -p "$blog_dir"
+  write_publish_smoke_blog_post "$blog_dir/ci-publish-smoke.yaml" "$sentinel"
+
   cli publish "$PIPELINE"
+
+  root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
+  smoke_http_page_contains "${root_url%/}/blog?lang=de" "$sentinel"
+  smoke_http_page_contains "${root_url%/}/blog/ci-publish-smoke?lang=de" "$sentinel"
+}
+
+write_publish_smoke_blog_post() {
+  local path="$1" sentinel="$2"
+
+  cat > "$path" <<YAML
+slug: ci-publish-smoke
+datum: "2026-06-29"
+status: published
+
+titel:
+  de: "CI Publish Smoke"
+  en: "CI Publish Smoke"
+  es: "CI Publish Smoke"
+
+zusammenfassung:
+  de: "$sentinel"
+  en: "$sentinel"
+  es: "$sentinel"
+
+inhalt:
+  de: |
+    <p>$sentinel</p>
+  en: |
+    <p>$sentinel</p>
+  es: |
+    <p>$sentinel</p>
+
+tags:
+  - ci
+YAML
 }
 
 run_token_smoke() {
