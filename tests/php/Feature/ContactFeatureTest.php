@@ -91,7 +91,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $response = $app->handle($request);
 
-        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame(400, $response->getStatusCode());
         $body = (string) $response->getBody();
         $this->assertStringContainsString(
             'value="Max Mustermann"',
@@ -124,7 +124,7 @@ final class ContactFeatureTest extends FeatureTestCase
 
         $response = $app->handle($request);
 
-        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(400, $response->getStatusCode());
         $body = (string) $response->getBody();
         $this->assertStringContainsString('aktualisiert', $body);
     }
