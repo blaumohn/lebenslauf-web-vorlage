@@ -63,23 +63,9 @@ final class CvContentRenderer extends BaseContentRenderer
         }
         $valid = true;
         foreach ($this->collectTargets($dataPath) as $target) {
-            $entry = basename((string) ($target['yaml'] ?? ''));
-            try {
-                $data = Yaml::parseFile((string) ($target['yaml'] ?? ''));
-            } catch (ParseException $e) {
-                $output->writeln("<error>CV: {$entry}: YAML-Fehler: {$e->getMessage()}</error>");
-                $valid = false;
-                continue;
-            }
-            if (!is_array($data)) {
-                $output->writeln("<error>CV: {$entry}: kein gültiges YAML-Mapping.</error>");
-                $valid = false;
-                continue;
-            }
-            if ($this->checkValid($data, self::CV_SCHEMA, $output)) {
-                $output->writeln("CV: {$entry}: OK");
-            } else {
-                $output->writeln("<error>CV: {$entry}: ungültig.</error>");
+            $yamlPath = (string) ($target['yaml'] ?? '');
+            $entry = basename($yamlPath);
+            if (!$this->validateYamlFile($yamlPath, self::CV_SCHEMA, "CV: {$entry}", $output)) {
                 $valid = false;
             }
         }
