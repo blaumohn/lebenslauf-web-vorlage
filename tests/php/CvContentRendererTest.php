@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Cli\ConfigValues;
+use App\Cli\Site\CvContentRenderer;
 use App\Http\Cv\CvDataNormalizer;
-use App\Cli\Site\CvRenderer;
 use App\Http\Cv\CvViewModelBuilder;
-use App\Http\Templating\TwigFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
-final class CvRendererTest extends TestCase
+final class CvContentRendererTest extends TestCase
 {
     public function testEducationWithDegreeOnlyIsRendered(): void
     {
@@ -63,16 +63,14 @@ final class CvRendererTest extends TestCase
         $this->assertStringContainsString((string) $data['kopfdaten']['name'], $html);
     }
 
-    private function renderer(): CvRenderer
+    private function renderer(): CvContentRenderer
     {
-        $twig = TwigFactory::create($this->templatesPath());
-        TwigFactory::configure($twig, '');
-        return new CvRenderer($twig);
+        return new CvContentRenderer(new ConfigValues(['APP_BASE_PATH' => '/']), $this->projectRoot());
     }
 
-    private function templatesPath(): string
+    private function projectRoot(): string
     {
-        return dirname(__DIR__, 2) . '/src/resources/templates';
+        return dirname(__DIR__, 2);
     }
 
     private function validFixturePath(): string

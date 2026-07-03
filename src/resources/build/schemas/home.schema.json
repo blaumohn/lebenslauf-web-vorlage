@@ -4,17 +4,9 @@
   "additionalProperties": false,
   "required": ["titel", "beschreibung", "link_lebenslauf", "link_kontakt"],
   "properties": {
-    "titel":           { "$ref": "#/definitions/intlString" },
-    "beschreibung":    { "$ref": "#/definitions/intlString" },
-    "link_lebenslauf": { "$ref": "#/definitions/intlString" },
-    "link_kontakt":    { "$ref": "#/definitions/intlString" }
-  },
-  "definitions": {
-    "intlString": {
-      "oneOf": [
-        { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
-      ]
-    }
+    "titel":           { "$ref": "common.schema.json#/definitions/intlString" },
+    "beschreibung":    { "$ref": "common.schema.json#/definitions/intlString" },
+    "link_lebenslauf": { "$ref": "common.schema.json#/definitions/intlString" },
+    "link_kontakt":    { "$ref": "common.schema.json#/definitions/intlString" }
   }
 }

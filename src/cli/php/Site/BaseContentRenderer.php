@@ -2,20 +2,15 @@
 
 namespace App\Cli\Site;
 
-use App\Cli\ConfigValues;
 use App\Http\SiteHtmlCache;
-use App\Http\SchemaValidator;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
 
-abstract class BaseContentRenderer implements ContentRendererInterface
+abstract class BaseContentRenderer extends BaseSchemaValidator implements ContentRendererInterface
 {
-    public function __construct(protected ConfigValues $config, protected string $rootPath) {}
-
     public function sectionKey(): ?string
     {
         return null;
@@ -67,15 +62,6 @@ abstract class BaseContentRenderer implements ContentRendererInterface
         }
         $first = reset($value);
         return $first !== false ? $first : '';
-    }
-
-    protected function resolveContentBase(): string
-    {
-        $value = $this->config->get('CONTENT_PATH');
-        if ($value === '') {
-            throw new \RuntimeException('Konfiguration fehlt: CONTENT_PATH');
-        }
-        return Path::isAbsolute($value) ? $value : Path::join($this->rootPath, $value);
     }
 
     protected function resolveBasePath(): string
@@ -133,32 +119,5 @@ abstract class BaseContentRenderer implements ContentRendererInterface
             throw new \RuntimeException("site.yaml: name_kurz fehlt");
         }
         return (string) $name;
-    }
-
-    public function validateContent(OutputInterface $output): bool
-    {
-        return true;
-    }
-
-    protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void
-    {
-        if ($this->checkValid($data, $schemaName, $output)) {
-            return;
-        }
-        throw new \RuntimeException("{$schemaName}: Schema-Validierung fehlgeschlagen.");
-    }
-
-    protected function checkValid(mixed $data, string $schemaName, OutputInterface $output): bool
-    {
-        $schemaPath = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', $schemaName);
-        $errors = (new SchemaValidator($schemaPath))->validate($data);
-        if ($errors === []) {
-            return true;
-        }
-        $output->writeln("<error>{$schemaName}: Schema-Validierung fehlgeschlagen:</error>");
-        foreach ($errors as $error) {
-            $output->writeln("  - {$error}");
-        }
-        return false;
     }
 }

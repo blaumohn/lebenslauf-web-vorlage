@@ -7,20 +7,19 @@ use App\Http\Cv\CvDataNormalizer;
 use App\Http\SchemaValidator;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Cli\Site\LabelService;
-use App\Http\Templating\TwigFactory;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use Twig\Environment;
 
 final class CvContentRenderer extends BaseContentRenderer
 {
     public const CV_SCHEMA = 'lebenslauf.schema.json';
-    public const LABELS_SCHEMA = 'labels.schema.json';
 
     private \App\Http\SiteHtmlCache $htmlCache;
     private SchemaValidator $validator;
-    private CvRenderer $renderer;
+    private Environment $twig;
     private CvViewModelBuilder $viewBuilder;
     private string $labelsPath;
 
@@ -29,7 +28,7 @@ final class CvContentRenderer extends BaseContentRenderer
         parent::__construct($config, $rootPath);
         $this->htmlCache = $this->buildStorage();
         $this->validator = $this->buildValidator();
-        $this->renderer = $this->buildCvRenderer();
+        $this->twig = $this->buildTwig();
         $this->viewBuilder = new CvViewModelBuilder();
         $this->labelsPath = Path::join($rootPath, 'src', 'resources', 'build', 'labels.json');
     }
@@ -39,9 +38,13 @@ final class CvContentRenderer extends BaseContentRenderer
         return 'lebenslauf';
     }
 
+    public function schemaName(): string
+    {
+        return self::CV_SCHEMA;
+    }
+
     public function render(OutputInterface $output): void
     {
-        $this->validateLabels($output);
         $targets = $this->resolveTargets();
         $jsonPath = Path::join($this->rootPath, 'var', 'tmp', 'lebenslauf.json');
         $this->ensureDir(dirname($jsonPath));
@@ -81,15 +84,6 @@ final class CvContentRenderer extends BaseContentRenderer
             }
         }
         return $valid;
-    }
-
-    private function validateLabels(OutputInterface $output): void
-    {
-        $raw = json_decode((string) file_get_contents($this->labelsPath));
-        if ($raw === null) {
-            throw new \RuntimeException("Labels-Datei ungültig oder nicht lesbar: {$this->labelsPath}");
-        }
-        $this->assertValid($raw, self::LABELS_SCHEMA, $output);
     }
 
     private function resolveTargets(): array
@@ -209,7 +203,7 @@ final class CvContentRenderer extends BaseContentRenderer
     private function savePrivate(string $profile, string $lang, array $normalized, array $labels, string $cvFooter): void
     {
         $view = $this->viewBuilder->build($normalized);
-        $html = $this->renderer->renderPrivate($view, $labels, $lang, $cvFooter);
+        $html = $this->renderPrivate($view, $labels, $lang, $cvFooter);
         $this->htmlCache->savePrivateHtmlForLang($profile, $html, $lang);
     }
 
@@ -221,9 +215,41 @@ final class CvContentRenderer extends BaseContentRenderer
         $siteHeader = $this->loadSiteHeader($lang);
         $siteNameKurz = $this->loadSiteNameKurz();
         $view = $this->viewBuilder->build($normalized);
-        $html = $this->renderer->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter);
+        $html = $this->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter);
         $this->htmlCache->savePublicHtmlForLang($html, $lang);
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
+    }
+
+    public function renderPrivate(array $data, array $labels, string $lang, string $cvFooter): string
+    {
+        return $this->twig->render('cv_private.html.twig', $this->baseVars($data, $labels, $lang) + [
+            'cv_footer' => $cvFooter,
+        ]);
+    }
+
+    public function renderPublic(array $data, array $labels, string $lang, string $siteHeader, string $siteNameKurz, string $cvFooter): string
+    {
+        return $this->twig->render('cv_public.html.twig', $this->baseVars($data, $labels, $lang) + [
+            'site_header' => $siteHeader,
+            'site_name_kurz' => $siteNameKurz,
+            'cv_footer' => $cvFooter,
+        ]);
+    }
+
+    private function baseVars(array $data, array $labels, string $lang): array
+    {
+        return [
+            'cv' => $data,
+            'etiketten' => $labels['cv']['childLabels'],
+            'lang' => $this->normalizeLang($lang),
+            'title' => $labels['cv']['value'],
+        ];
+    }
+
+    private function normalizeLang(string $lang): string
+    {
+        $lang = strtolower(trim($lang));
+        return $lang === '' ? 'de' : $lang;
     }
 
     private function isDefaultProfile(string $profile): bool
@@ -241,11 +267,6 @@ final class CvContentRenderer extends BaseContentRenderer
     {
         $schema = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', self::CV_SCHEMA);
         return new SchemaValidator($schema);
-    }
-
-    private function buildCvRenderer(): CvRenderer
-    {
-        return new CvRenderer($this->buildTwig());
     }
 
     private function ensureDir(string $path): void

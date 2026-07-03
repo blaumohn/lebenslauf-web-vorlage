@@ -3,6 +3,7 @@
 namespace App\Http;
 
 use Opis\JsonSchema\Errors\ErrorFormatter;
+use Opis\JsonSchema\Resolvers\SchemaResolver;
 use Opis\JsonSchema\SchemaLoader;
 use Opis\JsonSchema\Validator;
 
@@ -45,7 +46,12 @@ final class SchemaValidator
             return [null, null, 'Schema ist ungültig.'];
         }
 
-        $loader = new SchemaLoader();
+        $resolver = new SchemaResolver();
+        $commonSchemaPath = dirname($this->schemaPath) . '/common.schema.json';
+        if (is_file($commonSchemaPath)) {
+            $resolver->registerFile('schema:///common.schema.json', $commonSchemaPath);
+        }
+        $loader = new SchemaLoader(null, $resolver);
         try {
             $schema = is_bool($decoded)
                 ? $loader->loadBooleanSchema($decoded)

@@ -8,16 +8,20 @@ use Symfony\Component\Filesystem\Path;
 
 final class SiteValidateService
 {
-    /** @param ContentRendererInterface[] $renderers */
-    public function __construct(private readonly array $renderers, private readonly string $rootPath) {}
+    private const SHARED_DEFINITION_SCHEMAS = ['common.schema.json'];
+
+    /** @param ContentValidatorInterface[] $validators */
+    public function __construct(private readonly array $validators, private readonly string $rootPath) {}
 
     public static function create(ConfigValues $config, string $rootPath): self
     {
         return new self([
             new SiteFooterRenderer($config, $rootPath),
             new LangSelectRenderer($config, $rootPath),
+            new LabelsValidator($config, $rootPath),
             new CvContentRenderer($config, $rootPath),
-            new BlogContentRenderer($config, $rootPath),
+            new BlogIndexRenderer($config, $rootPath),
+            new BlogPostRenderer($config, $rootPath),
             new HomeContentRenderer($config, $rootPath),
             new ContactContentRenderer($config, $rootPath),
         ], $rootPath);
@@ -26,32 +30,33 @@ final class SiteValidateService
     public function validate(OutputInterface $output): bool
     {
         $allValid = $this->validateSchemaCoverage($output);
-        foreach ($this->renderers as $renderer) {
-            if (!$renderer->validateContent($output)) {
+        foreach ($this->validators as $validator) {
+            if (!$validator->validateContent($output)) {
                 $allValid = false;
             }
         }
         return $allValid;
     }
 
-    /**
-     * Stellt sicher, dass jedes Schema in schemas/ von mindestens einem
-     * Renderer referenziert wird — verhindert, dass ein neues Schema ohne
-     * Validierungs-Anbindung im Gerüst liegen bleibt.
-     */
     private function validateSchemaCoverage(OutputInterface $output): bool
     {
-        $schemaDir = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas');
-        $rendererSource = '';
-        foreach (glob(Path::join(__DIR__, '*.php')) ?: [] as $file) {
-            $rendererSource .= (string) file_get_contents($file);
+        $declared = [];
+        foreach ($this->validators as $validator) {
+            $name = $validator->schemaName();
+            if ($name !== null) {
+                $declared[$name] = true;
+            }
         }
 
+        $schemaDir = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas');
         $allValid = true;
         foreach (glob(Path::join($schemaDir, '*.json')) ?: [] as $schemaPath) {
             $name = basename($schemaPath);
-            if (!str_contains($rendererSource, $name)) {
-                $output->writeln("<error>Schema ohne Renderer-Bindung: {$name}</error>");
+            if (in_array($name, self::SHARED_DEFINITION_SCHEMAS, true)) {
+                continue;
+            }
+            if (!isset($declared[$name])) {
+                $output->writeln("<error>Schema ohne Validator-Bindung: {$name}</error>");
                 $allValid = false;
             }
         }

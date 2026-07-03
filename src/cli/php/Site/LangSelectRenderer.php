@@ -8,10 +8,6 @@ use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
 
-/**
- * lang-select.yaml liegt bewusst unter src/resources/ statt CONTENT_PATH:
- * es ist statischer, mitgelieferter Gerüst-Inhalt, keine Nutzer-Content.
- */
 final class LangSelectRenderer extends BaseContentRenderer
 {
     public const SCHEMA = 'lang-select.schema.json';
@@ -22,6 +18,11 @@ final class LangSelectRenderer extends BaseContentRenderer
     {
         parent::__construct($config, $rootPath);
         $this->twig = $this->buildTwig();
+    }
+
+    public function schemaName(): string
+    {
+        return self::SCHEMA;
     }
 
     public function validateContent(OutputInterface $output): bool

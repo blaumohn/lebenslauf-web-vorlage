@@ -17,7 +17,8 @@ final class SiteBuildService
             new SiteFooterRenderer($config, $rootPath),
             new LangSelectRenderer($config, $rootPath),
             new CvContentRenderer($config, $rootPath),
-            new BlogContentRenderer($config, $rootPath),
+            new BlogIndexRenderer($config, $rootPath),
+            new BlogPostRenderer($config, $rootPath),
             new HomeContentRenderer($config, $rootPath),
             new ContactContentRenderer($config, $rootPath),
         ]);

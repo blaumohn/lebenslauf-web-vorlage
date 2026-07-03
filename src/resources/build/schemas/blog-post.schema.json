@@ -7,17 +7,9 @@
     "slug":           { "type": "string", "minLength": 1 },
     "datum":          { "type": "string", "minLength": 1 },
     "status":         { "type": "string", "enum": ["published", "draft"] },
-    "titel":          { "$ref": "#/definitions/intlString" },
-    "zusammenfassung":{ "$ref": "#/definitions/intlString" },
-    "inhalt":         { "$ref": "#/definitions/intlString" },
+    "titel":          { "$ref": "common.schema.json#/definitions/intlString" },
+    "zusammenfassung":{ "$ref": "common.schema.json#/definitions/intlString" },
+    "inhalt":         { "$ref": "common.schema.json#/definitions/intlString" },
     "tags":           { "type": "array", "items": { "type": "string" } }
-  },
-  "definitions": {
-    "intlString": {
-      "oneOf": [
-        { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
-      ]
-    }
   }
 }

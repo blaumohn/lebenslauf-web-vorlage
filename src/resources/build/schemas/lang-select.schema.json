@@ -4,16 +4,9 @@
   "additionalProperties": false,
   "required": ["title", "heading", "description", "link"],
   "properties": {
-    "title":       { "$ref": "#/definitions/intlString" },
-    "heading":     { "$ref": "#/definitions/intlString" },
-    "description": { "$ref": "#/definitions/intlString" },
-    "link":        { "$ref": "#/definitions/intlString" }
-  },
-  "definitions": {
-    "intlString": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": { "type": "string", "minLength": 1 }
-    }
+    "title":       { "$ref": "common.schema.json#/definitions/intlString" },
+    "heading":     { "$ref": "common.schema.json#/definitions/intlString" },
+    "description": { "$ref": "common.schema.json#/definitions/intlString" },
+    "link":        { "$ref": "common.schema.json#/definitions/intlString" }
   }
 }
