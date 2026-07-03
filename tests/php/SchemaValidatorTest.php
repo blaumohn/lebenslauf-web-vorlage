@@ -18,7 +18,7 @@ final class SchemaValidatorTest extends TestCase
     {
         $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
-        $data['kopfdaten']['name'] = 'Max Mustermann';
+        $data['kopfdaten']['name'] = ['voll' => 'Max Mustermann', 'kurz' => 'Max M.'];
 
         $errors = $validator->validate($data);
         $this->assertNotEmpty($errors);
@@ -64,10 +64,7 @@ final class SchemaValidatorTest extends TestCase
     {
         return [
             'kopfdaten' => [
-                'name' => [
-                    'voll' => 'Max Mustermann',
-                    'kurz' => 'Max M.',
-                ],
+                'name' => 'Max Mustermann',
                 'bereich' => 'Softwareentwicklung',
                 'ort' => 'Berlin',
                 'email' => 'max@example.com',

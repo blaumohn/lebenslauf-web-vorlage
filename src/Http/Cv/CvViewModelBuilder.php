@@ -13,7 +13,6 @@ final class CvViewModelBuilder
         if (isset($cv['faehigkeiten']) && is_array($cv['faehigkeiten'])) {
             $cv['faehigkeiten'] = $this->buildSkills($cv['faehigkeiten']);
         }
-        $cv['footer'] = $this->buildFooter($cv['fussbereich'] ?? null);
 
         return $cv;
     }
@@ -98,22 +97,6 @@ final class CvViewModelBuilder
         }
 
         return $result;
-    }
-
-    private function buildFooter(mixed $fussbereich): array
-    {
-        if (!is_array($fussbereich)) {
-            return ['show' => false];
-        }
-
-        $text = trim((string) ($fussbereich['text'] ?? ''));
-        $link = trim((string) ($fussbereich['link'] ?? ''));
-        return [
-            'show' => $text !== '',
-            'text' => $text,
-            'link' => $link,
-            'show_link' => $link !== '',
-        ];
     }
 
     private function stringOrNull(mixed $value): ?string

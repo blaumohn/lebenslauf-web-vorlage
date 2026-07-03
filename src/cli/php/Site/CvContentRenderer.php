@@ -7,7 +7,6 @@ use App\Http\Cv\CvDataNormalizer;
 use App\Http\SchemaValidator;
 use App\Http\Cv\CvViewModelBuilder;
 use App\Cli\Site\LabelService;
-use App\Http\Cv\RedactionService;
 use App\Http\Templating\TwigFactory;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
@@ -23,7 +22,6 @@ final class CvContentRenderer extends BaseContentRenderer
     private SchemaValidator $validator;
     private CvRenderer $renderer;
     private CvViewModelBuilder $viewBuilder;
-    private RedactionService $redactor;
     private string $labelsPath;
 
     public function __construct(ConfigValues $config, string $rootPath)
@@ -33,7 +31,6 @@ final class CvContentRenderer extends BaseContentRenderer
         $this->validator = $this->buildValidator();
         $this->renderer = $this->buildCvRenderer();
         $this->viewBuilder = new CvViewModelBuilder();
-        $this->redactor = new RedactionService();
         $this->labelsPath = Path::join($rootPath, 'src', 'resources', 'build', 'labels.json');
     }
 
@@ -222,9 +219,9 @@ final class CvContentRenderer extends BaseContentRenderer
             return;
         }
         $siteHeader = $this->loadSiteHeader($lang);
-        $publicData = $this->redactor->redact($normalized);
-        $view = $this->viewBuilder->build($publicData);
-        $html = $this->renderer->renderPublic($view, $labels, $lang, $siteHeader, $cvFooter);
+        $siteNameKurz = $this->loadSiteNameKurz();
+        $view = $this->viewBuilder->build($normalized);
+        $html = $this->renderer->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter);
         $this->htmlCache->savePublicHtmlForLang($html, $lang);
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
     }

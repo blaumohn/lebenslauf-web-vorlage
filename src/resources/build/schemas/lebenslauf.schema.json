@@ -17,15 +17,7 @@
       "additionalProperties": false,
       "required": ["name", "bereich", "ort", "email", "telefon"],
       "properties": {
-        "name": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["voll", "kurz"],
-          "properties": {
-            "voll": { "type": "string" },
-            "kurz": { "type": "string" }
-          }
-        },
+        "name": { "type": "string" },
         "bereich": { "$ref": "#/definitions/intlString" },
         "ort": { "$ref": "#/definitions/intlString" },
         "email": { "type": "string" },
@@ -103,15 +95,6 @@
     "interessen": {
       "type": "array",
       "items": { "$ref": "#/definitions/intlString" }
-    },
-    "fussbereich": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["text"],
-      "properties": {
-        "text": { "$ref": "#/definitions/intlString" },
-        "link": { "type": "string" }
-      }
     }
   },
   "definitions": {

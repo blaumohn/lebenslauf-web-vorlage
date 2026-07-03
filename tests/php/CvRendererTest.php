@@ -18,7 +18,7 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
 
         $this->assertStringContainsString(
             '<li>Zertifikat Webentwicklung, BFI Wien</li>',
@@ -33,9 +33,34 @@ final class CvRendererTest extends TestCase
         $builder = new CvViewModelBuilder();
         $view = $builder->build($normalizer->normalize($data));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '', '');
 
         $this->assertStringContainsString('<html lang="en">', $html);
+    }
+
+    public function testPublicCvRendersSiteNameKurzInsteadOfCvName(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('de');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', 'Site-Kurzname', '');
+
+        $this->assertStringContainsString('Site-Kurzname', $html);
+        $this->assertStringNotContainsString((string) $data['kopfdaten']['name'], $html);
+    }
+
+    public function testPrivateCvRendersFullCvName(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('de');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPrivate($view, $this->labels(), 'de', '');
+
+        $this->assertStringContainsString((string) $data['kopfdaten']['name'], $html);
     }
 
     private function renderer(): CvRenderer

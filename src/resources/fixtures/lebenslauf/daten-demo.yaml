@@ -1,7 +1,5 @@
 kopfdaten:
-  name:
-    voll: Alex Beispiel
-    kurz: Alex B.
+  name: Alex Beispiel
   bereich:
     de: Softwareentwicklung im Web-Bereich
     es: Desarrollo web
@@ -9,12 +7,6 @@ kopfdaten:
   email: alex@example.com
   telefon: +49 151 12345678
   linkedin: https://linkedin.com/in/alexbeispiel
-
-fussbereich:
-  text:
-    de: "Preview der App von Dani Y."
-    es: "Preview de la app de Dani Y."
-  link: https://github.com/blaumohn/lebenslauf-web-vorlage
 
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.

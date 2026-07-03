@@ -89,6 +89,16 @@ final class SiteHtmlCache
         return $this->storage->readText($this->cvFooterFragmentPath($lang));
     }
 
+    public function saveLangSelectHtml(string $html): void
+    {
+        $this->storage->writeText($this->langSelectPath(), $html);
+    }
+
+    public function getLangSelectHtml(): ?string
+    {
+        return $this->storage->readText($this->langSelectPath());
+    }
+
     public function hasPublic(): bool
     {
         $pattern = Path::join($this->cacheDir, 'cv-public.*.html');
@@ -99,6 +109,11 @@ final class SiteHtmlCache
     public function hasPublicForLang(string $lang): bool
     {
         return is_file($this->publicPath($lang));
+    }
+
+    private function langSelectPath(): string
+    {
+        return Path::join($this->cacheDir, 'lang-select.html');
     }
 
     private function cvFooterFragmentPath(string $lang): string

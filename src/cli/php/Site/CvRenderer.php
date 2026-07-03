@@ -24,7 +24,7 @@ final class CvRenderer
         ]);
     }
 
-    public function renderPublic(array $data, array $labels, string $lang, string $siteHeader, string $cvFooter): string
+    public function renderPublic(array $data, array $labels, string $lang, string $siteHeader, string $siteNameKurz, string $cvFooter): string
     {
         return $this->twig->render('cv_public.html.twig', [
             'cv' => $data,
@@ -32,6 +32,7 @@ final class CvRenderer
             'lang' => $this->normalizeLang($lang),
             'title' => $labels['cv']['value'],
             'site_header' => $siteHeader,
+            'site_name_kurz' => $siteNameKurz,
             'cv_footer' => $cvFooter,
         ]);
     }
