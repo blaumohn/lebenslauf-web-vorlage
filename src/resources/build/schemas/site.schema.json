@@ -8,11 +8,11 @@
     "footer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["footer2", "source_url"],
+      "required": ["source_url"],
       "properties": {
-        "footer1":    { "$ref": "#/definitions/intlString" },
-        "footer2":    { "$ref": "#/definitions/intlString" },
-        "source_url": { "type": "string", "minLength": 1 }
+        "privacy_note": { "$ref": "#/definitions/intlString" },
+        "built_with":   { "$ref": "#/definitions/intlString" },
+        "source_url":   { "type": "string", "minLength": 1 }
       }
     }
   },

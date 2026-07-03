@@ -9,6 +9,7 @@ use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
 
 abstract class BaseContentRenderer implements ContentRendererInterface
@@ -108,6 +109,30 @@ abstract class BaseContentRenderer implements ContentRendererInterface
     {
         return $this->buildStorage()->getFooterFragmentForLang($lang)
             ?? throw new \RuntimeException("Footer-Fragment fehlt ({$lang}). SiteFooterRenderer muss zuerst laufen.");
+    }
+
+    protected function siteYamlPath(): string
+    {
+        return Path::join($this->resolveContentBase(), 'site', 'site.yaml');
+    }
+
+    protected function loadSiteYaml(): array
+    {
+        $path = $this->siteYamlPath();
+        $data = Yaml::parseFile($path);
+        if (!is_array($data)) {
+            throw new \RuntimeException("Ungültiges site.yaml: {$path}");
+        }
+        return $data;
+    }
+
+    protected function loadSiteNameKurz(): string
+    {
+        $name = $this->loadSiteYaml()['name_kurz'] ?? null;
+        if ($name === null || $name === '') {
+            throw new \RuntimeException("site.yaml: name_kurz fehlt");
+        }
+        return (string) $name;
     }
 
     public function validateContent(OutputInterface $output): bool

@@ -1,12 +1,10 @@
 name_kurz: Alex B.
 
 footer:
-  footer1:
+  privacy_note:
     de: Keine Cookies. Keine Tracker. Kontakt nur per Formular.
-    en: No cookies. No trackers. Contact via form only.
     es: Sin cookies. Sin rastreadores. Contacto solo por formulario.
-  footer2:
-    de: "Alex B. | Demo der App von Dani Y."
-    en: "Alex B. | Demo of the app by Dani Y."
-    es: "Alex B. | Demo de la app por Dani Y."
-  source_url: https://github.com/blaumohn/lebenslauf-web-vorlage
+  built_with:
+    de: "gebaut mit der <div>-bis-DevOps-Boilerplate von Dani Y."
+    es: "construida con el boilerplate <div>-a-DevOps de Dani Y."
+  source_url: github.com/blaumohn/lebenslauf-web-vorlage
