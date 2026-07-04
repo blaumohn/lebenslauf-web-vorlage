@@ -103,8 +103,8 @@ final class CvContentRenderer extends BaseContentRenderer
 
     private function renderTarget(array $target, string $jsonPath, OutputInterface $output): void
     {
-        $profile = (string) ($target['profile'] ?? '');
-        $yamlPath = (string) ($target['yaml'] ?? '');
+        $profile = $target['profile'];
+        $yamlPath = $target['yaml'];
         if (!is_file($yamlPath)) {
             throw new \RuntimeException("YAML nicht gefunden: {$yamlPath}");
         }
