@@ -1,18 +1,18 @@
 @layer components {
   article {
     .name {
-      --name-title-font-size: 30px;
+      --name-title-font-size: 1.875rem;
 
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      margin-bottom: 12px;
+      gap: 0.25rem;
+      margin-bottom: 0.75rem;
     }
 
     .name-title {
       font-size: var(--name-title-font-size);
       font-weight: var(--font-weight-semibold);
-      color: #000;
+      color: var(--color-ink);
     }
 
     .name-role {

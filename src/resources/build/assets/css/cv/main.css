@@ -2,7 +2,7 @@
   article {
     .cv-body {
       display: flex;
-      gap: 16px;
+      gap: 1rem;
       flex-direction: row;
       margin-top: 0;
     }
@@ -27,7 +27,6 @@
     .cv-body .cv-main-col {
       display: flex;
       flex-direction: column;
-      gap: 16px;
       flex: 0 0 66.6667%;
     }
 
@@ -35,7 +34,8 @@
       flex: 0 0 var(--main-aside-width-compact);
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      margin-top: 3rem;
+      gap: 1.5rem;
     }
 
     @media (width >= 28rem) {

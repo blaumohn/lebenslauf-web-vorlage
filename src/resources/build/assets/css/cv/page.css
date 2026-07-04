@@ -1,6 +1,6 @@
 @layer patterns {
   article {
-    max-width: 800px;
+    max-width: 50rem;
     display: flex;
     flex-direction: column;
     gap: 0;
