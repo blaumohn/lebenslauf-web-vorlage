@@ -6,7 +6,7 @@
 #
 # [ysdani.com](https://ysdani.com) runs this template in production — selected
 # operations and architecture decisions behind it are documented on the
-# [blog](https://ysdani.com/blog), each entry linked to the code;
+# [blog](https://ysdani.com/blog), each entry linked to the code.
 # [preview.ysdani.com](https://preview.ysdani.com) is its preview deploy.
 #
 # **What can it do?**
