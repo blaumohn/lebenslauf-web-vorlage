@@ -63,7 +63,7 @@ final class CvContentRenderer extends BaseContentRenderer
         }
         $valid = true;
         foreach ($this->collectTargets($dataPath) as $target) {
-            $yamlPath = (string) ($target['yaml'] ?? '');
+            $yamlPath = $target['yaml'];
             $entry = basename($yamlPath);
             if (!$this->validateYamlFile($yamlPath, self::CV_SCHEMA, "CV: {$entry}", $output)) {
                 $valid = false;

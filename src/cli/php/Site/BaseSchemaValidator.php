@@ -6,6 +6,7 @@ use App\Cli\ConfigValues;
 use App\Http\SchemaValidator;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 abstract class BaseSchemaValidator implements ContentValidatorInterface
@@ -25,9 +26,6 @@ abstract class BaseSchemaValidator implements ContentValidatorInterface
     protected function resolveContentBase(): string
     {
         $value = $this->config->get('CONTENT_PATH');
-        if ($value === '') {
-            throw new \RuntimeException('Konfiguration fehlt: CONTENT_PATH');
-        }
         return Path::isAbsolute($value) ? $value : Path::join($this->rootPath, $value);
     }
 
@@ -68,7 +66,12 @@ abstract class BaseSchemaValidator implements ContentValidatorInterface
             $output->writeln("{$label}: YAML fehlt ({$path}) — übersprungen.");
             return true;
         }
-        $data = Yaml::parseFile($path);
+        try {
+            $data = Yaml::parseFile($path);
+        } catch (ParseException $e) {
+            $output->writeln("<error>{$label}: YAML-Fehler: {$e->getMessage()}</error>");
+            return false;
+        }
         if (!is_array($data)) {
             $output->writeln("<error>{$label}: kein gültiges YAML-Mapping.</error>");
             return false;

@@ -55,6 +55,16 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testEducationEmptyDegreeFailsInsteadOfBeingTreatedAsAbsent(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['ausbildung'][0]['grad'] = '';
+
+        $errors = $validator->validate($data);
+        $this->assertNotEmpty($errors);
+    }
+
     private function schemaPath(): string
     {
         return dirname(__DIR__, 2) . '/src/resources/build/schemas/lebenslauf.schema.json';

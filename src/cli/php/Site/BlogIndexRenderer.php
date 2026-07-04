@@ -83,7 +83,7 @@ final class BlogIndexRenderer extends BaseContentRenderer
     {
         $published = [];
         foreach ($posts as $post) {
-            if (($post['status'] ?? '') !== 'published') {
+            if ($post['status'] !== 'published') {
                 continue;
             }
             $published[] = $this->pickLang($post, $lang);

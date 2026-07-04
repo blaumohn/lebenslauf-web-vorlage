@@ -18,7 +18,7 @@ final class SiteFooterRenderer extends BaseContentRenderer
     {
         $data = $this->loadSiteData($output);
         $footer = $data['footer'];
-        $nameKurz = (string) ($data['name_kurz'] ?? '');
+        $nameKurz = (string) $data['name_kurz'];
         $twig = $this->buildTwig();
         $storage = $this->buildStorage();
         $langs = $this->resolveLangs();
@@ -68,7 +68,7 @@ final class SiteFooterRenderer extends BaseContentRenderer
             'privacy_note' => $this->resolveFooterField($footer['privacy_note'] ?? null, $lang, 'privacy_note'),
             'attribution' => $nameKurz,
             'built_with' => $this->resolveFooterField($footer['built_with'] ?? null, $lang, 'built_with'),
-            'source_url' => (string) ($footer['source_url'] ?? ''),
+            'source_url' => (string) $footer['source_url'],
         ];
     }
 

@@ -6,13 +6,11 @@ final class CvViewModelBuilder
 {
     public function build(array $cv): array
     {
-        $cv['berufserfahrung'] = $this->buildEntries($cv['berufserfahrung'] ?? []);
+        $cv['berufserfahrung'] = $this->buildEntries($cv['berufserfahrung']);
         if (isset($cv['opensource']) && is_array($cv['opensource'])) {
             $cv['opensource'] = $this->buildEntries($cv['opensource']);
         }
-        if (isset($cv['faehigkeiten']) && is_array($cv['faehigkeiten'])) {
-            $cv['faehigkeiten'] = $this->buildSkills($cv['faehigkeiten']);
-        }
+        $cv['faehigkeiten'] = $this->buildSkills($cv['faehigkeiten']);
 
         return $cv;
     }
@@ -21,10 +19,6 @@ final class CvViewModelBuilder
     {
         $result = [];
         foreach ($entries as $entry) {
-            if (!is_array($entry)) {
-                continue;
-            }
-
             $unternehmen = $this->stringOrNull($entry['unternehmen'] ?? null);
             $projekt = $this->stringOrNull($entry['projekt'] ?? null);
             $stelleGruppe = is_array($entry['stelleGruppe'] ?? null) ? $entry['stelleGruppe'] : null;
@@ -33,15 +27,15 @@ final class CvViewModelBuilder
             $companyLine = $showCompany ? $unternehmen : null;
             $projectLine = $unternehmen === null && $projekt !== null ? $projekt : null;
 
-            $titel = (string) ($entry['titel'] ?? '');
+            $titel = (string) $entry['titel'];
             $headerTitle = $unternehmen !== null && $projekt !== null
                 ? $projekt . ' | ' . $titel
                 : $titel;
 
-            $zeitraum = (string) ($entry['zeitraum'] ?? '');
+            $zeitraum = (string) $entry['zeitraum'];
             $ort = $this->stringOrNull($entry['ort'] ?? null);
 
-            $punkte = $this->buildPoints($entry['punkte'] ?? []);
+            $punkte = $this->buildPoints($entry['punkte']);
 
             $result[] = [
                 'show_company' => $companyLine !== null,

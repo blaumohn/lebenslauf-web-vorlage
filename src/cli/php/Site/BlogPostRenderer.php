@@ -81,12 +81,12 @@ final class BlogPostRenderer extends BaseContentRenderer
             'site_footer' => $this->loadFooterFragment($lang),
         ];
         foreach ($posts as $post) {
-            if (($post['status'] ?? '') !== 'published') {
+            if ($post['status'] !== 'published') {
                 continue;
             }
             $resolved = $this->pickLang($post, $lang);
-            $resolved['inhalt'] = $this->encodeCodeBlocks((string) ($resolved['inhalt'] ?? ''));
-            $slug = (string) ($post['slug'] ?? '');
+            $resolved['inhalt'] = $this->encodeCodeBlocks((string) $resolved['inhalt']);
+            $slug = (string) $post['slug'];
             $html = $this->twig->render('blog_post.html.twig', ['post' => $resolved] + $base);
             $this->storage->writeText(Path::join($this->htmlPath(), $lang, $slug . '.html'), $html);
             $output->writeln("Blog-Post gerendert: {$slug} ({$lang}).");
