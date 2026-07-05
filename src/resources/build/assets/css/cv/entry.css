@@ -145,8 +145,17 @@
     }
 
     .dot-scale {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
-        Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(
+        --mono-font-family,
+        ui-monospace,
+        "SFMono-Regular",
+        "Menlo",
+        "Monaco",
+        "Consolas",
+        "Liberation Mono",
+        "Courier New",
+        monospace
+      );
       font-size: var(--font-size-sm);
       color: var(--gray-500);
     }

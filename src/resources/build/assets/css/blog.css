@@ -7,7 +7,12 @@
 }
 
 .blog-inhalt {
+  font-family: var(--article-font-family);
   margin-top: 24px;
+}
+
+.blog-inhalt :is(code, pre, kbd, samp) {
+  font-family: var(--mono-font-family);
 }
 
 .blog-inhalt > * + * {
