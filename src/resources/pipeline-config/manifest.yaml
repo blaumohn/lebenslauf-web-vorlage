@@ -97,6 +97,16 @@ variable-groups:
         desc: "Länge des Rate-Limit-Zeitfensters in Sekunden"
         example: "600"
 
+  url_token:
+    URL_TOKEN_DEFAULT_TTL_DAYS:
+      default: "90"
+      meta:
+        desc: "Standard-Gültigkeitsdauer neuer Token-Freigaben in Tagen"
+        notes: >-
+          Greift bei `token add`, wenn weder --ttl-days noch --no-expiry
+          angegeben ist.
+        example: "90"
+
   smtp:
     SMTP_HOST:
       meta:
@@ -198,6 +208,7 @@ phases:
     contact: "*"
     mail: "*"
     rate_limit: "*"
+    url_token: "*"
 
   deploy: {}
 

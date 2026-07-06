@@ -6,7 +6,6 @@ use App\Cli\Application;
 use App\Cli\CliContext;
 use App\Cli\Command\TokenCommand;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class TokenCommandTest extends TestCase
@@ -18,7 +17,10 @@ final class TokenCommandTest extends TestCase
         self::assertTrue($definition->hasArgument('pipeline'));
         self::assertTrue($definition->hasArgument('action'));
         self::assertTrue($definition->hasArgument('profile'));
-        self::assertTrue($definition->hasArgument('count'));
+        self::assertTrue($definition->hasArgument('value'));
+        self::assertTrue($definition->hasOption('label'));
+        self::assertTrue($definition->hasOption('ttl-days'));
+        self::assertTrue($definition->hasOption('no-expiry'));
     }
 
     public function testRejectsUnknownAction(): void
@@ -33,38 +35,18 @@ final class TokenCommandTest extends TestCase
         self::assertStringContainsString('Usage:', $tester->getDisplay());
     }
 
-    public function testBuildRotateArgsPassesTaskTypeFirst(): void
+    public function testRejectsMissingProfile(): void
     {
-        $input = $this->createStub(InputInterface::class);
-        $input->method('getArgument')->willReturnMap([
-            ['profile', 'gueltig'],
-            ['count', '1'],
-        ]);
+        $root = $this->makeTempRoot();
+        $tester = $this->testerForRoot($root);
+        $exitCode = $tester->execute(['pipeline' => 'dev', 'action' => 'add']);
+        $this->removeDir($root);
 
-        $method = new ReflectionMethod(TokenCommand::class, 'buildRotateArgs');
-        $args = $method->invoke(new TokenCommand($this->context()), $input);
-
-        self::assertSame('cv_token_rotation', $args[0]);
+        self::assertSame(1, $exitCode);
+        self::assertStringContainsString('Profil', $tester->getDisplay());
     }
 
-    public function testBuildRotateArgsPassesProfileAndCountFlags(): void
-    {
-        $input = $this->createStub(InputInterface::class);
-        $input->method('getArgument')->willReturnMap([
-            ['profile', 'gueltig'],
-            ['count', '3'],
-        ]);
-
-        $method = new ReflectionMethod(TokenCommand::class, 'buildRotateArgs');
-        $args = $method->invoke(new TokenCommand($this->context()), $input);
-
-        self::assertContains('--profile', $args);
-        self::assertContains('gueltig', $args);
-        self::assertContains('--count', $args);
-        self::assertContains('3', $args);
-    }
-
-    public function testRotatesLocallyForDevPipeline(): void
+    public function testAddsTokensLocallyForDevPipeline(): void
     {
         $root = $this->makeTempRoot();
         file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
@@ -72,7 +54,7 @@ final class TokenCommandTest extends TestCase
         $tester = $this->testerForRoot($root);
         $exitCode = $tester->execute([
             'pipeline' => 'dev',
-            'action'   => 'rotate',
+            'action'   => 'add',
             'profile'  => 'default',
         ]);
         $this->removeDir($root);
@@ -81,25 +63,81 @@ final class TokenCommandTest extends TestCase
         self::assertNotEmpty(trim($tester->getDisplay()), 'Kein Token ausgegeben');
     }
 
-    public function testRejectsLocalRotationWhenProfileEmpty(): void
-    {
-        $root = $this->makeTempRoot();
-        $tester = $this->testerForRoot($root);
-        $exitCode = $tester->execute(['pipeline' => 'dev', 'action' => 'rotate']);
-        $this->removeDir($root);
-
-        self::assertSame(1, $exitCode);
-        self::assertStringContainsString('Profil', $tester->getDisplay());
-    }
-
-    public function testRejectsLocalRotationForUnknownProfile(): void
+    public function testAddRejectsUnknownProfile(): void
     {
         $root = $this->makeTempRoot();
         $tester = $this->testerForRoot($root);
         $exitCode = $tester->execute([
             'pipeline' => 'dev',
-            'action'   => 'rotate',
+            'action'   => 'add',
             'profile'  => 'nichtvorhanden',
+        ]);
+        $this->removeDir($root);
+
+        self::assertSame(1, $exitCode);
+    }
+
+    public function testAddIsAdditiveAcrossInvocations(): void
+    {
+        $root = $this->makeTempRoot();
+        file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
+        $tester = $this->testerForRoot($root);
+
+        $tester->execute(['pipeline' => 'dev', 'action' => 'add', 'profile' => 'default']);
+        $tester->execute(['pipeline' => 'dev', 'action' => 'add', 'profile' => 'default']);
+
+        $listTester = $this->testerForRoot($root);
+        $listTester->execute(['pipeline' => 'dev', 'action' => 'list', 'profile' => 'default']);
+        $output = $listTester->getDisplay();
+        $this->removeDir($root);
+
+        self::assertSame(2, substr_count($output, 'label='));
+    }
+
+    public function testListReportsNoSharesForUnknownProfile(): void
+    {
+        $root = $this->makeTempRoot();
+        $tester = $this->testerForRoot($root);
+        $exitCode = $tester->execute(['pipeline' => 'dev', 'action' => 'list', 'profile' => 'unbekannt']);
+        $this->removeDir($root);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('Keine Freigaben', $tester->getDisplay());
+    }
+
+    public function testRevokeAllRemovesEveryShare(): void
+    {
+        $root = $this->makeTempRoot();
+        file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
+        $addTester = $this->testerForRoot($root);
+        $addTester->execute(['pipeline' => 'dev', 'action' => 'add', 'profile' => 'default']);
+
+        $revokeTester = $this->testerForRoot($root);
+        $exitCode = $revokeTester->execute([
+            'pipeline' => 'dev',
+            'action'   => 'revoke',
+            'profile'  => 'default',
+            'value'    => 'all',
+        ]);
+        $this->removeDir($root);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('Alle Freigaben entfernt', $revokeTester->getDisplay());
+    }
+
+    public function testRevokeWithoutMatchFails(): void
+    {
+        $root = $this->makeTempRoot();
+        file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
+        $addTester = $this->testerForRoot($root);
+        $addTester->execute(['pipeline' => 'dev', 'action' => 'add', 'profile' => 'default']);
+
+        $revokeTester = $this->testerForRoot($root);
+        $exitCode = $revokeTester->execute([
+            'pipeline' => 'dev',
+            'action'   => 'revoke',
+            'profile'  => 'default',
+            'value'    => 'nichtvorhanden',
         ]);
         $this->removeDir($root);
 

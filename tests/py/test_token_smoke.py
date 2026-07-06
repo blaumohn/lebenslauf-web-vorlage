@@ -43,7 +43,7 @@ class TokenSmokeTest(unittest.TestCase):
 
     def test_accepts_token_task_subject(self):
         token_smoke.assert_token_subject(
-            "[App/Task] Task abgeschlossen: 20260626T000000Z-cv_token_rotation"
+            "[App/Task] Task abgeschlossen: 20260626T000000Z-cv_token_add"
         )
 
     def test_rejects_unexpected_subject(self):

@@ -6,7 +6,7 @@ use App\Http\Task\TaskRunner;
 use App\Http\Task\Deploy\DeploySwitcher;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
 use App\Http\Task\Cv\CvPublishTaskHandler;
-use App\Http\Task\Token\CvTokenRotationTaskHandler;
+use App\Http\Task\Token\TokenTaskHandler;
 use App\Http\Captcha\CaptchaService;
 use App\Http\Mail\MailService;
 use App\Http\SiteHtmlCache;
@@ -18,7 +18,8 @@ use App\Http\Runtime\RuntimeLockRunner;
 use App\Http\Lang\LangResolver;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Slim\Psr7\Factory\ResponseFactory;
-use App\Http\Security\TokenRotationService;
+use App\Http\Security\CvTokenSubjectResolver;
+use App\Http\Security\TokenIssuanceService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
@@ -97,10 +98,10 @@ final class AppContext
         LoggerInterface $logger,
     ): TaskRunner {
         $switcher = new DeploySwitcher($writer, $lockRunner, $deployRoot);
-        $rotateHandler = new TokenRotationService($htmlCache, $tokenService);
+        $cvIssuanceService = new TokenIssuanceService(new CvTokenSubjectResolver($htmlCache), $tokenService);
         $handlers = [
             new DeploySwitchTaskHandler($switcher, $deployRoot),
-            new CvTokenRotationTaskHandler($rotateHandler),
+            new TokenTaskHandler($cvIssuanceService, 'cv'),
             new CvPublishTaskHandler($writer),
         ];
         return new TaskRunner($handlers, $appRoot, $mailService, $logger, $writer);

@@ -57,7 +57,7 @@ class TokenSmoke:
     def rotate_and_read_token(self, profile: str) -> str:
         total_before = self.mailpit.message_total()
         TaskDispatch(self.deploy_cfg).submit(
-            Task("cv_token_rotation", {"profile": profile, "count": "1"})
+            Task("cv_token_add", {"profile": profile, "count": "1"})
         )
         message = self.mailpit.wait_for_new_message(total_before)
         subject = message_subject(message)
@@ -88,7 +88,7 @@ def assert_token_subject(subject: str) -> None:
     if (
         "/Task]" not in subject
         or "Task abgeschlossen" not in subject
-        or "cv_token_rotation" not in subject
+        or "cv_token_add" not in subject
     ):
         raise RuntimeError(f"[token-smoke] Unerwartetes Mail-Subjekt: {subject!r}")
 

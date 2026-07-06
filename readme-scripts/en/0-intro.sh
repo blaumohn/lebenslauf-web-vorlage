@@ -1,8 +1,11 @@
 # # CV Web Template (PHP)
 #
-# PHP shared-hosting boilerplate „from `<div>` to DevOps" for small sites —
-# with a career-profile template as an example: **home page, resume,
-# contact, blog**.
+# Build, runtime, and deploy scaffold for small PHP shared-hosting sites.
+# The template layer (renderers, schemas) carries multilingual content; the
+# PHP runtime brings reusable modules such as token management, security
+# (rate limiting, CAPTCHA), and task dispatching. The current career-profile
+# template — **home page, resume, contact, blog** — is the first concrete
+# application on top of it.
 #
 # [ysdani.com](https://ysdani.com) runs this template in production — selected
 # operations and architecture decisions behind it are documented on the

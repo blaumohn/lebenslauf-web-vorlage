@@ -5,18 +5,19 @@ declare(strict_types=1);
 use App\Http\SiteHtmlCache;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
-use App\Http\Security\TokenRotationService;
+use App\Http\Security\CvTokenSubjectResolver;
+use App\Http\Security\TokenIssuanceService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use PHPUnit\Framework\TestCase;
 
-final class TokenRotateHandlerTest extends TestCase
+final class TokenIssuanceServiceTest extends TestCase
 {
     private string $tempDir;
 
     protected function setUp(): void
     {
-        $this->tempDir = sys_get_temp_dir() . '/handler-test-' . bin2hex(random_bytes(6));
+        $this->tempDir = sys_get_temp_dir() . '/issuance-test-' . bin2hex(random_bytes(6));
         mkdir($this->tempDir . '/html', 0775, true);
         mkdir($this->tempDir . '/tokens', 0775, true);
         mkdir($this->tempDir . '/locks', 0775, true);
@@ -29,52 +30,71 @@ final class TokenRotateHandlerTest extends TestCase
 
     public function testRejectsProfileWithoutPage(): void
     {
-        $handler = $this->handler();
+        $service = $this->service();
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('keine Lebenslauf-Seite');
+        $this->expectExceptionMessage('keine Seite');
 
-        $handler->rotate('kein-profil', 1);
+        $service->add('kein-profil', 1, null);
     }
 
     public function testRejectsInvalidProfileName(): void
     {
-        $handler = $this->handler();
+        // Profilname besteht die hasPrivate()-Prüfung (glob matcht Leerzeichen
+        // literal), muss aber an TokenServices Namensvalidierung scheitern.
+        file_put_contents($this->tempDir . '/html/cv-private-invalid profile.de.html', '<h1>Test</h1>');
+        $service = $this->service();
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Profilname ungültig');
 
-        $handler->rotate('../traversal', 1);
+        $service->add('invalid profile', 1, null);
     }
 
-    public function testRotatesTokensForExistingProfile(): void
+    public function testAddIssuesTokensForExistingProfile(): void
     {
         file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
 
-        $tokens = $this->handler()->rotate('test', 2);
+        $tokens = $this->service()->add('test', 2, null);
 
         $this->assertCount(2, $tokens);
         $this->assertNotSame($tokens[0], $tokens[1]);
     }
 
-    public function testRotatedTokenIsVerifiable(): void
+    public function testIssuedTokenIsVerifiable(): void
     {
         file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
         $tokenService = $this->tokenService();
 
-        $tokens = $this->handlerWith($tokenService)->rotate('test', 1);
+        $tokens = $this->serviceWith($tokenService)->add('test', 1, null);
 
         $this->assertTrue($tokenService->verify('test', $tokens[0]));
     }
 
-    private function handler(): TokenRotationService
+    public function testListAndRevokeDelegateToTokenService(): void
     {
-        return $this->handlerWith($this->tokenService());
+        file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
+        $tokenService = $this->tokenService();
+        $service = $this->serviceWith($tokenService);
+        $tokens = $service->add('test', 2, null, 'firma-x');
+
+        $this->assertCount(2, $service->list('test'));
+
+        $service->revokeAll('test');
+
+        $this->assertSame([], $service->list('test'));
+        $this->assertFalse($tokenService->verify('test', $tokens[0]));
     }
 
-    private function handlerWith(TokenService $tokenService): TokenRotationService
+    private function service(): TokenIssuanceService
+    {
+        return $this->serviceWith($this->tokenService());
+    }
+
+    private function serviceWith(TokenService $tokenService): TokenIssuanceService
     {
         $htmlCache = new SiteHtmlCache(new FileStorage(), $this->tempDir . '/html');
-        return new TokenRotationService($htmlCache, $tokenService);
+        return new TokenIssuanceService(new CvTokenSubjectResolver($htmlCache), $tokenService);
     }
 
     private function tokenService(): TokenService

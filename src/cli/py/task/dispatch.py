@@ -17,7 +17,9 @@ POLL_INTERVAL_S = 2
 POLL_TIMEOUT_S = 60
 
 TASK_SCHEMAS = {
-    "cv_token_rotation": {"profile": "default", "count": "1"},
+    "cv_token_add": {"profile": "default", "count": "1", "label": "", "expires_at": ""},
+    "cv_token_list": {"profile": "default"},
+    "cv_token_revoke": {"profile": "default", "identifier": ""},
     "deploy_switch": {"app": "", "vendor": "", "run_id": ""},
     "cv_publish": {},
 }
@@ -40,12 +42,12 @@ class TaskDispatch:
         except requests.exceptions.RequestException:
             return False
 
-    def submit(self, task: Task) -> None:
+    def submit(self, task: Task) -> str | None:
         with SftpClient(self._deploy) as client:
             app_root = self._resolve_app_root(client)
             self._enqueue(client, task, app_root)
             self._http_trigger()
-            self._await_result(client, task, app_root)
+            return self._await_result(client, task, app_root)
 
     def _resolve_app_root(self, client) -> str:
         slot_map = SlotStore(client).require_current_slot_map()
@@ -76,19 +78,21 @@ class TaskDispatch:
             _logger.error("HTTP-Auslöser nicht erreichbar: %s\n  Fehler: %s", url, exc)
             raise
 
-    def _await_result(self, client, task: Task, app_root: str) -> None:
+    def _await_result(self, client, task: Task, app_root: str) -> str | None:
         result_path = f"{app_root}/{_RESULT_SUBDIR}/{task.task_id}.result"
 
         def check_result():
             return self._check_result(client, result_path)
 
-        poll_until(check_result, timeout_s=POLL_TIMEOUT_S, interval_s=POLL_INTERVAL_S,
-                   label=task.task_id[:8])
+        content = poll_until(check_result, timeout_s=POLL_TIMEOUT_S, interval_s=POLL_INTERVAL_S,
+                              label=task.task_id[:8])
         self._log(f"Task bestätigt: {task.task_id[:8]}")
+        body = content[len('ok'):].lstrip('\n')
+        return body if body else None
 
     def _check_result(self, client, result_path: str) -> str | None:
         content = client.read_file(result_path).strip()
-        if content == "ok":
+        if content == "ok" or content.startswith("ok\n"):
             return content
         if content:
             raise RuntimeError(f"Task fehlgeschlagen: {content}")
@@ -110,7 +114,9 @@ def main() -> None:
     args = parse_args()
     cfg = PipelineCfg("deploy")
     task = Task(args.task_type, _build_params(args))
-    TaskDispatch(cfg).submit(task)
+    body = TaskDispatch(cfg).submit(task)
+    if body:
+        print(body)
 
 
 def _build_params(args: argparse.Namespace) -> dict:
@@ -124,8 +130,11 @@ def _build_params(args: argparse.Namespace) -> dict:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Task anmelden")
     parser.add_argument("task_type", choices=list(TASK_SCHEMAS))
-    parser.add_argument("--profile", help="Token-Profil (cv_token_rotation)")
-    parser.add_argument("--count", type=int, help="Anzahl Token (cv_token_rotation)")
+    parser.add_argument("--profile", help="Token-Profil (cv_token_add/list/revoke)")
+    parser.add_argument("--count", type=int, help="Anzahl Token (cv_token_add)")
+    parser.add_argument("--label", help="Bezeichnung der Freigabe (cv_token_add)")
+    parser.add_argument("--expires-at", dest="expires_at", help="Unix-Zeitstempel Ablauf (cv_token_add)")
+    parser.add_argument("--identifier", help="Hash-Präfix, Label oder 'all' (cv_token_revoke)")
     parser.add_argument("--app", help="App-Slot (deploy_switch)")
     parser.add_argument("--run-id", dest="run_id", help="Lauf-ID (deploy_switch)")
     parser.add_argument("--vendor", help="Vendor-Slot (deploy_switch)")

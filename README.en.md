@@ -4,9 +4,12 @@
 
 # CV Web Template (PHP)
 
-PHP shared-hosting boilerplate „from `<div>` to DevOps" for small sites —
-with a career-profile template as an example: **home page, resume,
-contact, blog**.
+Build, runtime, and deploy scaffold for small PHP shared-hosting sites.
+The template layer (renderers, schemas) carries multilingual content; the
+PHP runtime brings reusable modules such as token management, security
+(rate limiting, CAPTCHA), and task dispatching. The current career-profile
+template — **home page, resume, contact, blog** — is the first concrete
+application on top of it.
 
 [ysdani.com](https://ysdani.com) runs this template in production — selected
 operations and architecture decisions behind it are documented on the
@@ -51,7 +54,7 @@ The demo then runs on <http://127.0.0.1:8080/>.
 The private full view opens via a URL token, without login.
 
 ```bash
-token="$(cli token dev rotate demo)"
+token="$(cli token dev add demo)"
 curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
   | grep -q '</html>'
 ```

@@ -25,6 +25,13 @@ final class ResponseHelper
             ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
+    public static function redirect(ResponseInterface $response, string $location, int $status = 302): ResponseInterface
+    {
+        return $response
+            ->withStatus($status)
+            ->withHeader('Location', $location);
+    }
+
     public static function png(ResponseInterface $response, string $png): ResponseInterface
     {
         $stream = (new StreamFactory())->createStream($png);

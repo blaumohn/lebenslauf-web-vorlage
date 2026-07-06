@@ -5,6 +5,7 @@ footer:
     de: Keine Cookies. Keine Tracker. Kontakt nur per Formular.
     es: Sin cookies. Sin rastreadores. Contacto solo por formulario.
   built_with:
-    de: "gebaut mit der <div>-bis-DevOps-Boilerplate von Dani Y."
-    es: "construida con el boilerplate <div>-a-DevOps de Dani Y."
+    de: "Gebaut mit Website-Baukasten für Shared Hosting von Dani Y."
+    en: "Built with a shared-hosting website toolkit by Dani Y."
+    es: "Construido con un kit de sitios web para shared hosting de Dani Y."
   source_url: github.com/blaumohn/lebenslauf-web-vorlage

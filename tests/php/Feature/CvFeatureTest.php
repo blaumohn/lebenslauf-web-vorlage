@@ -84,10 +84,9 @@ final class CvFeatureTest extends FeatureTestCase
     {
         $app = $this->app();
         $profile = 'entw';
-        $token = 'secret-token';
 
         $tokenService = $this->buildTokenService();
-        $tokenService->rotate($profile, [$token]);
+        $token = $tokenService->add($profile, 1, null)[0];
 
         $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
         file_put_contents($htmlPath, '<h1>Private</h1>');
@@ -100,14 +99,43 @@ final class CvFeatureTest extends FeatureTestCase
         $this->assertStringContainsString('Private', (string) $response->getBody());
     }
 
+    public function testExpiredTokenRedirectsToPublicCvWithNotice(): void
+    {
+        $app = $this->app();
+        $profile = 'entw';
+
+        $tokenService = $this->buildTokenService();
+        $token = $tokenService->add($profile, 1, time() - 10)[0];
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/cv?token=' . urlencode($token) . '&lang=de');
+        $response = $app->handle($request);
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringContainsString('token_state=expired', $response->getHeaderLine('Location'));
+    }
+
+    public function testPublicCvShowsExpiredNoticeWhenRedirected(): void
+    {
+        $app = $this->app();
+        $htmlPath = $this->root . '/var/cache/html/cv-public-token-expired.de.html';
+        file_put_contents($htmlPath, '<h1>Public</h1><div class="system-notice">abgelaufen</div>');
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/cv?lang=de&token_state=expired');
+        $response = $app->handle($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('system-notice', (string) $response->getBody());
+    }
+
     public function testPrivateCvLanguageSelection(): void
     {
         $app = $this->app();
         $profile = 'entw';
-        $token = 'secret-token';
 
         $tokenService = $this->buildTokenService();
-        $tokenService->rotate($profile, [$token]);
+        $token = $tokenService->add($profile, 1, null)[0];
 
         $dePath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
         $esPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.es.html';

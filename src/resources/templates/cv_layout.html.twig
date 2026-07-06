@@ -14,6 +14,9 @@
 <body>
   <div class="page">
     {{ site_header|raw }}
+    {% if system_notice %}
+      <div class="system-notice">{{ system_notice }}</div>
+    {% endif %}
     <main>
       <article class="card">
         {% block content %}{% endblock %}

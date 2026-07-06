@@ -51,6 +51,30 @@ final class CvContentRendererTest extends TestCase
         $this->assertStringNotContainsString((string) $data['kopfdaten']['name'], $html);
     }
 
+    public function testPublicCvRendersSystemNoticeWhenGiven(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('de');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '', 'Diese Freigabe ist abgelaufen.');
+
+        $this->assertStringContainsString('Diese Freigabe ist abgelaufen.', $html);
+    }
+
+    public function testPublicCvOmitsSystemNoticeByDefault(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('de');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
+
+        $this->assertStringNotContainsString('system-notice', $html);
+    }
+
     public function testPrivateCvRendersFullCvName(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());

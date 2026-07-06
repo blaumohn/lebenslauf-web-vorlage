@@ -193,6 +193,13 @@ final class CvContentRenderer extends BaseContentRenderer
         $this->htmlCache->savePrivateHtmlForLang($profile, $html, $lang);
     }
 
+    /** @var array<string, string> */
+    private const TOKEN_EXPIRED_NOTICE_TEMPLATES = [
+        'de' => 'Diese Freigabe ist abgelaufen. Bitte %s kontaktieren, um eine neue zu erhalten.',
+        'en' => 'This share link has expired. Please contact %s to request a new one.',
+        'es' => 'Este enlace ha caducado. Ponte en contacto con %s para solicitar uno nuevo.',
+    ];
+
     private function renderPublicIfDefault(string $profile, string $lang, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
     {
         if (!$this->isDefaultProfile($profile)) {
@@ -201,9 +208,22 @@ final class CvContentRenderer extends BaseContentRenderer
         $siteHeader = $this->loadSiteHeader($lang);
         $siteNameKurz = $this->loadSiteNameKurz();
         $view = $this->viewBuilder->build($normalized);
+
         $html = $this->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter);
         $this->htmlCache->savePublicHtmlForLang($html, $lang);
+
+        $notice = $this->resolveTokenExpiredNotice($lang, $siteNameKurz);
+        $htmlWithNotice = $this->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter, $notice);
+        $this->htmlCache->savePublicHtmlWithNoticeForLang($htmlWithNotice, $lang);
+
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
+    }
+
+    private function resolveTokenExpiredNotice(string $lang, string $siteNameKurz): string
+    {
+        $template = self::TOKEN_EXPIRED_NOTICE_TEMPLATES[$lang]
+            ?? throw new \RuntimeException("Kein Token-Ablauf-Text für Sprache '{$lang}' hinterlegt.");
+        return sprintf($template, $siteNameKurz);
     }
 
     public function renderPrivate(array $data, array $labels, string $lang, string $cvFooter): string
@@ -213,12 +233,20 @@ final class CvContentRenderer extends BaseContentRenderer
         ]);
     }
 
-    public function renderPublic(array $data, array $labels, string $lang, string $siteHeader, string $siteNameKurz, string $cvFooter): string
-    {
+    public function renderPublic(
+        array $data,
+        array $labels,
+        string $lang,
+        string $siteHeader,
+        string $siteNameKurz,
+        string $cvFooter,
+        ?string $systemNotice = null,
+    ): string {
         return $this->twig->render('cv_public.html.twig', $this->baseVars($data, $labels, $lang) + [
             'site_header' => $siteHeader,
             'site_name_kurz' => $siteNameKurz,
             'cv_footer' => $cvFooter,
+            'system_notice' => $systemNotice,
         ]);
     }
 
