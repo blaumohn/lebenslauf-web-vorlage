@@ -60,6 +60,7 @@ final class HomeContentRenderer extends BaseContentRenderer
         $resolved = $this->pickLang($data, $lang);
         $html = $this->twig->render('home.html.twig', $resolved + [
             'lang'        => $lang,
+            'title'       => $resolved['titel'],
             'site_header' => $this->loadHeaderFragment($lang),
             'site_footer' => $this->loadFooterFragment($lang),
         ]);

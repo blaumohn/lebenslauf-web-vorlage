@@ -87,7 +87,10 @@ final class BlogPostRenderer extends BaseContentRenderer
             $resolved = $this->pickLang($post, $lang);
             $resolved['inhalt'] = $this->encodeCodeBlocks((string) $resolved['inhalt']);
             $slug = (string) $post['slug'];
-            $html = $this->twig->render('blog_post.html.twig', ['post' => $resolved] + $base);
+            $html = $this->twig->render('blog_post.html.twig', [
+                'post'  => $resolved,
+                'title' => $resolved['titel'],
+            ] + $base);
             $this->storage->writeText(Path::join($this->htmlPath(), $lang, $slug . '.html'), $html);
             $output->writeln("Blog-Post gerendert: {$slug} ({$lang}).");
         }

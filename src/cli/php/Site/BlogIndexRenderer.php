@@ -44,6 +44,7 @@ final class BlogIndexRenderer extends BaseContentRenderer
             $intro = $introData === null ? null : self::resolveBlogIntro($introData['intro'] ?? null, $lang);
             $html = $this->twig->render('blog_index.html.twig', [
                 'lang'        => $lang,
+                'title'       => 'Blog',
                 'site_header' => $this->loadHeaderFragment($lang),
                 'site_footer' => $this->loadFooterFragment($lang),
                 'intro'       => $intro,

@@ -50,9 +50,12 @@ final class LangSelectRenderer extends BaseContentRenderer
         $this->assertValid($data, self::SCHEMA, $output);
 
         $langs = $this->resolveLangs();
+        $translations = $this->buildTranslations($data, $langs);
+        $titles = array_column($translations, 'title');
         $html = $this->twig->render('lang-select.html.twig', [
             'supported_langs' => $langs,
-            'translations' => $this->buildTranslations($data, $langs),
+            'translations' => $translations,
+            'title' => implode(' / ', $titles),
         ]);
         $this->buildStorage()->saveLangSelectHtml($html);
         $output->writeln('Lang-Select gerendert.');
