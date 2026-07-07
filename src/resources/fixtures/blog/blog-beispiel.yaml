@@ -4,12 +4,16 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Zuverlässigkeit durch einfache Strukturen"
+  en: "Example post: reliability through simple structures"
   es: "Entrada de ejemplo: fiabilidad mediante estructuras simples"
 
 zusammenfassung:
   de: >
     Einfache, klar abgegrenzte Komponenten sind zuverlässiger als
     komplexe Systeme — ein Überblick über das Grundprinzip.
+  en: >
+    Simple, clearly separated components are more reliable than complex
+    systems: an overview of the basic principle.
   es: >
     Los componentes simples y bien delimitados son más fiables que los
     sistemas complejos: un resumen del principio básico.
@@ -22,6 +26,13 @@ inhalt:
     <p>Das gilt für Softwarekomponenten ebenso wie für Deployment-Prozesse
     und Datenstrukturen. Wer Komplexität reduziert, reduziert auch die Zahl
     der möglichen Fehlerpunkte.</p>
+  en: |
+    <p>Systems made up of a few clearly separated parts are easier to test,
+    understand and operate than systems where many responsibilities are
+    intertwined.</p>
+    <p>This applies to software components as much as to deployment processes
+    and data structures. Reducing complexity also reduces the number of
+    possible failure points.</p>
   es: |
     <p>Los sistemas formados por pocas partes bien delimitadas son más fáciles
     de probar, comprender y operar que aquellos en los que muchas

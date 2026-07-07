@@ -4,12 +4,16 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Testen als Entwurfswerkzeug"
+  en: "Example post: testing as a design tool"
   es: "Entrada de ejemplo: las pruebas como herramienta de diseño"
 
 zusammenfassung:
   de: >
     Tests schreiben bevor der Code fertig ist hilft dabei, Schnittstellen
     klarer zu definieren und Abhängigkeiten sichtbar zu machen.
+  en: >
+    Writing tests before the code is finished helps define interfaces more
+    clearly and make dependencies visible.
   es: >
     Escribir pruebas antes de que el código esté listo ayuda a definir
     interfaces con más claridad y a hacer visibles las dependencias.
@@ -23,6 +27,12 @@ inhalt:
     <p>Testbarkeit ist ein Zeichen guter Modularität. Schwer testbarer
     Code hat häufig zu viele Abhängigkeiten oder zu viele Aufgaben
     in einer Einheit.</p>
+  en: |
+    <p>Writing tests after the code only checks whether the implementation
+    works. Writing them first clarifies what a function should do up front,
+    and often reveals that the first design is harder to test than necessary.</p>
+    <p>Testability is a sign of good modularity. Code that is hard to test
+    often has too many dependencies or too many responsibilities in one unit.</p>
   es: |
     <p>Quien escribe pruebas después del código solo verifica si la
     implementación funciona. Quien las escribe primero aclara de antemano
