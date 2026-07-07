@@ -9,16 +9,29 @@
     --ink: #1f1f1f;
     --muted: #6b5f52;
     --accent: #234d62;
+    --article-font-family: "Georgia", "Times New Roman", serif;
+    --border-subtle: #d8cdc0;
+    --focus-ring: #0f5f8a;
+    --mono-font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas",
+      "Liberation Mono", monospace;
+    --surface: #fff;
+    --site-font-family: system-ui, -apple-system, "BlinkMacSystemFont",
+      "Segoe UI", sans-serif;
   }
 
   body {
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--site-font-family);
     color: var(--ink);
     background: var(--bg);
+    line-height: 1.55;
+    text-rendering: optimizelegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   a {
     color: var(--accent);
+    text-underline-offset: 0.16em;
   }
 
   ul,
@@ -40,15 +53,17 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 16px;
+    gap: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.25;
   }
 
-  .site nav a {
-    margin-right: 12px;
+  .site-nav a {
+    margin-right: 0.75rem;
     text-decoration: none;
   }
 
-  .site nav a:last-child {
+  .site-nav a:last-child {
     margin-right: 0;
   }
 
@@ -56,6 +71,7 @@
     .site {
       flex-direction: column;
       align-items: flex-start;
+      gap: 0.625rem;
     }
   }
 }
@@ -87,8 +103,31 @@
 @layer base {
   footer {
     margin-top: 32px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--muted);
+  }
+
+  .footer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .footer-meta span:not(:last-child)::after {
+    content: "|";
+    margin-left: 8px;
+    color: var(--muted);
+  }
+
+  @media (width <= 600px) {
+    .footer-meta {
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .footer-meta span:not(:last-child)::after {
+      content: none;
+    }
   }
 }
 
@@ -97,5 +136,36 @@
     font-weight: 600;
     text-decoration: none;
     color: inherit;
+  }
+
+  .lang-nav {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-family: var(--site-font-family);
+    font-size: 0.875rem;
+  }
+
+  .lang-item {
+    padding: 0.125rem 0.4rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    text-decoration: none;
+  }
+
+  .site .lang-nav a.lang-item {
+    margin-right: 0;
+    color: var(--muted);
+  }
+
+  .site .lang-nav a.lang-item:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .lang-current {
+    border-color: currentcolor;
+    color: var(--ink);
+    font-weight: 600;
   }
 }

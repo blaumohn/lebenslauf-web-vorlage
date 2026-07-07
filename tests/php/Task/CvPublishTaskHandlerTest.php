@@ -31,7 +31,7 @@ final class CvPublishTaskHandlerTest extends TestCase
     {
         $handler = $this->makeHandler();
         $this->assertTrue($handler->canHandle('cv_publish'));
-        $this->assertFalse($handler->canHandle('cv_token_rotation'));
+        $this->assertFalse($handler->canHandle('cv_token_add'));
     }
 
     public function testPublishesHtmlFilesToCache(): void

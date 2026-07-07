@@ -59,6 +59,41 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
         self::assertStringContainsString('sonderpfad', $tester->getDisplay());
     }
 
+    public function testBuildSiteAllowsTranslationsForDisabledLangs(): void
+    {
+        $this->prepareCustomContentRoot('custom-content-with-en');
+
+        $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
+        $exitCode = $tester->execute([
+            'pipeline'    => 'dev',
+            'task'        => 'site',
+            '--overrides' => json_encode(['CONTENT_PATH' => 'custom-content-with-en']),
+        ]);
+
+        self::assertSame(0, $exitCode, $tester->getDisplay());
+        self::assertSame('de,es', $this->readCompiledConfigValue('CONTENT_LANGS'));
+        $this->assertBuiltLangs(['de', 'es'], ['en']);
+    }
+
+    public function testBuildSiteUsesOnlyConfiguredLangs(): void
+    {
+        $this->prepareCustomContentRoot('custom-content-with-en');
+
+        $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
+        $exitCode = $tester->execute([
+            'pipeline'    => 'dev',
+            'task'        => 'site',
+            '--overrides' => json_encode([
+                'CONTENT_LANGS' => 'de,en',
+                'CONTENT_PATH'  => 'custom-content-with-en',
+            ]),
+        ]);
+
+        self::assertSame(0, $exitCode, $tester->getDisplay());
+        self::assertSame('de,en', $this->readCompiledConfigValue('CONTENT_LANGS'));
+        $this->assertBuiltLangs(['de', 'en'], ['es']);
+    }
+
     private function prepareCustomContentRoot(string $name): void
     {
         $root = $this->root . '/' . $name;
@@ -83,6 +118,21 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
             $this->projectRoot() . '/src/resources/contact/contact.yaml',
             $this->root . '/src/resources/contact/contact.yaml'
         );
+    }
+
+    private function assertBuiltLangs(array $enabledLangs, array $disabledLangs): void
+    {
+        foreach ($enabledLangs as $lang) {
+            self::assertFileExists($this->root . "/var/cache/html/home/{$lang}/index.html");
+            self::assertFileExists($this->root . "/var/cache/html/blog/{$lang}/index.html");
+            self::assertFileExists($this->root . "/var/cache/html/cv-private-sonderpfad.{$lang}.html");
+        }
+
+        foreach ($disabledLangs as $lang) {
+            self::assertFileDoesNotExist($this->root . "/var/cache/html/home/{$lang}/index.html");
+            self::assertFileDoesNotExist($this->root . "/var/cache/html/blog/{$lang}/index.html");
+            self::assertFileDoesNotExist($this->root . "/var/cache/html/cv-private-sonderpfad.{$lang}.html");
+        }
     }
 
     private function readCompiledConfigValue(string $key): mixed

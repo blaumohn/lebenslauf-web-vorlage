@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Cli\ConfigValues;
+use App\Cli\Site\LangSelectRenderer;
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;
 use App\Http\Runtime\RuntimeAtomicWriter;
@@ -12,6 +14,7 @@ use App\Http\AppBuilder;
 use App\Http\ConfigCompiled;
 use PHPUnit\Framework\TestCase;
 use Slim\App;
+use Symfony\Component\Console\Output\NullOutput;
 
 abstract class FeatureTestCase extends TestCase
 {
@@ -50,6 +53,16 @@ abstract class FeatureTestCase extends TestCase
             $this->root . '/var/state/locks',
         ]);
         $this->compileConfig();
+        $this->generateLangSelectFragment();
+    }
+
+    private function generateLangSelectFragment(): void
+    {
+        $config = new ConfigValues([
+            'CONTENT_LANGS' => 'de,es',
+            'APP_BASE_PATH' => '/',
+        ]);
+        (new LangSelectRenderer($config, $this->root))->render(new NullOutput());
     }
 
     protected function tearDown(): void

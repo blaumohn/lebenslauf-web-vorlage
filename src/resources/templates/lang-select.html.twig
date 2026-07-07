@@ -1,7 +1,5 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{% for lang in supported_langs %}{{ translations[lang].title }}{% if not loop.last %} / {% endif %}{% endfor %}{% endblock %}
-
 {% block content %}
 <div>
   <h1>{% for lang in supported_langs %}{{ translations[lang].heading }}{% if not loop.last %} / {% endif %}{% endfor %}</h1>

@@ -72,7 +72,9 @@ final class TaskRunner
         if ($taskId === '') {
             return;
         }
-        $content = $result->success ? 'ok' : 'error: ' . $result->body;
+        $content = $result->success
+            ? ($result->body === '' ? 'ok' : "ok\n" . $result->body)
+            : 'error: ' . $result->body;
         $path = $this->appRoot . '/' . self::RESULT_DIR . '/' . $taskId . '.result';
         $this->writer->writeText($path, $content, 0644);
     }

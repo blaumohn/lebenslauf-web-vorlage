@@ -1,6 +1,6 @@
 #!/bin/sh
 # shellcheck shell=sh
-# Pre-Commit-Hook: prueft readme-scripts/ <-> readme-scripts/en/ Sync.
+# Pre-Commit-Hook: generiert READMEs und prueft readme-scripts/ <-> readme-scripts/en/ Sync.
 # Einrichtung: sh scripts/install-hooks.sh
 set -eu
 
@@ -8,4 +8,5 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 
 cd "$REPO_ROOT"
+.venv/bin/python scripts/gen-readme.py
 .venv/bin/python scripts/check-readme-en-sync.py

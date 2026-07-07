@@ -9,7 +9,7 @@
 # Prerequisite: shared PHP hosting with SFTP and an SMTP account (e.g. Mailtrap).
 #
 # Show missing configuration values (examples/descriptions of the variables:
-# see [`manifest.yaml`](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/src/resources/pipeline-config/manifest.yaml);
+# see [`manifest.yaml`](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/src/resources/pipeline-config/manifest.yaml);
 # the values themselves belong in the GitHub repo secrets, not here):
 #
 # ```bash

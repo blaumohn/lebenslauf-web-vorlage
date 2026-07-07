@@ -16,24 +16,14 @@ final class ContactContentRenderer extends BaseContentRenderer
         return 'contact';
     }
 
+    public function schemaName(): string
+    {
+        return self::SCHEMA;
+    }
+
     public function validateContent(OutputInterface $output): bool
     {
-        $yamlPath = $this->dataPath();
-        if (!is_file($yamlPath)) {
-            $output->writeln("Contact: YAML fehlt ({$yamlPath}) — übersprungen.");
-            return true;
-        }
-        $data = Yaml::parseFile($yamlPath);
-        if (!is_array($data)) {
-            $output->writeln('<error>Contact: kein gültiges YAML-Mapping.</error>');
-            return false;
-        }
-        if ($this->checkValid($data, self::SCHEMA, $output)) {
-            $output->writeln('Contact: OK');
-            return true;
-        }
-        $output->writeln('<error>Contact: ungültig.</error>');
-        return false;
+        return $this->validateYamlFile($this->dataPath(), self::SCHEMA, 'Contact', $output);
     }
 
     public function render(OutputInterface $output): void

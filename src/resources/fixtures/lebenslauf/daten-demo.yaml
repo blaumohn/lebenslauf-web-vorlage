@@ -1,37 +1,36 @@
+oeffentlich: true
+
 kopfdaten:
-  name:
-    voll: Alex Beispiel
-    kurz: Alex B.
+  name: Alex Beispiel
   bereich:
     de: Softwareentwicklung im Web-Bereich
+    en: Software development for the web
     es: Desarrollo web
   ort: Berlin
   email: alex@example.com
   telefon: +49 151 12345678
   linkedin: https://linkedin.com/in/alexbeispiel
 
-fussbereich:
-  text:
-    de: "Preview der App von Dani Y."
-    es: "Preview de la app de Dani Y."
-  link: https://github.com/blaumohn/lebenslauf-web-vorlage
-
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.
+  en: I am a passionate developer focused on modern web technologies.
   es: Soy un desarrollador apasionado centrado en tecnologias web modernas.
 
 faehigkeiten:
   - stufe:
       de: Fortgeschritten
+      en: Advanced
       es: Avanzado
     wert: 5
     technologien:
       - JavaScript
       - TypeScript
       - de: Reaktive Komponenten
+        en: Reactive components
         es: Componentes reactivos
   - stufe:
       de: Grundlegend
+      en: Fundamental
       es: Básico
     wert: 4
     technologien:
@@ -39,9 +38,11 @@ faehigkeiten:
       - Git
       - CI/CD
       - de: Release-Automatisierung
+        en: Release automation
         es: Automatización de lanzamientos
   - stufe:
       de: Praxiserprobt
+      en: Proven in practice
       es: Probado en la práctica
     wert: 4
     technologien:
@@ -49,9 +50,11 @@ faehigkeiten:
       - Design Tokens
       - Browser-Kompatibilität
       - de: Technische Dokumentation
+        en: Technical documentation
         es: Documentación técnica
   - stufe:
       de: Aufbauend
+      en: Developing
       es: En desarrollo
     wert: 3
     technologien:
@@ -84,6 +87,9 @@ berufserfahrung:
           de: >-
             Tägliche Arbeit in einem cross-funktionalen Team mit Abstimmung
             zwischen Produkt, Entwicklung, Qualitätssicherung und Support.
+          en: >-
+            Daily work in a cross-functional team with coordination between
+            product, development, quality assurance and support.
           es: >-
             Trabajo diario en un equipo multifuncional con coordinación entre
             producto, desarrollo, control de calidad y soporte.
@@ -117,6 +123,7 @@ berufserfahrung:
           - React
         text:
           de: Entwicklung von interaktiven UI-Komponenten.
+          en: Developed interactive UI components.
           es: Desarrollé componentes de interfaz interactivos.
       - tags:
           - Formulare
@@ -126,6 +133,9 @@ berufserfahrung:
           de: >-
             Formularstrecken mit Pflichtfeldern, optionalen Angaben und
             verständlichen Fehlermeldungen aufgebaut.
+          en: >-
+            Built form flows with required fields, optional information and
+            understandable error messages.
           es: >-
             Creé flujos de formularios con campos obligatorios, datos
             opcionales y mensajes de error comprensibles.
@@ -150,6 +160,9 @@ berufserfahrung:
           de: >-
             Aufbau und Verwaltung von Datenbanken sowie Containerisierung der
             Anwendung für lokale Entwicklung, Testumgebungen und Demos.
+          en: >-
+            Built and managed databases and containerized the application for
+            local development, test environments and demos.
           es: >-
             Creé y administré bases de datos y contenedoricé la aplicación para
             desarrollo local, entornos de prueba y demostraciones.
@@ -202,6 +215,9 @@ berufserfahrung:
             Entwicklung von interaktiven Webkomponenten im Team, darunter
             Navigationszustände, kompakte Karten und wiederverwendbare
             Inhaltsmodule.
+          en: >-
+            Developed interactive web components within the team, including
+            navigation states, compact cards and reusable content modules.
           es: >-
             Desarrollé componentes web interactivos dentro del equipo,
             incluidos estados de navegación, tarjetas compactas y módulos de
@@ -292,36 +308,48 @@ sprachen:
     stufe: B1
   - sprache:
       de: Französisch
+      en: French
       es: Francés
     stufe:
       de: Grundkenntnisse
+      en: Basic knowledge
       es: Conocimientos básicos
 
 ausbildung:
   - uni:
       de: WIFI Wien
+      en: WIFI Vienna
       es: WIFI Viena
     beschreibung:
       de: >-
         Weiterbildung in Projektkoordination, Bürosoftware und
         digitaler Zusammenarbeit.
+      en: >-
+        Continuing education in project coordination, office software and
+        digital collaboration.
       es: >-
         Formación continua en coordinación de proyectos,
         software de oficina y colaboración digital.
   - grad:
       de: Zertifikat Webentwicklung
+      en: Web Development Certificate
       es: Certificado de Desarrollo Web
     uni: BFI Wien
   - grad:
       de: Berufsbegleitender Lehrgang UX-Grundlagen
+      en: Part-time course in UX fundamentals
       es: Curso paralelo al trabajo sobre fundamentos de UX
     uni:
       de: Volkshochschule Berlin
+      en: Berlin adult education center
       es: Universidad popular de Berlín
     beschreibung:
       de: >-
         Grundlagen zu Informationsarchitektur, Formularverständlichkeit und
         einfachen Usability-Tests.
+      en: >-
+        Fundamentals of information architecture, form clarity and simple
+        usability tests.
       es: >-
         Fundamentos de arquitectura de información, claridad de formularios y
         pruebas sencillas de usabilidad.
@@ -330,20 +358,28 @@ ausbildung:
       de: >-
         Mehrteilige Lernreihe zu CSS-Layout, responsiven Rastern und
         druckfreundlichen Webansichten.
+      en: >-
+        Multi-part learning series on CSS layout, responsive grids and
+        print-friendly web views.
       es: >-
         Serie de aprendizaje sobre diseño CSS, retículas responsivas y vistas
         web aptas para impresión.
 
 interessen:
   - de: Open Source
+    en: Open source
     es: Código abierto
   - de: Technologieblogs
+    en: Technology blogs
     es: Blogs de tecnologia
   - de: Barrierefreiheit
+    en: Accessibility
     es: Accesibilidad
   - de: Lokale Tech-Meetups
+    en: Local tech meetups
     es: Encuentros tecnológicos locales
   - de: Drucklayout und Typografie
+    en: Print layout and typography
     es: Diseño impreso y tipografía
 
 vortraege:
@@ -351,14 +387,17 @@ vortraege:
     datum: "2024"
     beschreibung:
       de: ABC Aventura Vortragsreihe
+      en: ABC Aventura talk series
       es: Serie de conferencias ABC Aventura
   - titel: "CSS für druckbare Weboberflächen"
     datum: "2023"
     beschreibung:
       de: Meetup für Frontend-Entwicklung und digitale Vorlagen
+      en: Meetup for frontend development and digital templates
       es: Encuentro sobre desarrollo frontend y plantillas digitales
   - titel: "Fixture-Daten als Layout-Werkzeug"
     datum: "2022"
     beschreibung:
       de: Interner Kurzvortrag zu Testdaten, Varianten und visueller Prüfung
+      en: Internal short talk on test data, variants and visual review
       es: Charla interna sobre datos de prueba, variantes y revisión visual

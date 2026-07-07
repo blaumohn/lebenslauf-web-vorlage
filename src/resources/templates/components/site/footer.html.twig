@@ -1,6 +1,12 @@
 <footer>
-  {% if footer1 %}
-    <div>{{ footer1 }}</div>
+  {% if privacy_note %}
+    <div>{{ privacy_note }}</div>
   {% endif %}
-  <div>{{ "now"|date("d.m.Y") }} {{ footer2 }} | <a href="{{ source_url }}">{{ source_url }}</a></div>
+  <div class="footer-meta">
+    <span>{{ "now"|date("d.m.Y") }} {{ attribution }}</span>
+    {% if built_with %}
+      <span>{{ built_with }}</span>
+    {% endif %}
+    <span><a href="{{ source_url }}">{{ source_url }}</a></span>
+  </div>
 </footer>

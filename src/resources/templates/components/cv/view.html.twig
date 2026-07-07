@@ -2,7 +2,7 @@
   {% import 'components/cv/lib.html.twig' as ui %}
   {% import 'components/cv/page.html.twig' as page %}
   {% import 'components/cv/sections.html.twig' as section %}
-  <header class="cv-header" aria-label="Lebenslauf">
+  <header class="cv-header" aria-label="{{ name }}">
     <div class="header-main">
       {{ ui.name_block(name, cv.kopfdaten.bereich) }}
     </div>

@@ -7,12 +7,3 @@
     {% endif %}
   </div>
 {% endmacro %}
-
-{% macro footer(name, footer) %}
-  <footer>
-    <span>{{ "now"|date("d.m.Y") }} {{ name }} | {{ footer.text }}</span>
-    {% if footer.show_link %}
-      | <a href="{{ footer.link }}" target="_blank" rel="noopener noreferrer">{{ footer.link }}</a>
-    {% endif %}
-  </footer>
-{% endmacro %}

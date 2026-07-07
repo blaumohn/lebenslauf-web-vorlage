@@ -10,7 +10,7 @@ final class SiteHeaderRenderer extends BaseContentRenderer
 {
     public function render(OutputInterface $output): void
     {
-        $siteName = $this->loadSiteName();
+        $siteName = $this->loadSiteNameKurz();
         $nav = $this->loadNav();
         $twig = $this->buildTwig();
         $storage = $this->buildStorage();
@@ -27,20 +27,6 @@ final class SiteHeaderRenderer extends BaseContentRenderer
             $storage->saveHeaderFragmentForLang($lang, $html);
             $output->writeln("Header-Fragment generiert ({$lang}).");
         }
-    }
-
-    private function loadSiteName(): string
-    {
-        $path = $this->siteYamlPath();
-        $data = Yaml::parseFile($path);
-        if (!is_array($data)) {
-            throw new \RuntimeException("Ungültiges site.yaml: {$path}");
-        }
-        $name = $data['name_kurz'] ?? null;
-        if ($name === null) {
-            throw new \RuntimeException("site.yaml: name_kurz fehlt");
-        }
-        return (string) $name;
     }
 
     private function loadNav(): array
@@ -89,10 +75,5 @@ final class SiteHeaderRenderer extends BaseContentRenderer
             throw new \RuntimeException("nav.yaml: Label fehlt für Sprache '{$lang}'");
         }
         return (string) $entry[$lang];
-    }
-
-    private function siteYamlPath(): string
-    {
-        return Path::join($this->resolveContentBase(), 'site', 'site.yaml');
     }
 }

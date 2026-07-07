@@ -106,7 +106,7 @@ final class ConcurrencyTest extends TestCase
     // TokenService
     // -------------------------------------------------------------------------
 
-    public function testTokenRotateTimesOutWhenLockBusy(): void
+    public function testTokenAddTimesOutWhenLockBusy(): void
     {
         $lock = $this->acquireLock('token_race_profile');
         $service = $this->buildTokenService();
@@ -115,34 +115,33 @@ final class ConcurrencyTest extends TestCase
         $this->expectExceptionMessage('Lock-Timeout');
 
         try {
-            $service->rotate('race_profile', ['tok1', 'tok2']);
+            $service->add('race_profile', 2, null);
         } finally {
             $lock->release();
         }
     }
 
-    public function testTokenRotateWritesAtomically(): void
+    public function testTokenAddWritesAtomically(): void
     {
         $service = $this->buildTokenService();
 
-        $service->rotate('write_profile', ['tok-a', 'tok-b']);
-        $hashes = $service->readHashes('write_profile');
+        $tokens = $service->add('write_profile', 2, null);
 
-        $this->assertCount(2, $hashes);
-        $this->assertTrue($service->verify('write_profile', 'tok-a'));
+        $this->assertCount(2, $service->list('write_profile'));
+        $this->assertTrue($service->verify('write_profile', $tokens[0]));
         $this->assertFalse($service->verify('write_profile', 'tok-x'));
     }
 
     public function testTokenReadOperationsNeedNoLock(): void
     {
         $service = $this->buildTokenService();
-        $service->rotate('read_profile', ['tok-read']);
+        $tokens = $service->add('read_profile', 1, null);
 
         $lock = $this->acquireLock('token_read_profile');
 
         try {
-            $verified = $service->verify('read_profile', 'tok-read');
-            $found = $service->findProfileForToken('tok-read');
+            $verified = $service->verify('read_profile', $tokens[0]);
+            $found = $service->findProfileForToken($tokens[0]);
         } finally {
             $lock->release();
         }

@@ -34,8 +34,9 @@ variable-groups:
       meta:
         desc: "Wurzelpfad aller Inhaltsdaten"
         notes: >-
-          Unterverzeichnisse werden je Inhaltstyp automatisch aufgelöst:
-          lebenslauf/, blog/, home/home.yaml.
+          Unterverzeichnisnamen (z. B. lebenslauf/, blog/, home/home.yaml)
+          sind Konvention der jeweiligen Vorlage, hart codiert in ihren
+          Renderer-Klassen, keine hier abgebildete generische Auflösung.
           Absoluter oder relativer Pfad (relativ zu app-root).
         example: ".local"
     CONTENT_LANGS:
@@ -45,16 +46,6 @@ variable-groups:
           Muss die Standard-Sprache enthalten und zum vorhandenen
           Übersetzungsstand der Labels passen.
         example: "de,en"
-
-  lebenslauf:
-    LEBENSLAUF_PUBLIC_PROFILE:
-      meta:
-        desc: "Profilname für den öffentlichen Lebenslauf"
-        notes: >-
-          Nur im Build relevant. Das Profil muss zu einer vorhandenen
-          daten-<profil>.yaml-Datei im CV-Unterverzeichnis passen.
-          Wird entfallen, sobald Token-URLs als Modul extrahiert sind.
-        example: "default"
 
   captcha:
     CAPTCHA_TTL_SECONDS:
@@ -96,6 +87,16 @@ variable-groups:
       meta:
         desc: "Länge des Rate-Limit-Zeitfensters in Sekunden"
         example: "600"
+
+  url_token:
+    URL_TOKEN_DEFAULT_TTL_DAYS:
+      default: "90"
+      meta:
+        desc: "Standard-Gültigkeitsdauer neuer Token-Freigaben in Tagen"
+        notes: >-
+          Greift bei `token add`, wenn weder --ttl-days noch --no-expiry
+          angegeben ist.
+        example: "90"
 
   smtp:
     SMTP_HOST:
@@ -185,7 +186,6 @@ phases:
     app:
       - APP_BASE_PATH
     content: "*"
-    lebenslauf: "*"
 
   runtime:
     app:
@@ -198,14 +198,12 @@ phases:
     contact: "*"
     mail: "*"
     rate_limit: "*"
+    url_token: "*"
 
   deploy: {}
 
 pipelines:
   dev:
-    setup:
-      lebenslauf:
-        - LEBENSLAUF_PUBLIC_PROFILE
     runtime:
       smtp:
         - SMTP_FROM_NAME

@@ -4,12 +4,16 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Explizite Verträge statt stiller Annahmen"
-  es: "Entrada de ejemplo: contratos explícitos en lugar de suposiciones silenciosas"
+  en: "Example post: explicit contracts instead of silent assumptions"
+  es: "Entrada: contratos explícitos en lugar de suposiciones tácitas"
 
 zusammenfassung:
   de: >
     Implizite Annahmen über Datenformate und Schnittstellen sind eine häufige
     Fehlerquelle. Explizite Validierung macht Fehler früh und klar sichtbar.
+  en: >
+    Implicit assumptions about data formats and interfaces are a common source
+    of errors. Explicit validation makes errors visible early and clearly.
   es: >
     Las suposiciones implícitas sobre formatos de datos e interfaces son una
     fuente habitual de errores. La validación explícita hace que los errores
@@ -23,6 +27,12 @@ inhalt:
     <p>Explizite Validierung an den Systemgrenzen — beim Einlesen von
     Konfiguration, Nutzereingaben oder externen Daten — macht Verstöße
     sofort sichtbar und vermeidet stille Fehlerzustände.</p>
+  en: |
+    <p>When code silently assumes that a field is present or that a value has
+    a specific format, errors appear late and far away from their origin.</p>
+    <p>Explicit validation at system boundaries, when reading configuration,
+    user input or external data, makes violations visible immediately and
+    avoids silent error states.</p>
   es: |
     <p>Cuando el código asume en silencio que un campo está presente o que un
     valor tiene un formato determinado, los errores aparecen tarde y lejos

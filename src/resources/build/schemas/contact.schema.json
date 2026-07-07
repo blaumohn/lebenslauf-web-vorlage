@@ -4,14 +4,6 @@
   "additionalProperties": false,
   "required": ["intro"],
   "properties": {
-    "intro": { "$ref": "#/definitions/intlString" }
-  },
-  "definitions": {
-    "intlString": {
-      "oneOf": [
-        { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
-      ]
-    }
+    "intro": { "$ref": "common.schema.json#/definitions/intlString" }
   }
 }

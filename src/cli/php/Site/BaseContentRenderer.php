@@ -2,19 +2,15 @@
 
 namespace App\Cli\Site;
 
-use App\Cli\ConfigValues;
 use App\Http\SiteHtmlCache;
-use App\Http\SchemaValidator;
 use App\Http\Storage\FileStorage;
 use App\Http\Templating\TwigFactory;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
 
-abstract class BaseContentRenderer implements ContentRendererInterface
+abstract class BaseContentRenderer extends BaseSchemaValidator implements ContentRendererInterface
 {
-    public function __construct(protected ConfigValues $config, protected string $rootPath) {}
-
     public function sectionKey(): ?string
     {
         return null;
@@ -68,15 +64,6 @@ abstract class BaseContentRenderer implements ContentRendererInterface
         return $first !== false ? $first : '';
     }
 
-    protected function resolveContentBase(): string
-    {
-        $value = $this->config->get('CONTENT_PATH');
-        if ($value === '') {
-            throw new \RuntimeException('Konfiguration fehlt: CONTENT_PATH');
-        }
-        return Path::isAbsolute($value) ? $value : Path::join($this->rootPath, $value);
-    }
-
     protected function resolveBasePath(): string
     {
         $value = $this->config->get('APP_BASE_PATH');
@@ -110,30 +97,27 @@ abstract class BaseContentRenderer implements ContentRendererInterface
             ?? throw new \RuntimeException("Footer-Fragment fehlt ({$lang}). SiteFooterRenderer muss zuerst laufen.");
     }
 
-    public function validateContent(OutputInterface $output): bool
+    protected function siteYamlPath(): string
     {
-        return true;
+        return Path::join($this->resolveContentBase(), 'site', 'site.yaml');
     }
 
-    protected function assertValid(mixed $data, string $schemaName, OutputInterface $output): void
+    protected function loadSiteYaml(): array
     {
-        if ($this->checkValid($data, $schemaName, $output)) {
-            return;
+        $path = $this->siteYamlPath();
+        $data = Yaml::parseFile($path);
+        if (!is_array($data)) {
+            throw new \RuntimeException("Ungültiges site.yaml: {$path}");
         }
-        throw new \RuntimeException("{$schemaName}: Schema-Validierung fehlgeschlagen.");
+        return $data;
     }
 
-    protected function checkValid(mixed $data, string $schemaName, OutputInterface $output): bool
+    protected function loadSiteNameKurz(): string
     {
-        $schemaPath = Path::join($this->rootPath, 'src', 'resources', 'build', 'schemas', $schemaName);
-        $errors = (new SchemaValidator($schemaPath))->validate($data);
-        if ($errors === []) {
-            return true;
+        $name = $this->loadSiteYaml()['name_kurz'] ?? null;
+        if ($name === null || $name === '') {
+            throw new \RuntimeException("site.yaml: name_kurz fehlt");
         }
-        $output->writeln("<error>{$schemaName}: Schema-Validierung fehlgeschlagen:</error>");
-        foreach ($errors as $error) {
-            $output->writeln("  - {$error}");
-        }
-        return false;
+        return (string) $name;
     }
 }

@@ -3,11 +3,19 @@
     .entry {
       --entry-meta-end-offset: 3%;
       --entry-text-end-reserve: 10%;
+      --entry-between-gap: 0.5rem;
+      --entry-group-indent: 1rem;
+      --entry-group-line-width: 0.25rem;
+      --entry-group-offset: 0.5rem;
       --language-item-max-width: 10rem;
 
       display: flex;
       flex-direction: column;
       gap: 0;
+    }
+
+    .entry + .entry {
+      margin-top: var(--entry-between-gap);
     }
 
     .entry-company-line,
@@ -19,7 +27,7 @@
     }
 
     .entry-header {
-      margin-bottom: 12px;
+      margin-bottom: 0.75rem;
     }
 
     .entry-content {
@@ -66,13 +74,23 @@
     }
 
     .entry-group {
-      border-left: 4px solid var(--gray-400);
-      padding-left: 16px;
-      margin-top: 8px;
+      border-left: var(--entry-group-line-width) solid var(--gray-400);
+      padding-left: var(--entry-group-indent);
+      margin-top: var(--entry-group-offset);
+    }
+
+    .entry:has(> .entry-group):has(+ .entry > .entry-group) > .entry-group {
+      --entry-group-bridge: calc(
+        var(--section-body-gap) + var(--entry-between-gap) +
+        var(--entry-group-offset)
+      );
+
+      padding-bottom: var(--entry-group-bridge);
+      margin-bottom: calc(-1 * var(--entry-group-bridge));
     }
 
     .entry-tags {
-      padding-left: 16px;
+      padding-left: 1rem;
     }
 
     .entry-points {
@@ -86,7 +104,7 @@
     }
 
     .entry-point + .entry-point {
-      margin-top: 10px;
+      margin-top: 0.625rem;
     }
 
     .entry-list {
@@ -97,16 +115,16 @@
     .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 0.5rem;
       font-size: var(--font-size-sm);
       color: var(--gray-700);
     }
 
     .tag {
-      padding: 2px 8px;
+      padding: 0.125rem 0.5rem;
       border: 0;
-      border-radius: 4px;
-      background: #e5e7eb;
+      border-radius: 0.25rem;
+      background: var(--color-tag-bg);
     }
 
     .skill-group {
@@ -123,12 +141,21 @@
 
     .skill-group .dot-scale,
     .skill-group .tag-list {
-      padding-left: 4px;
+      padding-left: 0.25rem;
     }
 
     .dot-scale {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
-        Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(
+        --mono-font-family,
+        ui-monospace,
+        "SFMono-Regular",
+        "Menlo",
+        "Monaco",
+        "Consolas",
+        "Liberation Mono",
+        "Courier New",
+        monospace
+      );
       font-size: var(--font-size-sm);
       color: var(--gray-500);
     }
@@ -137,7 +164,7 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 0.5rem;
       font-size: var(--font-size-sm);
       color: var(--gray-800);
       line-height: var(--line-height-tight);
@@ -148,7 +175,7 @@
       display: flex;
       max-width: var(--language-item-max-width);
       justify-content: space-between;
-      gap: 2px 8px;
+      gap: 0.125rem 0.5rem;
       line-height: var(--line-height-tight);
     }
 

@@ -20,14 +20,33 @@ validate_header() {
 }
 
 validate_body() {
-    line_no=0
+    line_no=1
+    seen_bullet=0
+    prev_blank=1
+    in_paragraph=0
     sed '1d' "$MESSAGE_FILE" | while IFS= read -r line; do
-        line_no=$((line_no + 2))
-        [ -z "$line" ] && continue
+        line_no=$((line_no + 1))
+        if [ -z "$line" ]; then
+            prev_blank=1
+            in_paragraph=0
+            continue
+        fi
         case "$line" in
-            "- "*) continue ;;
+            "- "*)
+                seen_bullet=1
+                prev_blank=0
+                in_paragraph=0
+                continue
+                ;;
         esac
-        fail "Body-Zeile $line_no muss leer sein oder mit '- ' beginnen."
+        if [ "$seen_bullet" -eq 1 ]; then
+            if [ "$prev_blank" -eq 1 ] || [ "$in_paragraph" -eq 1 ]; then
+                prev_blank=0
+                in_paragraph=1
+                continue
+            fi
+        fi
+        fail "Body-Zeile $line_no muss leer sein, mit '- ' beginnen oder ein durch Leerzeile abgetrennter Stichpunkt-Körper sein."
     done
 }
 

@@ -7,9 +7,6 @@ content:
   CONTENT_PATH: src/resources/fixtures
   CONTENT_LANGS: "de,es"
 
-lebenslauf:
-  LEBENSLAUF_PUBLIC_PROFILE: demo
-
 captcha:
   CAPTCHA_TTL_SECONDS: 600
   CAPTCHA_MAX_GET: 20

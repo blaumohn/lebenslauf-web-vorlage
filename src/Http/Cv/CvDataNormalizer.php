@@ -27,10 +27,6 @@ final class CvDataNormalizer
 
     private function normalizeArray(array $value): mixed
     {
-        if ($this->isNameObject($value)) {
-            return $this->normalizeNameObject($value);
-        }
-
         if ($this->isIntlString($value)) {
             return $this->pickLang($value);
         }
@@ -40,19 +36,6 @@ final class CvDataNormalizer
             $normalized[$key] = $this->normalizeValue($item);
         }
         return $normalized;
-    }
-
-    private function normalizeNameObject(array $value): array
-    {
-        return [
-            'voll' => $this->normalizeValue($value['voll'] ?? ''),
-            'kurz' => $this->normalizeValue($value['kurz'] ?? ''),
-        ];
-    }
-
-    private function isNameObject(array $value): bool
-    {
-        return array_key_exists('voll', $value) || array_key_exists('kurz', $value);
     }
 
     private function isIntlString(array $value): bool

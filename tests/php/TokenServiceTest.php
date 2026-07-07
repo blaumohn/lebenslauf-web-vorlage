@@ -23,43 +23,131 @@ final class TokenServiceTest extends TestCase
         $this->removeDir($this->tempDir);
     }
 
-    public function testRotateAndVerify(): void
+    public function testAddAndVerify(): void
     {
-        $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner($this->tempDir);
-        $writer = new RuntimeAtomicWriter();
-        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
+        $service = $this->service();
 
-        $tokens = ['alpha', 'beta'];
-        $service->rotate('DEFAULT', $tokens);
+        $tokens = $service->add('DEFAULT', 2, null);
 
-        $this->assertTrue($service->verify('DEFAULT', 'alpha'));
+        $this->assertTrue($service->verify('DEFAULT', $tokens[0]));
+        $this->assertTrue($service->verify('DEFAULT', $tokens[1]));
         $this->assertFalse($service->verify('DEFAULT', 'gamma'));
     }
 
-    public function testRotateRejectsInvalidProfileName(): void
+    public function testAddIsAdditiveAndDoesNotRemoveExistingTokens(): void
     {
-        $storage = new FileStorage();
-        $lockRunner = new RuntimeLockRunner($this->tempDir);
-        $writer = new RuntimeAtomicWriter();
-        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
+        $service = $this->service();
+
+        $first = $service->add('DEFAULT', 1, null);
+        $second = $service->add('DEFAULT', 1, null);
+
+        $this->assertTrue($service->verify('DEFAULT', $first[0]));
+        $this->assertTrue($service->verify('DEFAULT', $second[0]));
+        $this->assertCount(2, $service->list('DEFAULT'));
+    }
+
+    public function testAddRejectsInvalidProfileName(): void
+    {
+        $service = $this->service();
 
         $this->expectException(\InvalidArgumentException::class);
-        $service->rotate('../traversal', ['token']);
+        $service->add('../traversal', 1, null);
+    }
+
+    public function testExpiredTokenIsRejected(): void
+    {
+        $service = $this->service();
+
+        $tokens = $service->add('DEFAULT', 1, time() - 10);
+
+        $this->assertFalse($service->verify('DEFAULT', $tokens[0]));
+        $this->assertNull($service->findProfileForToken($tokens[0]));
+    }
+
+    public function testTokenWithoutExpiryStaysValid(): void
+    {
+        $service = $this->service();
+
+        $tokens = $service->add('DEFAULT', 1, null);
+
+        $this->assertTrue($service->verify('DEFAULT', $tokens[0]));
     }
 
     public function testFindProfileForToken(): void
     {
+        $service = $this->service();
+
+        $tokenA = $service->add('A', 1, null)[0];
+        $tokenB = $service->add('B', 1, null)[0];
+
+        $this->assertSame('B', $service->findProfileForToken($tokenB));
+        $this->assertSame('A', $service->findProfileForToken($tokenA));
+        $this->assertNull($service->findProfileForToken('unknown'));
+    }
+
+    public function testListReturnsLabelAndTimestamps(): void
+    {
+        $service = $this->service();
+        $service->add('DEFAULT', 1, 1234567890, 'firma-x');
+
+        $entries = $service->list('DEFAULT');
+
+        $this->assertCount(1, $entries);
+        $this->assertSame('firma-x', $entries[0]['label']);
+        $this->assertSame(1234567890, $entries[0]['expires_at']);
+    }
+
+    public function testRevokeByHashPrefixRemovesOnlyMatchingEntry(): void
+    {
+        $service = $this->service();
+        $kept = $service->add('DEFAULT', 1, null, 'kept')[0];
+        $removed = $service->add('DEFAULT', 1, null, 'removed')[0];
+        $prefix = substr(hash('sha256', $removed), 0, 12);
+
+        $count = $service->revoke('DEFAULT', $prefix);
+
+        $this->assertSame(1, $count);
+        $this->assertTrue($service->verify('DEFAULT', $kept));
+        $this->assertFalse($service->verify('DEFAULT', $removed));
+    }
+
+    public function testRevokeByLabelRemovesMatchingEntries(): void
+    {
+        $service = $this->service();
+        $service->add('DEFAULT', 1, null, 'firma-x');
+        $kept = $service->add('DEFAULT', 1, null, 'firma-y')[0];
+
+        $count = $service->revoke('DEFAULT', 'firma-x');
+
+        $this->assertSame(1, $count);
+        $this->assertTrue($service->verify('DEFAULT', $kept));
+    }
+
+    public function testRevokeWithoutMatchReturnsZero(): void
+    {
+        $service = $this->service();
+        $service->add('DEFAULT', 1, null);
+
+        $this->assertSame(0, $service->revoke('DEFAULT', 'nichtvorhanden'));
+    }
+
+    public function testRevokeAllRemovesEverything(): void
+    {
+        $service = $this->service();
+        $tokens = $service->add('DEFAULT', 2, null);
+
+        $service->revokeAll('DEFAULT');
+
+        $this->assertSame([], $service->list('DEFAULT'));
+        $this->assertFalse($service->verify('DEFAULT', $tokens[0]));
+    }
+
+    private function service(): TokenService
+    {
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($this->tempDir);
         $writer = new RuntimeAtomicWriter();
-        $service = new TokenService($storage, $lockRunner, $writer, $this->tempDir);
-
-        $service->rotate('A', ['token-a']);
-        $service->rotate('B', ['token-b']);
-
-        $this->assertSame('B', $service->findProfileForToken('token-b'));
-        $this->assertNull($service->findProfileForToken('unknown'));
+        return new TokenService($storage, $lockRunner, $writer, $this->tempDir);
     }
 
     private function removeDir(string $dir): void

@@ -3,6 +3,7 @@
 namespace App\Cli\Command;
 
 use App\Cli\Site\SiteBuildService;
+use App\Cli\Site\SiteValidateService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -55,6 +56,11 @@ final class BuildCommand extends BasePipelinePhaseCommand
     private function runSiteOnly(OutputInterface $output): int
     {
         if (!$this->compileRuntimeConfig($output)) {
+            return Command::FAILURE;
+        }
+        $validator = SiteValidateService::create($this->commandConfig(), $this->appRoot());
+        if (!$validator->validate($output)) {
+            $output->writeln('<error>Site-Inhalte ungültig — Build abgebrochen.</error>');
             return Command::FAILURE;
         }
         $service = SiteBuildService::create($this->commandConfig(), $this->appRoot());

@@ -149,7 +149,7 @@ final class ContactSubmitAction
         $error = $isDeployHint
             ? 'Die Seite wurde aktualisiert. Bitte das Formular erneut absenden.'
             : 'Bitte alle Felder korrekt ausfüllen.';
-        $status = $isDeployHint ? 200 : 403;
+        $status = 400;
         return $this->renderContactForm($request, $response, $ipHash, $this->formValues($form), $error, $status);
     }
 

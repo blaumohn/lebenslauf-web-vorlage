@@ -7,7 +7,8 @@ use App\Http\SiteHtmlCache;
 use App\Http\Mail\MailService;
 use App\Http\Runtime\RuntimeAtomicWriter;
 use App\Http\Runtime\RuntimeLockRunner;
-use App\Http\Security\TokenRotationService;
+use App\Http\Security\CvTokenSubjectResolver;
+use App\Http\Security\TokenIssuanceService;
 use App\Http\Security\TokenService;
 use App\Http\Storage\FileStorage;
 use App\Http\Task\Deploy\DeploySwitchTaskHandler;
@@ -15,7 +16,7 @@ use App\Http\Task\Deploy\DeploySwitcher;
 use App\Http\Task\Deploy\SlotSwitchCommand;
 use App\Http\Task\QueuedTask;
 use App\Http\Task\QueuedTaskFile;
-use App\Http\Task\Token\CvTokenRotationTaskHandler;
+use App\Http\Task\Token\TokenTaskHandler;
 use App\Http\Task\TaskRunner;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -112,14 +113,14 @@ final class TaskDeployTest extends TestCase
         QueuedTaskFile::load($file);
     }
 
-    public function testQueuedTaskFileParsesTokenRotationIniFormat(): void
+    public function testQueuedTaskFileParsesTokenAddIniFormat(): void
     {
-        $ini = "[task]\ntype = cv_token_rotation\nprofile = default\ncount = 1\n\n";
+        $ini = "[task]\ntype = cv_token_add\nprofile = default\ncount = 1\n\n";
         $file = $this->writeTempIni($ini);
 
         $task = QueuedTaskFile::load($file);
 
-        $this->assertSame('cv_token_rotation', $task->type());
+        $this->assertSame('cv_token_add', $task->type());
         $this->assertSame('default', $task->get('profile'));
         $this->assertSame('1', $task->get('count'));
     }
@@ -131,7 +132,7 @@ final class TaskDeployTest extends TestCase
         $handler = $this->buildDeploySwitchHandler();
 
         $this->assertTrue($handler->canHandle('deploy_switch'));
-        $this->assertFalse($handler->canHandle('cv_token_reset'));
+        $this->assertFalse($handler->canHandle('cv_token_add'));
     }
 
     public function testDeploySwitchTaskHandlerPerformsSwitch(): void
@@ -216,22 +217,22 @@ final class TaskDeployTest extends TestCase
         $this->assertFileExists($this->dir . '/.htaccess');
     }
 
-    public function testTaskRunnerProcessesAndDeletesTokenRotationTask(): void
+    public function testTaskRunnerProcessesAndDeletesTokenAddTask(): void
     {
         $profile = 'default';
         file_put_contents($this->dir . '/var/cache/html/cv-private-' . $profile . '.de.html', '<html/>');
         $taskDir = $this->dir . '/var/tasks';
         mkdir($taskDir, 0775, true);
-        $taskFile = $taskDir . '/20260505T000000Z-cv-token-rotation.ini';
-        file_put_contents($taskFile, "[task]\ntype=cv_token_rotation\nprofile={$profile}\ncount=1\n");
+        $taskFile = $taskDir . '/20260505T000000Z-cv-token-add.ini';
+        file_put_contents($taskFile, "[task]\ntype=cv_token_add\nprofile={$profile}\ncount=1\n");
 
         [$count] = $this->runRunnerCapturingOutput(
-            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+            new TaskRunner([$this->buildTokenAddHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
         );
 
         $this->assertSame(1, $count);
         $this->assertFileDoesNotExist($taskFile);
-        $this->assertFileExists($this->dir . '/var/state/tokens/' . $profile . '.txt');
+        $this->assertFileExists($this->dir . '/var/state/tokens/' . $profile . '.json');
     }
 
     public function testTaskRunnerWritesErrorResultWhenHandlerThrows(): void
@@ -241,14 +242,14 @@ final class TaskDeployTest extends TestCase
         $resultDir = $this->dir . '/var/tasks/results';
         mkdir($taskDir, 0775, true);
         mkdir($resultDir, 0775, true);
-        $taskFile = $taskDir . '/20260529T000000Z-cv-token-rotation.ini';
+        $taskFile = $taskDir . '/20260529T000000Z-cv-token-add.ini';
         file_put_contents(
             $taskFile,
-            "[task]\ntype=cv_token_rotation\ntask_id={$taskId}\nprofile=unbekannt\ncount=1\n"
+            "[task]\ntype=cv_token_add\ntask_id={$taskId}\nprofile=unbekannt\ncount=1\n"
         );
 
         $this->runRunnerCapturingOutput(
-            new TaskRunner([$this->buildTokenRotationHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
+            new TaskRunner([$this->buildTokenAddHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
         );
 
         $resultFile = $resultDir . '/' . $taskId . '.result';
@@ -294,14 +295,15 @@ final class TaskDeployTest extends TestCase
         return new DeploySwitchTaskHandler($switcher, $this->dir);
     }
 
-    private function buildTokenRotationHandler(): CvTokenRotationTaskHandler
+    private function buildTokenAddHandler(): TokenTaskHandler
     {
         $storage = new FileStorage();
         $lockRunner = new RuntimeLockRunner($this->dir . '/var/state/locks');
         $writer = new RuntimeAtomicWriter();
         $htmlCache = new SiteHtmlCache($storage, $this->dir . '/var/cache/html');
         $tokenService = new TokenService($storage, $lockRunner, $writer, $this->dir . '/var/state/tokens');
-        return new CvTokenRotationTaskHandler(new TokenRotationService($htmlCache, $tokenService));
+        $issuanceService = new TokenIssuanceService(new CvTokenSubjectResolver($htmlCache), $tokenService);
+        return new TokenTaskHandler($issuanceService, 'cv');
     }
 
     private function buildMailService(): MailService
