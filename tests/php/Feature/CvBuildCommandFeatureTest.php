@@ -75,15 +75,18 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
         $this->assertBuiltLangs(['de', 'es'], ['en']);
     }
 
-    public function testBuildSiteUsesOnlyConfiguredProdLangs(): void
+    public function testBuildSiteUsesOnlyConfiguredLangs(): void
     {
         $this->prepareCustomContentRoot('custom-content-with-en');
 
         $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
         $exitCode = $tester->execute([
-            'pipeline'    => 'prod',
+            'pipeline'    => 'dev',
             'task'        => 'site',
-            '--overrides' => json_encode(['CONTENT_PATH' => 'custom-content-with-en']),
+            '--overrides' => json_encode([
+                'CONTENT_LANGS' => 'de,en',
+                'CONTENT_PATH'  => 'custom-content-with-en',
+            ]),
         ]);
 
         self::assertSame(0, $exitCode, $tester->getDisplay());
