@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REPO_URL = "https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev"
+REPO_URL = "https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev"
 TOC_PLACEHOLDER = "<!-- TOC -->"
 STRIP_PREFIX = re.compile(r"^# ?")
 FENCE_MARKER = "```"

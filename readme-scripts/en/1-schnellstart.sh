@@ -3,8 +3,8 @@
 # Show the career-profile template demo locally.
 #
 # ```bash
-git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
-cd lebenslauf-web-vorlage
+git clone "$REPLACE_WITH_REPOSITORY_URL" shared-hosting-site-toolkit
+cd shared-hosting-site-toolkit
 PATH="$PWD/bin:$PATH"  # Note: alternatively use `php bin/cli ...`.
 composer install
 cli setup dev --with-sample-content

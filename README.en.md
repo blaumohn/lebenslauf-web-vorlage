@@ -2,7 +2,7 @@
 
 ---
 
-# CV Web Template (PHP)
+# Shared Hosting Site Toolkit
 
 Build, runtime, and deploy scaffold for small PHP shared-hosting sites.
 The template layer (renderers, schemas) carries multilingual content; the
@@ -28,13 +28,13 @@ operations and architecture decisions behind it are documented on the
 ---
 
 ## Quickstart
-<small>*[readme-scripts/en/1-schnellstart.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/1-schnellstart.sh)*</small>
+<small>*[readme-scripts/en/1-schnellstart.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/1-schnellstart.sh)*</small>
 
 Show the career-profile template demo locally.
 
 ```bash
-git clone "$REPLACE_WITH_REPOSITORY_URL" lebenslauf-web-vorlage
-cd lebenslauf-web-vorlage
+git clone "$REPLACE_WITH_REPOSITORY_URL" shared-hosting-site-toolkit
+cd shared-hosting-site-toolkit
 PATH="$PWD/bin:$PATH"  # Note: alternatively use `php bin/cli ...`.
 composer install
 cli setup dev --with-sample-content
@@ -44,12 +44,12 @@ cli start dev > /tmp/lebenslauf-dev-server.log 2>&1 &
 
 The demo then runs on <http://127.0.0.1:8080/>.
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)
 
 ---
 
 ## Set up private view
-<small>*[readme-scripts/en/2-private-ansicht.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/2-private-ansicht.sh)*</small>
+<small>*[readme-scripts/en/2-private-ansicht.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/2-private-ansicht.sh)*</small>
 
 The private full view opens via a URL token, without login.
 
@@ -59,12 +59,12 @@ curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
   | grep -q '</html>'
 ```
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)
 
 ---
 
 ## Preview deploy
-<small>*[readme-scripts/en/3-preview-deploy.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/3-preview-deploy.sh)*</small>
+<small>*[readme-scripts/en/3-preview-deploy.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/3-preview-deploy.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -75,7 +75,7 @@ curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
 Prerequisite: shared PHP hosting with SFTP and an SMTP account (e.g. Mailtrap).
 
 Show missing configuration values (examples/descriptions of the variables:
-see [`manifest.yaml`](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/src/resources/pipeline-config/manifest.yaml);
+see [`manifest.yaml`](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/src/resources/pipeline-config/manifest.yaml);
 the values themselves belong in the GitHub repo secrets, not here):
 
 ```bash
@@ -91,12 +91,12 @@ Trigger a deploy: a push to `preview` uses fixtures, no content upload:
 git push <preview>
 ```
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)
 
 ---
 
 ## Prod deploy: before the push
-<small>*[readme-scripts/en/4-prod-deploy-vor.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/4-prod-deploy-vor.sh)*</small>
+<small>*[readme-scripts/en/4-prod-deploy-vor.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/4-prod-deploy-vor.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -145,12 +145,12 @@ Trigger the deploy:
 git push <prod>
 ```
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)
 
 ---
 
 ## Prod deploy: after the push
-<small>*[readme-scripts/en/5-prod-deploy-nach.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/5-prod-deploy-nach.sh)*</small>
+<small>*[readme-scripts/en/5-prod-deploy-nach.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/5-prod-deploy-nach.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -166,12 +166,12 @@ The content uploaded in "before the push" appears on the prod site — check:
 curl --fail --silent "https://<prod-domain>/" | grep -q '<inhalt-marker>'
 ```
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)
 
 ---
 
 ## Publish content
-<small>*[readme-scripts/en/6-inhalt-veroeffentlichen.sh](https://github.com/blaumohn/lebenslauf-web-vorlage/blob/dev/readme-scripts/en/6-inhalt-veroeffentlichen.sh)*</small>
+<small>*[readme-scripts/en/6-inhalt-veroeffentlichen.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/6-inhalt-veroeffentlichen.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -185,4 +185,4 @@ publish the update — without a full redeploy:
 cli publish prod
 ```
 
-[back to top](#cv-web-template-php)
+[back to top](#shared-hosting-site-toolkit)

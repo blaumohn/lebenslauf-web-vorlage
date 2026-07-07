@@ -1,6 +1,6 @@
 {
-  "name": "local/lebenslauf-vorlage",
-  "description": "Shared-hosting-friendly CV site.",
+  "name": "local/shared-hosting-site-toolkit",
+  "description": "Shared-hosting-friendly website toolkit.",
   "type": "project",
   "repositories": [
     {

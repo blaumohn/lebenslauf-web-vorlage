@@ -1,4 +1,4 @@
-# # Lebenslauf-Web-Vorlage (PHP)
+# # Shared Hosting Site Toolkit
 #
 # Build-, Runtime- und Deploy-Gerüst für kleine PHP-Shared-Hosting-Seiten.
 # Die Template-Ebene (Renderer, Schemas) trägt mehrsprachige Inhalte; die

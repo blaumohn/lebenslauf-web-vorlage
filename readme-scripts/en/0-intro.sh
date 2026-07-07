@@ -1,4 +1,4 @@
-# # CV Web Template (PHP)
+# # Shared Hosting Site Toolkit
 #
 # Build, runtime, and deploy scaffold for small PHP shared-hosting sites.
 # The template layer (renderers, schemas) carries multilingual content; the
