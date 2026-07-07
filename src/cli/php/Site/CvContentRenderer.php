@@ -82,7 +82,24 @@ final class CvContentRenderer extends BaseContentRenderer
         if ($targets === []) {
             throw new \RuntimeException("Keine daten-*.yaml-Dateien gefunden in: {$dataPath}");
         }
+        $this->assertAtMostOnePublicProfile($targets);
         return $targets;
+    }
+
+    private function assertAtMostOnePublicProfile(array $targets): void
+    {
+        $publicProfiles = [];
+        foreach ($targets as $target) {
+            $data = Yaml::parseFile($target['yaml']);
+            if (is_array($data) && ($data['oeffentlich'] ?? false) === true) {
+                $publicProfiles[] = $target['profile'];
+            }
+        }
+        if (count($publicProfiles) > 1) {
+            throw new \RuntimeException(
+                'Mehr als ein Profil als öffentlich markiert (oeffentlich: true): ' . implode(', ', $publicProfiles)
+            );
+        }
     }
 
     private function collectTargets(string $dataPath): array
@@ -111,9 +128,10 @@ final class CvContentRenderer extends BaseContentRenderer
         $this->yamlToJson($yamlPath, $jsonPath);
         $decoded = $this->loadJson($jsonPath);
         $this->validate($decoded['raw'], $output);
+        $isPublic = ($decoded['data']['oeffentlich'] ?? false) === true;
         $langs = $this->resolveLangs();
         foreach ($langs as $lang) {
-            $this->renderForLang($profile, $lang, $decoded['data'], $output);
+            $this->renderForLang($profile, $lang, $decoded['data'], $isPublic, $output);
         }
         $output->writeln("CV build completed: {$profile} ({$yamlPath})");
     }
@@ -158,13 +176,15 @@ final class CvContentRenderer extends BaseContentRenderer
         throw new \RuntimeException('Schema-Validierung fehlgeschlagen.');
     }
 
-    private function renderForLang(string $profile, string $lang, array $data, OutputInterface $output): void
+    private function renderForLang(string $profile, string $lang, array $data, bool $isPublic, OutputInterface $output): void
     {
         $cvFooter = $this->loadCvFooter($lang);
         $labels = LabelService::fromJsonFile($this->labelsPath, $lang)->all();
         $normalized = (new CvDataNormalizer($lang))->normalize($data);
         $this->savePrivate($profile, $lang, $normalized, $labels, $cvFooter);
-        $this->renderPublicIfDefault($profile, $lang, $normalized, $labels, $cvFooter, $output);
+        if ($isPublic) {
+            $this->renderPublicProfile($profile, $lang, $normalized, $labels, $cvFooter, $output);
+        }
         $output->writeln("Privates CV gerendert: Profil {$profile} ({$lang}).");
     }
 
@@ -200,11 +220,8 @@ final class CvContentRenderer extends BaseContentRenderer
         'es' => 'Este enlace ha caducado. Ponte en contacto con %s para solicitar uno nuevo.',
     ];
 
-    private function renderPublicIfDefault(string $profile, string $lang, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
+    private function renderPublicProfile(string $profile, string $lang, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
     {
-        if (!$this->isDefaultProfile($profile)) {
-            return;
-        }
         $siteHeader = $this->loadSiteHeader($lang);
         $siteNameKurz = $this->loadSiteNameKurz();
         $view = $this->viewBuilder->build($normalized);
@@ -264,12 +281,6 @@ final class CvContentRenderer extends BaseContentRenderer
     {
         $lang = strtolower(trim($lang));
         return $lang === '' ? 'de' : $lang;
-    }
-
-    private function isDefaultProfile(string $profile): bool
-    {
-        $public = trim($this->config->get('LEBENSLAUF_PUBLIC_PROFILE'));
-        return strcasecmp($profile, $public === '' ? 'default' : $public) === 0;
     }
 
     private function dataPath(): string

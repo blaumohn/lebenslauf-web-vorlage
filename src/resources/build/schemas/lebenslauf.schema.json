@@ -12,6 +12,7 @@
     "interessen"
   ],
   "properties": {
+    "oeffentlich": { "type": "boolean" },
     "kopfdaten": {
       "type": "object",
       "additionalProperties": false,

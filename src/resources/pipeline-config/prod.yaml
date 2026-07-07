@@ -7,9 +7,6 @@ content:
   CONTENT_PATH: .local
   CONTENT_LANGS: "de,en"
 
-lebenslauf:
-  LEBENSLAUF_PUBLIC_PROFILE: demo
-
 captcha:
   CAPTCHA_TTL_SECONDS: 600
   CAPTCHA_MAX_GET: 10
