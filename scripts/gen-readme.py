@@ -21,6 +21,9 @@ EN_SWITCHER = (
 
 DE_SCRIPTS_DIR = REPO_ROOT / "readme-scripts"
 EN_SCRIPTS_DIR = REPO_ROOT / "readme-scripts" / "en"
+README_SCRIPT_USAGE_SOURCES = (
+    REPO_ROOT / "tests/ci/readme-dev-user-flow.sh",
+)
 
 
 class Variant(NamedTuple):
@@ -100,9 +103,25 @@ def annotate_section(
     if not heading.startswith("# ## "):
         return text
     relative = path.relative_to(REPO_ROOT).as_posix()
-    note = f"# <small>*[{relative}]({REPO_URL}/{relative})*</small>"
+    usage_notes = usage_source_notes(relative)
     back_link = f"# [{back_link_label}](#{top_slug})"
-    return "\n".join([heading, note] + rest + ["#", back_link])
+    return "\n".join([heading] + usage_notes + rest + ["#", back_link])
+
+
+def usage_source_notes(readme_script: str) -> list[str]:
+    sources = usage_sources_for(readme_script)
+    return [
+        f"# <small>*Ausgeführt in [{source}]({REPO_URL}/{source})*</small>"
+        for source in sources
+    ]
+
+
+def usage_sources_for(readme_script: str) -> list[str]:
+    return [
+        source.relative_to(REPO_ROOT).as_posix()
+        for source in README_SCRIPT_USAGE_SOURCES
+        if readme_script in source.read_text()
+    ]
 
 
 def strip_comment_markers(text: str) -> str:

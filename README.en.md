@@ -28,7 +28,6 @@ operations and architecture decisions behind it are documented on the
 ---
 
 ## Quickstart
-<small>*[readme-scripts/en/1-schnellstart.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/1-schnellstart.sh)*</small>
 
 Show the career-profile template demo locally.
 
@@ -49,7 +48,6 @@ The demo then runs on <http://127.0.0.1:8080/>.
 ---
 
 ## Set up private view
-<small>*[readme-scripts/en/2-private-ansicht.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/2-private-ansicht.sh)*</small>
 
 The private full view opens via a URL token, without login.
 
@@ -64,7 +62,6 @@ curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
 ---
 
 ## Preview deploy
-<small>*[readme-scripts/en/3-preview-deploy.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/3-preview-deploy.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -96,7 +93,6 @@ git push <preview>
 ---
 
 ## Prod deploy: before the push
-<small>*[readme-scripts/en/4-prod-deploy-vor.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/4-prod-deploy-vor.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -150,7 +146,6 @@ git push <prod>
 ---
 
 ## Prod deploy: after the push
-<small>*[readme-scripts/en/5-prod-deploy-nach.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/5-prod-deploy-nach.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 
@@ -171,7 +166,6 @@ curl --fail --silent "https://<prod-domain>/" | grep -q '<inhalt-marker>'
 ---
 
 ## Publish content
-<small>*[readme-scripts/en/6-inhalt-veroeffentlichen.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/en/6-inhalt-veroeffentlichen.sh)*</small>
 
 *(Flow not yet anchored in CI.)*
 

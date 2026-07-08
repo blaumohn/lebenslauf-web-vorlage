@@ -28,7 +28,7 @@ Betriebs- und Architekturentscheidungen dahinter sind im
 ---
 
 ## Schnellstart
-<small>*[readme-scripts/1-schnellstart.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/1-schnellstart.sh)*</small>
+<small>*Ausgeführt in [tests/ci/readme-dev-user-flow.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/tests/ci/readme-dev-user-flow.sh)*</small>
 
 Lokal die Demo der Karriere-Profil-Vorlage zeigen.
 
@@ -49,7 +49,7 @@ Die Demo läuft danach auf <http://127.0.0.1:8080/>.
 ---
 
 ## Private Ansicht einrichten
-<small>*[readme-scripts/2-private-ansicht.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/2-private-ansicht.sh)*</small>
+<small>*Ausgeführt in [tests/ci/readme-dev-user-flow.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/tests/ci/readme-dev-user-flow.sh)*</small>
 
 Die private Vollansicht öffnet sich per URL-Token, ohne Login.
 
@@ -64,7 +64,6 @@ curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
 ---
 
 ## Preview-Deploy
-<small>*[readme-scripts/3-preview-deploy.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/3-preview-deploy.sh)*</small>
 
 *(Ablauf wird noch in CI verankert.)*
 
@@ -96,7 +95,6 @@ git push <preview>
 ---
 
 ## Prod-Deploy: vor dem Push
-<small>*[readme-scripts/4-prod-deploy-vor.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/4-prod-deploy-vor.sh)*</small>
 
 *(Ablauf wird noch in CI verankert.)*
 
@@ -152,7 +150,6 @@ git push <prod>
 ---
 
 ## Prod-Deploy: nach dem Push
-<small>*[readme-scripts/5-prod-deploy-nach.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/5-prod-deploy-nach.sh)*</small>
 
 *(Ablauf wird noch in CI verankert.)*
 
@@ -173,7 +170,6 @@ curl --fail --silent "https://<prod-domain>/" | grep -q '<inhalt-marker>'
 ---
 
 ## Inhalt veröffentlichen
-<small>*[readme-scripts/6-inhalt-veroeffentlichen.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/readme-scripts/6-inhalt-veroeffentlichen.sh)*</small>
 
 *(Ablauf wird noch in CI verankert.)*
 
