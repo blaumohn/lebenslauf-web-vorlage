@@ -8,7 +8,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Twig\Environment;
 
-final class BlogPostRenderer extends BaseContentRenderer
+final class BlogPostRenderer extends BlogRendererBase
 {
     public const SCHEMA = 'blog-post.schema.json';
 
@@ -34,7 +34,7 @@ final class BlogPostRenderer extends BaseContentRenderer
 
     public function render(OutputInterface $output): void
     {
-        $dataPath = $this->dataPath();
+        $dataPath = $this->blogDir();
         if (!is_dir($dataPath)) {
             $output->writeln("Blog: Verzeichnis nicht gefunden ({$dataPath}), übersprungen.");
             return;
@@ -51,7 +51,7 @@ final class BlogPostRenderer extends BaseContentRenderer
 
     public function validateContent(OutputInterface $output): bool
     {
-        $dataPath = $this->dataPath();
+        $dataPath = $this->blogDir();
         if (!is_dir($dataPath)) {
             $output->writeln("Blog: Verzeichnis fehlt ({$dataPath}) — übersprungen.");
             return true;
@@ -64,13 +64,6 @@ final class BlogPostRenderer extends BaseContentRenderer
             }
         }
         return $valid;
-    }
-
-    private function discoverSortedPosts(string $dataPath): array
-    {
-        $posts = array_values($this->discoverYamlFiles($dataPath, ['blog.yaml']));
-        usort($posts, static fn(array $a, array $b) => strcmp($b['datum'], $a['datum']));
-        return $posts;
     }
 
     private function renderForLang(array $posts, string $lang, OutputInterface $output): void
@@ -108,11 +101,6 @@ final class BlogPostRenderer extends BaseContentRenderer
         ));
     }
 
-    private function dataPath(): string
-    {
-        return Path::join($this->resolveContentBase(), 'blog');
-    }
-
     private function encodeCodeBlocks(string $html): string
     {
         return (string) preg_replace_callback(
@@ -123,10 +111,5 @@ final class BlogPostRenderer extends BaseContentRenderer
             },
             $html
         );
-    }
-
-    private function htmlPath(): string
-    {
-        return Path::join($this->rootPath, 'var', 'cache', 'html', 'blog');
     }
 }
