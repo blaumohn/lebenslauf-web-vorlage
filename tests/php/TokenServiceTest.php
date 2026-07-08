@@ -27,10 +27,11 @@ final class TokenServiceTest extends TestCase
     {
         $service = $this->service();
 
-        $tokens = $service->add('DEFAULT', 2, null);
+        $tokenA = $service->add('DEFAULT', null);
+        $tokenB = $service->add('DEFAULT', null);
 
-        $this->assertTrue($service->verify('DEFAULT', $tokens[0]));
-        $this->assertTrue($service->verify('DEFAULT', $tokens[1]));
+        $this->assertTrue($service->verify('DEFAULT', $tokenA));
+        $this->assertTrue($service->verify('DEFAULT', $tokenB));
         $this->assertFalse($service->verify('DEFAULT', 'gamma'));
     }
 
@@ -38,11 +39,11 @@ final class TokenServiceTest extends TestCase
     {
         $service = $this->service();
 
-        $first = $service->add('DEFAULT', 1, null);
-        $second = $service->add('DEFAULT', 1, null);
+        $first = $service->add('DEFAULT', null);
+        $second = $service->add('DEFAULT', null);
 
-        $this->assertTrue($service->verify('DEFAULT', $first[0]));
-        $this->assertTrue($service->verify('DEFAULT', $second[0]));
+        $this->assertTrue($service->verify('DEFAULT', $first));
+        $this->assertTrue($service->verify('DEFAULT', $second));
         $this->assertCount(2, $service->list('DEFAULT'));
     }
 
@@ -51,34 +52,34 @@ final class TokenServiceTest extends TestCase
         $service = $this->service();
 
         $this->expectException(\InvalidArgumentException::class);
-        $service->add('../traversal', 1, null);
+        $service->add('../traversal', null);
     }
 
     public function testExpiredTokenIsRejected(): void
     {
         $service = $this->service();
 
-        $tokens = $service->add('DEFAULT', 1, time() - 10);
+        $token = $service->add('DEFAULT', time() - 10);
 
-        $this->assertFalse($service->verify('DEFAULT', $tokens[0]));
-        $this->assertNull($service->findProfileForToken($tokens[0]));
+        $this->assertFalse($service->verify('DEFAULT', $token));
+        $this->assertNull($service->findProfileForToken($token));
     }
 
     public function testTokenWithoutExpiryStaysValid(): void
     {
         $service = $this->service();
 
-        $tokens = $service->add('DEFAULT', 1, null);
+        $token = $service->add('DEFAULT', null);
 
-        $this->assertTrue($service->verify('DEFAULT', $tokens[0]));
+        $this->assertTrue($service->verify('DEFAULT', $token));
     }
 
     public function testFindProfileForToken(): void
     {
         $service = $this->service();
 
-        $tokenA = $service->add('A', 1, null)[0];
-        $tokenB = $service->add('B', 1, null)[0];
+        $tokenA = $service->add('A', null);
+        $tokenB = $service->add('B', null);
 
         $this->assertSame('B', $service->findProfileForToken($tokenB));
         $this->assertSame('A', $service->findProfileForToken($tokenA));
@@ -88,7 +89,7 @@ final class TokenServiceTest extends TestCase
     public function testListReturnsLabelAndTimestamps(): void
     {
         $service = $this->service();
-        $service->add('DEFAULT', 1, 1234567890, 'firma-x');
+        $service->add('DEFAULT', 1234567890, 'firma-x');
 
         $entries = $service->list('DEFAULT');
 
@@ -100,8 +101,8 @@ final class TokenServiceTest extends TestCase
     public function testRevokeByHashPrefixRemovesOnlyMatchingEntry(): void
     {
         $service = $this->service();
-        $kept = $service->add('DEFAULT', 1, null, 'kept')[0];
-        $removed = $service->add('DEFAULT', 1, null, 'removed')[0];
+        $kept = $service->add('DEFAULT', null, 'kept');
+        $removed = $service->add('DEFAULT', null, 'removed');
         $prefix = substr(hash('sha256', $removed), 0, 12);
 
         $count = $service->revoke('DEFAULT', $prefix);
@@ -114,8 +115,8 @@ final class TokenServiceTest extends TestCase
     public function testRevokeByLabelRemovesMatchingEntries(): void
     {
         $service = $this->service();
-        $service->add('DEFAULT', 1, null, 'firma-x');
-        $kept = $service->add('DEFAULT', 1, null, 'firma-y')[0];
+        $service->add('DEFAULT', null, 'firma-x');
+        $kept = $service->add('DEFAULT', null, 'firma-y');
 
         $count = $service->revoke('DEFAULT', 'firma-x');
 
@@ -126,20 +127,9 @@ final class TokenServiceTest extends TestCase
     public function testRevokeWithoutMatchReturnsZero(): void
     {
         $service = $this->service();
-        $service->add('DEFAULT', 1, null);
+        $service->add('DEFAULT', null);
 
         $this->assertSame(0, $service->revoke('DEFAULT', 'nichtvorhanden'));
-    }
-
-    public function testRevokeAllRemovesEverything(): void
-    {
-        $service = $this->service();
-        $tokens = $service->add('DEFAULT', 2, null);
-
-        $service->revokeAll('DEFAULT');
-
-        $this->assertSame([], $service->list('DEFAULT'));
-        $this->assertFalse($service->verify('DEFAULT', $tokens[0]));
     }
 
     private function service(): TokenService

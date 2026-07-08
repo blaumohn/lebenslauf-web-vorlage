@@ -105,24 +105,29 @@ final class TokenCommandTest extends TestCase
         self::assertStringContainsString('Keine Freigaben', $tester->getDisplay());
     }
 
-    public function testRevokeAllRemovesEveryShare(): void
+    public function testRevokeByLabelRemovesShare(): void
     {
         $root = $this->makeTempRoot();
         file_put_contents($root . '/var/cache/html/cv-private-default.de.html', '<html/>');
         $addTester = $this->testerForRoot($root);
-        $addTester->execute(['pipeline' => 'dev', 'action' => 'add', 'profile' => 'default']);
+        $addTester->execute([
+            'pipeline' => 'dev',
+            'action'   => 'add',
+            'profile'  => 'default',
+            '--label'  => 'firma-x',
+        ]);
 
         $revokeTester = $this->testerForRoot($root);
         $exitCode = $revokeTester->execute([
             'pipeline' => 'dev',
             'action'   => 'revoke',
             'profile'  => 'default',
-            'value'    => 'all',
+            'value'    => 'firma-x',
         ]);
         $this->removeDir($root);
 
         self::assertSame(0, $exitCode);
-        self::assertStringContainsString('Alle Freigaben entfernt', $revokeTester->getDisplay());
+        self::assertStringContainsString('1 Freigabe(n) entfernt', $revokeTester->getDisplay());
     }
 
     public function testRevokeWithoutMatchFails(): void

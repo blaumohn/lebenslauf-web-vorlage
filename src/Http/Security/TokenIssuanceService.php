@@ -11,14 +11,13 @@ final class TokenIssuanceService
 
     /**
      * @param non-empty-string $profile
-     * @param positive-int $count
      * @param non-empty-string|null $label
-     * @return list<string> Klartext-Token
+     * @return non-empty-string Klartext-Token
      */
-    public function add(string $profile, int $count, ?int $expiresAt, ?string $label = null): array
+    public function add(string $profile, ?int $expiresAt, ?string $label = null): string
     {
         $this->assertSubjectExists($profile);
-        return $this->tokenService->add($profile, $count, $expiresAt, $label);
+        return $this->tokenService->add($profile, $expiresAt, $label);
     }
 
     /**
@@ -34,12 +33,6 @@ final class TokenIssuanceService
     public function revoke(string $profile, string $identifier): int
     {
         return $this->tokenService->revoke($profile, $identifier);
-    }
-
-    /** @param non-empty-string $profile */
-    public function revokeAll(string $profile): void
-    {
-        $this->tokenService->revokeAll($profile);
     }
 
     private function assertSubjectExists(string $profile): void

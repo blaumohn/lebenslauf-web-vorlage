@@ -115,14 +115,13 @@ final class TaskDeployTest extends TestCase
 
     public function testQueuedTaskFileParsesTokenAddIniFormat(): void
     {
-        $ini = "[task]\ntype = cv_token_add\nprofile = default\ncount = 1\n\n";
+        $ini = "[task]\ntype = cv_token_add\nprofile = default\n\n";
         $file = $this->writeTempIni($ini);
 
         $task = QueuedTaskFile::load($file);
 
         $this->assertSame('cv_token_add', $task->type());
         $this->assertSame('default', $task->get('profile'));
-        $this->assertSame('1', $task->get('count'));
     }
 
     // ── DeploySwitchTaskHandler ──────────────────────────────────────────────
@@ -224,7 +223,7 @@ final class TaskDeployTest extends TestCase
         $taskDir = $this->dir . '/var/tasks';
         mkdir($taskDir, 0775, true);
         $taskFile = $taskDir . '/20260505T000000Z-cv-token-add.ini';
-        file_put_contents($taskFile, "[task]\ntype=cv_token_add\nprofile={$profile}\ncount=1\n");
+        file_put_contents($taskFile, "[task]\ntype=cv_token_add\nprofile={$profile}\n");
 
         [$count] = $this->runRunnerCapturingOutput(
             new TaskRunner([$this->buildTokenAddHandler()], $this->dir, $this->buildMailService(), new NullLogger(), new RuntimeAtomicWriter()),
@@ -245,7 +244,7 @@ final class TaskDeployTest extends TestCase
         $taskFile = $taskDir . '/20260529T000000Z-cv-token-add.ini';
         file_put_contents(
             $taskFile,
-            "[task]\ntype=cv_token_add\ntask_id={$taskId}\nprofile=unbekannt\ncount=1\n"
+            "[task]\ntype=cv_token_add\ntask_id={$taskId}\nprofile=unbekannt\n"
         );
 
         $this->runRunnerCapturingOutput(

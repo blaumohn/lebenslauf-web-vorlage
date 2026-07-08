@@ -35,7 +35,7 @@ final class TokenIssuanceServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('keine Seite');
 
-        $service->add('kein-profil', 1, null);
+        $service->add('kein-profil', null);
     }
 
     public function testRejectsInvalidProfileName(): void
@@ -48,17 +48,17 @@ final class TokenIssuanceServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Profilname ungültig');
 
-        $service->add('invalid profile', 1, null);
+        $service->add('invalid profile', null);
     }
 
-    public function testAddIssuesTokensForExistingProfile(): void
+    public function testAddIssuesTokenForExistingProfile(): void
     {
         file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
 
-        $tokens = $this->service()->add('test', 2, null);
+        $tokenA = $this->service()->add('test', null);
+        $tokenB = $this->service()->add('test', null);
 
-        $this->assertCount(2, $tokens);
-        $this->assertNotSame($tokens[0], $tokens[1]);
+        $this->assertNotSame($tokenA, $tokenB);
     }
 
     public function testIssuedTokenIsVerifiable(): void
@@ -66,9 +66,9 @@ final class TokenIssuanceServiceTest extends TestCase
         file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
         $tokenService = $this->tokenService();
 
-        $tokens = $this->serviceWith($tokenService)->add('test', 1, null);
+        $token = $this->serviceWith($tokenService)->add('test', null);
 
-        $this->assertTrue($tokenService->verify('test', $tokens[0]));
+        $this->assertTrue($tokenService->verify('test', $token));
     }
 
     public function testListAndRevokeDelegateToTokenService(): void
@@ -76,14 +76,15 @@ final class TokenIssuanceServiceTest extends TestCase
         file_put_contents($this->tempDir . '/html/cv-private-test.de.html', '<h1>Test</h1>');
         $tokenService = $this->tokenService();
         $service = $this->serviceWith($tokenService);
-        $tokens = $service->add('test', 2, null, 'firma-x');
+        $token = $service->add('test', null, 'firma-x');
 
-        $this->assertCount(2, $service->list('test'));
+        $this->assertCount(1, $service->list('test'));
 
-        $service->revokeAll('test');
+        $removed = $service->revoke('test', 'firma-x');
 
+        $this->assertSame(1, $removed);
         $this->assertSame([], $service->list('test'));
-        $this->assertFalse($tokenService->verify('test', $tokens[0]));
+        $this->assertFalse($tokenService->verify('test', $token));
     }
 
     private function service(): TokenIssuanceService

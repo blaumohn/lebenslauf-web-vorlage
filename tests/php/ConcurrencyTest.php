@@ -115,7 +115,7 @@ final class ConcurrencyTest extends TestCase
         $this->expectExceptionMessage('Lock-Timeout');
 
         try {
-            $service->add('race_profile', 2, null);
+            $service->add('race_profile', null);
         } finally {
             $lock->release();
         }
@@ -125,23 +125,25 @@ final class ConcurrencyTest extends TestCase
     {
         $service = $this->buildTokenService();
 
-        $tokens = $service->add('write_profile', 2, null);
+        $tokenA = $service->add('write_profile', null);
+        $tokenB = $service->add('write_profile', null);
 
         $this->assertCount(2, $service->list('write_profile'));
-        $this->assertTrue($service->verify('write_profile', $tokens[0]));
+        $this->assertTrue($service->verify('write_profile', $tokenA));
+        $this->assertTrue($service->verify('write_profile', $tokenB));
         $this->assertFalse($service->verify('write_profile', 'tok-x'));
     }
 
     public function testTokenReadOperationsNeedNoLock(): void
     {
         $service = $this->buildTokenService();
-        $tokens = $service->add('read_profile', 1, null);
+        $token = $service->add('read_profile', null);
 
         $lock = $this->acquireLock('token_read_profile');
 
         try {
-            $verified = $service->verify('read_profile', $tokens[0]);
-            $found = $service->findProfileForToken($tokens[0]);
+            $verified = $service->verify('read_profile', $token);
+            $found = $service->findProfileForToken($token);
         } finally {
             $lock->release();
         }

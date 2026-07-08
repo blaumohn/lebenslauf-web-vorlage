@@ -57,7 +57,7 @@ class TokenSmoke:
     def rotate_and_read_token(self, profile: str) -> str:
         total_before = self.mailpit.message_total()
         TaskDispatch(self.deploy_cfg).submit(
-            Task("cv_token_add", {"profile": profile, "count": "1"})
+            Task("cv_token_add", {"profile": profile})
         )
         message = self.mailpit.wait_for_new_message(total_before)
         subject = message_subject(message)

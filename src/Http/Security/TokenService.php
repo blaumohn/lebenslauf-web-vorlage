@@ -82,37 +82,35 @@ final class TokenService
     }
 
     /**
-     * Erzeugt neue Token und hängt sie an bestehende Freigaben des Profils an,
-     * ohne diese zu entfernen.
+     * Erzeugt einen neuen Token und hängt ihn an bestehende Freigaben des
+     * Profils an, ohne diese zu entfernen.
      *
      * @param non-empty-string $profile
-     * @param positive-int $count Anzahl der neu zu erzeugenden Token
-     * @param int|null $expiresAt Unix-Zeitstempel, ab dem die Token ablaufen; null für kein Ablaufdatum
+     * @param int|null $expiresAt Unix-Zeitstempel, ab dem der Token abläuft; null für kein Ablaufdatum
      * @param non-empty-string|null $label Frei wählbare Bezeichnung
-     * @return list<string> Klartext-Token
+     * @return non-empty-string Klartext-Token
      */
-    public function add(string $profile, int $count, ?int $expiresAt, ?string $label = null): array
+    public function add(string $profile, ?int $expiresAt, ?string $label = null): string
     {
         if (!$this->isValidProfileName($profile)) {
             throw new \InvalidArgumentException("Profilname ungültig: '{$profile}'.");
         }
 
-        $tokens = $this->generateTokens($count);
-        $now = time();
-        $newEntries = array_map(fn (string $token): array => [
+        $token = $this->generateToken();
+        $newEntry = [
             'hash' => $this->hashToken($token),
             'label' => $label,
-            'created_at' => $now,
+            'created_at' => time(),
             'expires_at' => $expiresAt,
-        ], $tokens);
+        ];
 
-        $locked = function () use ($profile, $newEntries): void {
-            $entries = array_merge($this->readEntries($profile), $newEntries);
+        $locked = function () use ($profile, $newEntry): void {
+            $entries = array_merge($this->readEntries($profile), [$newEntry]);
             $this->writeEntries($profile, $entries);
         };
         $this->lockRunner->runWithLock('token_' . $profile, $locked);
 
-        return $tokens;
+        return $token;
     }
 
     /**
@@ -136,13 +134,6 @@ final class TokenService
     {
         $locked = fn (): int => $this->revokeLocked($profile, $identifier);
         return $this->lockRunner->runWithLock('token_' . $profile, $locked);
-    }
-
-    /** @param non-empty-string $profile */
-    public function revokeAll(string $profile): void
-    {
-        $locked = fn () => $this->writeEntries($profile, []);
-        $this->lockRunner->runWithLock('token_' . $profile, $locked);
     }
 
     private function revokeLocked(string $profile, string $identifier): int
@@ -231,14 +222,10 @@ final class TokenService
         return $profile !== '' && (bool) preg_match('/^[A-Za-z0-9_.-]+$/', $profile);
     }
 
-    /** @return list<string> */
-    private function generateTokens(int $count): array
+    /** @return non-empty-string */
+    private function generateToken(): string
     {
-        $tokens = [];
-        for ($i = 0; $i < $count; $i++) {
-            $tokens[] = bin2hex(random_bytes(16));
-        }
-        return $tokens;
+        return bin2hex(random_bytes(16));
     }
 
     private function hashToken(string $token): string
