@@ -103,6 +103,7 @@ final class TaskRunner
         $title = $result->success
             ? "Task abgeschlossen: {$taskName}"
             : "Task fehlgeschlagen: {$taskName}";
-        $this->mailService->send(new MailMessage(module: 'Task', title: $title, body: $result->body));
+        $mailBody = $result->mailExtra === '' ? $result->body : $result->body . "\n\n" . $result->mailExtra;
+        $this->mailService->send(new MailMessage(module: 'Task', title: $title, body: $mailBody));
     }
 }

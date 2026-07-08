@@ -17,7 +17,7 @@ POLL_INTERVAL_S = 2
 POLL_TIMEOUT_S = 60
 
 TASK_SCHEMAS = {
-    "cv_token_add": {"profile": "default", "count": "1", "label": "", "expires_at": ""},
+    "cv_token_add": {"profile": "default", "label": "", "expires_at": ""},
     "cv_token_list": {"profile": "default"},
     "cv_token_revoke": {"profile": "default", "identifier": ""},
     "deploy_switch": {"app": "", "vendor": "", "run_id": ""},
@@ -131,10 +131,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Task anmelden")
     parser.add_argument("task_type", choices=list(TASK_SCHEMAS))
     parser.add_argument("--profile", help="Token-Profil (cv_token_add/list/revoke)")
-    parser.add_argument("--count", type=int, help="Anzahl Token (cv_token_add)")
     parser.add_argument("--label", help="Bezeichnung der Freigabe (cv_token_add)")
     parser.add_argument("--expires-at", dest="expires_at", help="Unix-Zeitstempel Ablauf (cv_token_add)")
-    parser.add_argument("--identifier", help="Hash-Präfix, Label oder 'all' (cv_token_revoke)")
+    parser.add_argument("--identifier", help="Hash-Präfix oder Label (cv_token_revoke)")
     parser.add_argument("--app", help="App-Slot (deploy_switch)")
     parser.add_argument("--run-id", dest="run_id", help="Lauf-ID (deploy_switch)")
     parser.add_argument("--vendor", help="Vendor-Slot (deploy_switch)")
