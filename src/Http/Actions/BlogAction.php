@@ -13,7 +13,7 @@ final class BlogAction extends Action
         $lang = (string) $request->getAttribute('lang');
         $html = $this->context->htmlCache->getBlogIndexHtmlForLang($lang);
         if ($html === null) {
-            return $this->notFound($response);
+            return $this->notFound($response, $lang);
         }
         return ResponseHelper::html($response, $html);
     }
@@ -23,11 +23,11 @@ final class BlogAction extends Action
         $lang = (string) $request->getAttribute('lang');
         $slug = $this->normalizeSlug((string) ($args['slug'] ?? ''));
         if ($slug === '') {
-            return $this->notFound($response);
+            return $this->notFound($response, $lang);
         }
         $html = $this->context->htmlCache->getBlogPostHtmlForLang($lang, $slug);
         if ($html === null) {
-            return $this->notFound($response, 'Dieser Beitrag existiert nicht.');
+            return $this->notFound($response, $lang);
         }
         return ResponseHelper::html($response, $html);
     }

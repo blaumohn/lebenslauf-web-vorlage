@@ -13,7 +13,7 @@ final class HomeAction extends Action
         $lang = (string) $request->getAttribute('lang');
         $html = $this->context->htmlCache->getHomeHtmlForLang($lang);
         if ($html === null) {
-            return $this->notFound($response, 'Die Startseite wurde noch nicht erstellt.');
+            return $this->notFound($response, $lang);
         }
         return ResponseHelper::html($response, $html);
     }

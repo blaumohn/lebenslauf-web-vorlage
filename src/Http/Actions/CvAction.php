@@ -41,14 +41,14 @@ final class CvAction extends Action
             return ResponseHelper::redirect($response, "/cv?lang={$lang}&token_state=expired");
         }
 
-        return $this->renderError($response, 'Zugriff verweigert', 'Token ungültig.', 403);
+        return $this->renderError($response, 'token-invalid', $lang, 403);
     }
 
     private function servePrivateCv(ResponseInterface $response, string $profile, string $lang): ResponseInterface
     {
         $html = $this->context->htmlCache->getPrivateHtmlForLang($profile, $lang);
         if ($html === null) {
-            return $this->notFound($response, 'Privater Lebenslauf noch nicht vorhanden.');
+            return $this->notFound($response, $lang);
         }
 
         return ResponseHelper::html($response, $html);
@@ -60,7 +60,7 @@ final class CvAction extends Action
             ? $this->context->htmlCache->getPublicHtmlWithNoticeForLang($lang)
             : $this->context->htmlCache->getPublicHtmlForLang($lang);
         if ($html === null) {
-            return $this->notFound($response, 'Öffentlicher Lebenslauf noch nicht vorhanden.');
+            return $this->notFound($response, $lang);
         }
 
         return ResponseHelper::html($response, $html);

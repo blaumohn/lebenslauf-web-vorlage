@@ -19,6 +19,20 @@ final class SiteValidateService
             new SiteFooterRenderer($config, $rootPath),
             new LangSelectRenderer($config, $rootPath),
             new LabelsValidator($config, $rootPath),
+            new ErrorRenderer(
+                $config,
+                $rootPath,
+                Path::join($rootPath, 'src', 'resources', 'not-found.yaml'),
+                'not-found',
+                'Error (not-found)'
+            ),
+            new ErrorRenderer(
+                $config,
+                $rootPath,
+                Path::join($rootPath, 'src', 'resources', 'token', 'token-invalid.yaml'),
+                'token-invalid',
+                'Error (token-invalid)'
+            ),
             new CvContentRenderer($config, $rootPath),
             new BlogIndexRenderer($config, $rootPath),
             new BlogPostRenderer($config, $rootPath),

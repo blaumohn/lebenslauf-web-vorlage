@@ -4,7 +4,6 @@ namespace App\Http\Actions;
 
 use App\Http\AppContext;
 use App\Http\ResponseHelper;
-use App\Http\View\PageViewBuilder;
 use Psr\Http\Message\ResponseInterface;
 
 abstract class Action
@@ -13,17 +12,17 @@ abstract class Action
     {
     }
 
-    protected function renderError(ResponseInterface $response, string $title, string $message, int $status): ResponseInterface
+    protected function renderError(ResponseInterface $response, string $key, string $lang, int $status): ResponseInterface
     {
-        $html = $this->context->twig->render('error.html.twig', [
-            'title' => $title,
-            'message' => $message,
-        ] + PageViewBuilder::base(null, null));
+        $html = $this->context->htmlCache->getErrorFragmentForLang($key, $lang);
+        if ($html === null) {
+            throw new \RuntimeException("Error-Fragment fehlt ({$key}, {$lang}). ErrorRenderer muss zuerst laufen.");
+        }
         return ResponseHelper::html($response, $html, $status);
     }
 
-    protected function notFound(ResponseInterface $response, string $message = 'Seite nicht gefunden.'): ResponseInterface
+    protected function notFound(ResponseInterface $response, string $lang): ResponseInterface
     {
-        return $this->renderError($response, 'Nicht gefunden', $message, 404);
+        return $this->renderError($response, 'not-found', $lang, 404);
     }
 }

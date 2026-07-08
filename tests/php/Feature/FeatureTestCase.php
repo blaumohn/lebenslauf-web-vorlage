@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Cli\ConfigValues;
+use App\Cli\Site\ErrorRenderer;
 use App\Cli\Site\LangSelectRenderer;
+use App\Cli\Site\SiteFooterRenderer;
+use App\Cli\Site\SiteHeaderRenderer;
 use App\Http\Security\IpHashService;
 use App\Http\Security\IpSaltService;
 use App\Http\Runtime\RuntimeAtomicWriter;
@@ -44,6 +47,14 @@ abstract class FeatureTestCase extends TestCase
             $this->projectRoot() . '/src/resources/lang-select',
             $this->root . '/src/resources/lang-select'
         );
+        $this->copyDir(
+            $this->projectRoot() . '/src/resources/error',
+            $this->root . '/src/resources/error'
+        );
+        $this->copyDir(
+            $this->projectRoot() . '/src/resources/fixtures/site',
+            $this->root . '/src/resources/fixtures/site'
+        );
         $this->ensureDirs([
             $this->root . '/var/tmp/captcha',
             $this->root . '/var/tmp/ratelimit',
@@ -53,16 +64,21 @@ abstract class FeatureTestCase extends TestCase
             $this->root . '/var/state/locks',
         ]);
         $this->compileConfig();
-        $this->generateLangSelectFragment();
+        $this->generateSiteFragments();
     }
 
-    private function generateLangSelectFragment(): void
+    private function generateSiteFragments(): void
     {
         $config = new ConfigValues([
             'CONTENT_LANGS' => 'de,es',
             'APP_BASE_PATH' => '/',
+            'CONTENT_PATH' => 'src/resources/fixtures',
         ]);
-        (new LangSelectRenderer($config, $this->root))->render(new NullOutput());
+        $output = new NullOutput();
+        (new LangSelectRenderer($config, $this->root))->render($output);
+        (new SiteHeaderRenderer($config, $this->root))->render($output);
+        (new SiteFooterRenderer($config, $this->root))->render($output);
+        (new ErrorRenderer($config, $this->root))->render($output);
     }
 
     protected function tearDown(): void
