@@ -21,6 +21,7 @@ final class CvViewModelBuilder
         foreach ($entries as $entry) {
             $unternehmen = $this->stringOrNull($entry['unternehmen'] ?? null);
             $projekt = $this->stringOrNull($entry['projekt'] ?? null);
+            $projektUrl = $this->stringOrNull($entry['url'] ?? null);
             $stelleGruppe = is_array($entry['stelleGruppe'] ?? null) ? $entry['stelleGruppe'] : null;
             $isGrouped = $stelleGruppe !== null;
             $showCompany = $unternehmen !== null && (!$isGrouped || !empty($stelleGruppe['letzteStelle']));
@@ -42,6 +43,7 @@ final class CvViewModelBuilder
                 'company_line' => $companyLine,
                 'show_project' => $projectLine !== null,
                 'project_line' => $projectLine,
+                'project_url' => $projectLine !== null ? $projektUrl : null,
                 'grouped' => $isGrouped,
                 'header_title' => $headerTitle,
                 'header_time' => $zeitraum,

@@ -59,6 +59,16 @@
       color: var(--gray-800);
     }
 
+    .entry-link {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-light);
+      line-height: var(--line-height-tight);
+    }
+
+    .entry-link a {
+      color: var(--gray-600);
+    }
+
     .entry-time {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-light);
