@@ -7,7 +7,9 @@
 #      Inhalt-Sentinel (Nachweis, dass der Push den vorbereiteten Inhalt
 #      tatsächlich ausgeliefert hat). -->
 #
-# Nach dem Push deployt GitHub Actions automatisch (Zwei-Baum-Slot-Switch). Der in
+# Nach dem Push deployt GitHub Actions automatisch (Zwei-Baum-Slot-Switch —
+# [warum zwei feste Bäume](https://ysdani.com/blog/zwei-baeume-statt-symlink-flip),
+# [atomarer Switch](https://ysdani.com/blog/atomarer-htaccess-switch)). Der in
 # „vor dem Push" hochgeladene Inhalt erscheint auf der Prod-Seite — prüfen:
 #
 # ```bash

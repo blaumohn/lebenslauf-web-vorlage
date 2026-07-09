@@ -4,12 +4,25 @@
 
 # Shared Hosting Site Toolkit
 
-Build, runtime, and deploy scaffold for small PHP shared-hosting sites.
+Build, runtime, and deploy scaffold for small PHP shared-hosting sites
+([why shared hosting and PHP](https://ysdani.com/blog/warum-php-shared-hosting)).
 The template layer (renderers, schemas) carries multilingual content; the
 PHP runtime brings reusable modules such as token management, security
 (rate limiting, CAPTCHA), and task dispatching. The current career-profile
 template — **home page, resume, contact, blog** — is the first concrete
 application on top of it.
+
+Target picture: template repos import the scaffold via Composer — for
+small, lightly dynamic websites such as career profiles or small-business
+catalogues without e-commerce. A new site should then only need
+configuration, content, templates and CSS. For now, scaffold and reference
+template still live in one repository; the roadmap holds the extraction as
+a versioned Composer package and optional modules — a site loads only what
+it needs, keeping the vendor tree small.
+
+Division of labour in the code: PHP owns the HTTP runtime and the public
+`cli`, Python owns build and deploy automation; Bash runs only inside CI
+containers.
 
 [ysdani.com](https://ysdani.com) runs this template in production — selected
 operations and architecture decisions behind it are documented on the
@@ -117,8 +130,8 @@ git push <preview>
      (`.local/prod.benutzer-config.yaml`) so that `cli config prod init`
      below generates the template as on a first run; copy it back
      afterwards. The `mv` stays a pure harness concern (no real first-time
-     user has a file to move) — `cli config prod init` and the `cp` hint
-     below are real user guidance and stay visible in the readme script. -->
+     user has a file to move) — `cli config prod init` below is real user
+     guidance and stays visible in the readme script. -->
 
 Unlike the preview deploy, `prod` needs the real credentials not only as
 GitHub secrets, but also locally in `.local/prod.yaml` — `content-sftp-upload`
@@ -133,11 +146,6 @@ cli config prod init
 
 The generated `.local/prod.yaml` carries a description and an example per
 variable as comments ([background](https://ysdani.com/blog/system-statt-knoedel)).
-If you already have a filled-in file, copy it into place instead:
-
-```bash
-cp <deine-vorbereitete-datei> .local/prod.yaml
-```
 
 After that: with real content instead of fixtures.
 
@@ -171,7 +179,9 @@ git push <prod>
      section 4 (proof that the push actually delivered the prepared
      content). -->
 
-After the push, GitHub Actions deploys automatically (two-tree slot switch).
+After the push, GitHub Actions deploys automatically (two-tree slot switch —
+[why two fixed trees](https://ysdani.com/blog/zwei-baeume-statt-symlink-flip),
+[atomic switch](https://ysdani.com/blog/atomarer-htaccess-switch)).
 The content uploaded in "before the push" appears on the prod site — check:
 
 ```bash
