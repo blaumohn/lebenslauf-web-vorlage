@@ -27,17 +27,7 @@ final class LangSelectRenderer extends BaseContentRenderer
 
     public function validateContent(OutputInterface $output): bool
     {
-        $data = Yaml::parseFile($this->dataPath());
-        if (!is_array($data)) {
-            $output->writeln('<error>Lang-Select: kein gültiges YAML-Mapping.</error>');
-            return false;
-        }
-        if ($this->checkValid($data, self::SCHEMA, $output)) {
-            $output->writeln('Lang-Select: OK');
-            return true;
-        }
-        $output->writeln('<error>Lang-Select: ungültig.</error>');
-        return false;
+        return $this->validateYamlFile($this->dataPath(), self::SCHEMA, 'Lang-Select', $output);
     }
 
     public function render(OutputInterface $output): void

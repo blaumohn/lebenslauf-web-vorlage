@@ -13,6 +13,11 @@
         {{ eintrag.header_title }}
       {% endif %}
     </div>
+    {% if eintrag.project_url %}
+      <div class="entry-link">
+        <a href="{{ eintrag.project_url }}">{{ eintrag.project_url|replace({'https://': '', 'http://': ''}) }}</a>
+      </div>
+    {% endif %}
   </div>
 
 {% endmacro %}

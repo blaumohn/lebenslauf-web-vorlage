@@ -86,7 +86,7 @@ final class CvFeatureTest extends FeatureTestCase
         $profile = 'entw';
 
         $tokenService = $this->buildTokenService();
-        $token = $tokenService->add($profile, 1, null)[0];
+        $token = $tokenService->add($profile, null);
 
         $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
         file_put_contents($htmlPath, '<h1>Private</h1>');
@@ -105,7 +105,7 @@ final class CvFeatureTest extends FeatureTestCase
         $profile = 'entw';
 
         $tokenService = $this->buildTokenService();
-        $token = $tokenService->add($profile, 1, time() - 10)[0];
+        $token = $tokenService->add($profile, time() - 10);
 
         $request = (new ServerRequestFactory())
             ->createServerRequest('GET', '/cv?token=' . urlencode($token) . '&lang=de');
@@ -135,7 +135,7 @@ final class CvFeatureTest extends FeatureTestCase
         $profile = 'entw';
 
         $tokenService = $this->buildTokenService();
-        $token = $tokenService->add($profile, 1, null)[0];
+        $token = $tokenService->add($profile, null);
 
         $dePath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
         $esPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.es.html';

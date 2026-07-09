@@ -22,7 +22,7 @@ final class TokenCommand extends BasePipelineCommand
         parent::configure();
         $this->addArgument('action', InputArgument::REQUIRED, 'Aktion (add|list|revoke)')
             ->addArgument('profile', InputArgument::OPTIONAL, 'Token-Profil')
-            ->addArgument('value', InputArgument::OPTIONAL, 'add: Anzahl (Default 1) | revoke: Hash-Präfix, Label oder "all"', '1')
+            ->addArgument('value', InputArgument::OPTIONAL, 'revoke: Hash-Präfix oder Label')
             ->addOption('label', null, InputOption::VALUE_REQUIRED, 'Bezeichnung der neuen Freigabe (nur add)')
             ->addOption('ttl-days', null, InputOption::VALUE_REQUIRED, 'Gültigkeitsdauer in Tagen (nur add, überschreibt Default)')
             ->addOption('no-expiry', null, InputOption::VALUE_NONE, 'Token ohne Ablauf erzeugen (nur add)');
@@ -32,7 +32,7 @@ final class TokenCommand extends BasePipelineCommand
     {
         $action = strtolower(trim((string) $input->getArgument('action')));
         if (!in_array($action, self::ACTIONS, true)) {
-            $output->writeln('<error>Usage: token <pipeline> add|list|revoke PROFIL [WERT] [--label=] [--ttl-days=] [--no-expiry]</error>');
+            $output->writeln('<error>Usage: token <pipeline> add|list PROFIL [--label=] [--ttl-days=] [--no-expiry] | revoke PROFIL WERT</error>');
             return Command::FAILURE;
         }
 
@@ -71,14 +71,11 @@ final class TokenCommand extends BasePipelineCommand
             return Command::FAILURE;
         }
 
-        $count = max(1, (int) $input->getArgument('value'));
         $expiresAt = $ttlDays !== null ? time() + $ttlDays * 86400 : null;
         $label = $this->resolveLabel($input);
 
-        $tokens = $cli->add($this->appRoot(), $profile, $count, $expiresAt, $label);
-        foreach ($tokens as $token) {
-            $output->writeln($token);
-        }
+        $token = $cli->add($this->appRoot(), $profile, $expiresAt, $label);
+        $output->writeln($token);
         return Command::SUCCESS;
     }
 
@@ -99,23 +96,18 @@ final class TokenCommand extends BasePipelineCommand
     {
         $identifier = trim((string) $input->getArgument('value'));
         if ($identifier === '') {
-            $output->writeln('<error>Hash-Präfix, Label oder "all" ist erforderlich.</error>');
+            $output->writeln('<error>Hash-Präfix oder Label ist erforderlich.</error>');
             return Command::FAILURE;
-        }
-
-        if ($identifier === 'all') {
-            $cli->revokeAll($this->appRoot(), $profile);
-            $output->writeln('Alle Freigaben entfernt.');
-            return Command::SUCCESS;
         }
 
         $removed = $cli->revoke($this->appRoot(), $profile, $identifier);
-        if ($removed === 0) {
-            $output->writeln('<error>Keine passende Freigabe gefunden.</error>');
-            return Command::FAILURE;
+        if ($removed > 0) {
+            $output->writeln("{$removed} Freigabe(n) entfernt.");
+            return Command::SUCCESS;
         }
-        $output->writeln("{$removed} Freigabe(n) entfernt.");
-        return Command::SUCCESS;
+
+        $output->writeln('<error>Keine passende Freigabe gefunden.</error>');
+        return Command::FAILURE;
     }
 
     private function dispatchRemotely(string $action, string $profile, InputInterface $input, OutputInterface $output): int
@@ -156,8 +148,7 @@ final class TokenCommand extends BasePipelineCommand
             return null;
         }
 
-        $count = max(1, (int) $input->getArgument('value'));
-        $args = ['cv_token_add', '--profile', $profile, '--count', (string) $count];
+        $args = ['cv_token_add', '--profile', $profile];
 
         if ($ttlDays !== null) {
             $args[] = '--expires-at';
@@ -177,7 +168,7 @@ final class TokenCommand extends BasePipelineCommand
     {
         $identifier = trim((string) $input->getArgument('value'));
         if ($identifier === '') {
-            throw new \InvalidArgumentException('Hash-Präfix, Label oder "all" ist erforderlich.');
+            throw new \InvalidArgumentException('Hash-Präfix oder Label ist erforderlich.');
         }
         return ['cv_token_revoke', '--profile', $profile, '--identifier', $identifier];
     }

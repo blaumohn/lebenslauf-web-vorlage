@@ -8,7 +8,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Twig\Environment;
 
-final class BlogIndexRenderer extends BaseContentRenderer
+final class BlogIndexRenderer extends BlogRendererBase
 {
     public const SCHEMA = 'blog.schema.json';
 
@@ -73,13 +73,6 @@ final class BlogIndexRenderer extends BaseContentRenderer
         return (string) $intro[$lang];
     }
 
-    private function discoverSortedPosts(string $blogDir): array
-    {
-        $posts = array_values($this->discoverYamlFiles($blogDir, ['blog.yaml']));
-        usort($posts, static fn(array $a, array $b) => strcmp($b['datum'], $a['datum']));
-        return $posts;
-    }
-
     private function publishedForLang(array $posts, string $lang): array
     {
         $published = [];
@@ -92,18 +85,8 @@ final class BlogIndexRenderer extends BaseContentRenderer
         return $published;
     }
 
-    private function blogDir(): string
-    {
-        return Path::join($this->resolveContentBase(), 'blog');
-    }
-
     private function introPath(): string
     {
         return Path::join($this->blogDir(), 'blog.yaml');
-    }
-
-    private function htmlPath(): string
-    {
-        return Path::join($this->rootPath, 'var', 'cache', 'html', 'blog');
     }
 }

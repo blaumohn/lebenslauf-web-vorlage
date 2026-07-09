@@ -45,12 +45,8 @@ final class CvContentRenderer extends BaseContentRenderer
 
     public function render(OutputInterface $output): void
     {
-        $targets = $this->resolveTargets();
-        $jsonPath = Path::join($this->rootPath, 'var', 'tmp', 'lebenslauf.json');
-        $this->ensureDir(dirname($jsonPath));
-
-        foreach ($targets as $target) {
-            $this->renderTarget($target, $jsonPath, $output);
+        foreach ($this->resolveTargets() as $target) {
+            $this->renderTarget($target, $output);
         }
     }
 
@@ -82,16 +78,38 @@ final class CvContentRenderer extends BaseContentRenderer
         if ($targets === []) {
             throw new \RuntimeException("Keine daten-*.yaml-Dateien gefunden in: {$dataPath}");
         }
+        $targets = array_map($this->withParsedData(...), $targets);
         $this->assertAtMostOnePublicProfile($targets);
         return $targets;
+    }
+
+    private function withParsedData(array $target): array
+    {
+        return $target + ['data' => $this->parseYamlFile($target['yaml'])];
+    }
+
+    /** @return array<string, mixed> */
+    private function parseYamlFile(string $yamlPath): array
+    {
+        if (!is_file($yamlPath)) {
+            throw new \RuntimeException("YAML nicht gefunden: {$yamlPath}");
+        }
+        try {
+            $data = Yaml::parseFile($yamlPath);
+        } catch (ParseException $e) {
+            throw new \RuntimeException("YAML-Fehler: {$yamlPath}", 0, $e);
+        }
+        if (!is_array($data)) {
+            throw new \RuntimeException("YAML-Inhalt ist keine Map: {$yamlPath}");
+        }
+        return $data;
     }
 
     private function assertAtMostOnePublicProfile(array $targets): void
     {
         $publicProfiles = [];
         foreach ($targets as $target) {
-            $data = Yaml::parseFile($target['yaml']);
-            if (is_array($data) && ($data['oeffentlich'] ?? false) === true) {
+            if (($target['data']['oeffentlich'] ?? false) === true) {
                 $publicProfiles[] = $target['profile'];
             }
         }
@@ -118,49 +136,28 @@ final class CvContentRenderer extends BaseContentRenderer
         return $targets;
     }
 
-    private function renderTarget(array $target, string $jsonPath, OutputInterface $output): void
+    private function renderTarget(array $target, OutputInterface $output): void
     {
         $profile = $target['profile'];
         $yamlPath = $target['yaml'];
-        if (!is_file($yamlPath)) {
-            throw new \RuntimeException("YAML nicht gefunden: {$yamlPath}");
-        }
-        $this->yamlToJson($yamlPath, $jsonPath);
-        $decoded = $this->loadJson($jsonPath);
-        $this->validate($decoded['raw'], $output);
-        $isPublic = ($decoded['data']['oeffentlich'] ?? false) === true;
+        $data = $target['data'];
+        $this->validate($this->toValidatorTree($data), $output);
+        $isPublic = ($data['oeffentlich'] ?? false) === true;
         $langs = $this->resolveLangs();
         foreach ($langs as $lang) {
-            $this->renderForLang($profile, $lang, $decoded['data'], $isPublic, $output);
+            $this->renderForLang($profile, $lang, $data, $isPublic, $output);
         }
         $output->writeln("CV build completed: {$profile} ({$yamlPath})");
     }
 
-    private function yamlToJson(string $yamlPath, string $jsonPath): void
+    /** @param array<string, mixed> $data */
+    private function toValidatorTree(array $data): mixed
     {
-        try {
-            $data = Yaml::parseFile($yamlPath);
-        } catch (ParseException $e) {
-            throw new \RuntimeException("YAML-Fehler: {$yamlPath}", 0, $e);
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            throw new \RuntimeException('CV-Daten konnten nicht serialisiert werden.');
         }
-        if (!is_array($data)) {
-            throw new \RuntimeException("YAML-Inhalt ist keine Map: {$yamlPath}");
-        }
-        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        if ($json === false || file_put_contents($jsonPath, $json) === false) {
-            throw new \RuntimeException("JSON-Schreiben fehlgeschlagen: {$jsonPath}");
-        }
-    }
-
-    private function loadJson(string $jsonPath): array
-    {
-        $content = (string) file_get_contents($jsonPath);
-        $raw = json_decode($content);
-        $data = json_decode($content, true);
-        if (!is_array($data) || $raw === null) {
-            throw new \RuntimeException("Ungültiges JSON: {$jsonPath}");
-        }
-        return ['raw' => $raw, 'data' => $data];
+        return json_decode($json);
     }
 
     private function validate(mixed $rawData, OutputInterface $output): void
@@ -294,10 +291,4 @@ final class CvContentRenderer extends BaseContentRenderer
         return new SchemaValidator($schema);
     }
 
-    private function ensureDir(string $path): void
-    {
-        if (!is_dir($path)) {
-            mkdir($path, 0775, true);
-        }
-    }
 }

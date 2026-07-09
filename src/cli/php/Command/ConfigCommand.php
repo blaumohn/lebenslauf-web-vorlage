@@ -2,6 +2,7 @@
 
 namespace App\Cli\Command;
 
+use App\Cli\Config\ConfigInitWriter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Console\Command\Command;
@@ -16,7 +17,7 @@ final class ConfigCommand extends BasePipelineCommand
     protected function configure(): void
     {
         parent::configure();
-        $this->addArgument('action', InputArgument::REQUIRED, 'get, show, lint oder compile')
+        $this->addArgument('action', InputArgument::REQUIRED, 'get, show, lint, compile oder init')
             ->addArgument('arg1', InputArgument::OPTIONAL, 'KEY')
             ->addArgument('arg2', InputArgument::OPTIONAL, 'TARGET (bei compile)')
             ->addOption('phase', null, InputOption::VALUE_REQUIRED, 'Phase in der Pipeline-Phase');
@@ -36,6 +37,9 @@ final class ConfigCommand extends BasePipelineCommand
         }
         if ($action === 'compile') {
             return $this->handleCompile($input, $output);
+        }
+        if ($action === 'init') {
+            return $this->handleInit($output);
         }
         $output->writeln('<error>Usage: config <PIPELINE> <action> [ARGS]</error>');
         return Command::FAILURE;
@@ -121,6 +125,39 @@ final class ConfigCommand extends BasePipelineCommand
         $output->writeln("Pipeline-Phase: {$context}");
         $output->writeln("Compiled config written: {$path}");
         return Command::SUCCESS;
+    }
+
+    private function handleInit(OutputInterface $output): int
+    {
+        $writer = $this->configInitWriter();
+        if ($writer->targetExists($this->pipelineName())) {
+            $target = $writer->targetPath($this->pipelineName());
+            $output->writeln("<error>Config-Datei existiert bereits: {$target}</error>");
+            return Command::FAILURE;
+        }
+        try {
+            $unfilled = $this->pipelineUnfilledVars();
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return Command::FAILURE;
+        }
+        if ($unfilled === []) {
+            $output->writeln('Keine offenen Config-Werte fuer Pipeline: ' . $this->pipelineName());
+            return Command::SUCCESS;
+        }
+        try {
+            $target = $writer->write($this->pipelineName(), $unfilled);
+        } catch (\RuntimeException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            return Command::FAILURE;
+        }
+        $output->writeln("Config-Vorlage geschrieben: {$target}");
+        return Command::SUCCESS;
+    }
+
+    private function configInitWriter(): ConfigInitWriter
+    {
+        return new ConfigInitWriter($this->appRoot());
     }
 
     private function requirePhase(InputInterface $input, OutputInterface $output): ?string

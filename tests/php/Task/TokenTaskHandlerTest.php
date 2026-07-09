@@ -45,30 +45,30 @@ final class TokenTaskHandlerTest extends TestCase
     public function testRejectsUnknownProfileOnAdd(): void
     {
         $handler = $this->makeHandler();
-        $task = $this->makeTask('cv_token_add', ['profile' => 'missing', 'count' => '1']);
+        $task = $this->makeTask('cv_token_add', ['profile' => 'missing']);
 
         $this->expectException(\InvalidArgumentException::class);
         $handler->handle($task, $this->root);
     }
 
-    public function testAddsTokensForKnownProfile(): void
+    public function testAddsTokenForKnownProfile(): void
     {
         file_put_contents($this->root . '/var/cache/html/cv-private-default.de.html', '<html/>');
         $handler = $this->makeHandler();
-        $task = $this->makeTask('cv_token_add', ['profile' => 'default', 'count' => '2']);
+        $task = $this->makeTask('cv_token_add', ['profile' => 'default']);
 
         $result = $handler->handle($task, $this->root);
 
         $this->assertTrue($result->success);
-        $tokens = array_filter(explode("\n", $result->body));
-        $this->assertCount(2, $tokens);
+        $this->assertStringContainsString('default', $result->body);
+        $this->assertNotSame('', $result->mailExtra);
     }
 
     public function testListReturnsJsonBody(): void
     {
         file_put_contents($this->root . '/var/cache/html/cv-private-default.de.html', '<html/>');
         $handler = $this->makeHandler();
-        $handler->handle($this->makeTask('cv_token_add', ['profile' => 'default', 'count' => '1']), $this->root);
+        $handler->handle($this->makeTask('cv_token_add', ['profile' => 'default']), $this->root);
 
         $result = $handler->handle($this->makeTask('cv_token_list', ['profile' => 'default']), $this->root);
 
@@ -77,13 +77,13 @@ final class TokenTaskHandlerTest extends TestCase
         $this->assertCount(1, $entries);
     }
 
-    public function testRevokeAllRemovesTokens(): void
+    public function testRevokeByLabelRemovesToken(): void
     {
         file_put_contents($this->root . '/var/cache/html/cv-private-default.de.html', '<html/>');
         $handler = $this->makeHandler();
-        $handler->handle($this->makeTask('cv_token_add', ['profile' => 'default', 'count' => '2']), $this->root);
+        $handler->handle($this->makeTask('cv_token_add', ['profile' => 'default', 'label' => 'firma-x']), $this->root);
 
-        $result = $handler->handle($this->makeTask('cv_token_revoke', ['profile' => 'default', 'identifier' => 'all']), $this->root);
+        $result = $handler->handle($this->makeTask('cv_token_revoke', ['profile' => 'default', 'identifier' => 'firma-x']), $this->root);
 
         $this->assertTrue($result->success);
         $list = $handler->handle($this->makeTask('cv_token_list', ['profile' => 'default']), $this->root);

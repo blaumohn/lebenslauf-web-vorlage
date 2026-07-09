@@ -21,21 +21,40 @@ EN_SWITCHER = (
 
 DE_SCRIPTS_DIR = REPO_ROOT / "readme-scripts"
 EN_SCRIPTS_DIR = REPO_ROOT / "readme-scripts" / "en"
+README_SCRIPT_USAGE_SOURCES = (
+    REPO_ROOT / "tests/ci/readme-dev-user-flow.sh",
+)
 
 
 class Variant(NamedTuple):
     scripts_dir: Path
+    usage_scripts_dir: Path
     output_path: Path
     switcher_line: str
     back_link_label: str
+    usage_note_label: str
 
 
 DE_README = REPO_ROOT / "README.md"
 EN_README = REPO_ROOT / "README.en.md"
 
 VARIANTS = (
-    Variant(DE_SCRIPTS_DIR, DE_README, DE_SWITCHER, "nach oben"),
-    Variant(EN_SCRIPTS_DIR, EN_README, EN_SWITCHER, "back to top"),
+    Variant(
+        scripts_dir=DE_SCRIPTS_DIR,
+        usage_scripts_dir=DE_SCRIPTS_DIR,
+        output_path=DE_README,
+        switcher_line=DE_SWITCHER,
+        back_link_label="nach oben",
+        usage_note_label="Ausgeführt in",
+    ),
+    Variant(
+        scripts_dir=EN_SCRIPTS_DIR,
+        usage_scripts_dir=DE_SCRIPTS_DIR,
+        output_path=EN_README,
+        switcher_line=EN_SWITCHER,
+        back_link_label="back to top",
+        usage_note_label="Executed in",
+    ),
 )
 
 
@@ -78,7 +97,7 @@ def concatenate_sections(variant: Variant) -> str:
     texts = [path.read_text().rstrip("\n") for path in section_files]
     top_slug = find_top_slug(texts)
     sections = [
-        annotate_section(text, path, top_slug, variant.back_link_label)
+        annotate_section(text, path, top_slug, variant)
         for text, path in zip(texts, section_files)
     ]
     return "\n\n---\n\n".join(sections) + "\n"
@@ -94,15 +113,40 @@ def find_top_slug(texts: list[str]) -> str:
 
 
 def annotate_section(
-    text: str, path: Path, top_slug: str, back_link_label: str
+    text: str, path: Path, top_slug: str, variant: Variant
 ) -> str:
     heading, *rest = text.splitlines()
     if not heading.startswith("# ## "):
         return text
-    relative = path.relative_to(REPO_ROOT).as_posix()
-    note = f"# <small>*[{relative}]({REPO_URL}/{relative})*</small>"
-    back_link = f"# [{back_link_label}](#{top_slug})"
-    return "\n".join([heading, note] + rest + ["#", back_link])
+    usage_script = usage_script_for(path, variant)
+    relative = usage_script.relative_to(REPO_ROOT).as_posix()
+    usage_notes = usage_source_notes(relative, variant.usage_note_label)
+    back_link = f"# [{variant.back_link_label}](#{top_slug})"
+    return "\n".join([heading] + usage_notes + rest + ["#", back_link])
+
+
+def usage_script_for(path: Path, variant: Variant) -> Path:
+    relative = path.relative_to(variant.scripts_dir)
+    return variant.usage_scripts_dir / relative
+
+
+def usage_source_notes(
+    readme_script: str, usage_note_label: str
+) -> list[str]:
+    sources = usage_sources_for(readme_script)
+    return [
+        f"# <small>*{usage_note_label} "
+        f"[{source}]({REPO_URL}/{source})*</small>"
+        for source in sources
+    ]
+
+
+def usage_sources_for(readme_script: str) -> list[str]:
+    return [
+        source.relative_to(REPO_ROOT).as_posix()
+        for source in README_SCRIPT_USAGE_SOURCES
+        if readme_script in source.read_text()
+    ]
 
 
 def strip_comment_markers(text: str) -> str:

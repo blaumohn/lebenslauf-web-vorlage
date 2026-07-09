@@ -109,6 +109,16 @@ final class SiteHtmlCache
         return $this->storage->readText($this->langSelectPath());
     }
 
+    public function saveErrorFragmentForLang(string $key, string $lang, string $html): void
+    {
+        $this->storage->writeText($this->errorFragmentPath($key, $lang), $html);
+    }
+
+    public function getErrorFragmentForLang(string $key, string $lang): ?string
+    {
+        return $this->storage->readText($this->errorFragmentPath($key, $lang));
+    }
+
     public function hasPublic(): bool
     {
         $pattern = Path::join($this->cacheDir, 'cv-public.*.html');
@@ -124,6 +134,11 @@ final class SiteHtmlCache
     private function langSelectPath(): string
     {
         return Path::join($this->cacheDir, 'lang-select.html');
+    }
+
+    private function errorFragmentPath(string $key, string $lang): string
+    {
+        return Path::join($this->cacheDir, 'error-' . $key . '.' . $this->langSuffix($lang) . '.html');
     }
 
     private function cvFooterFragmentPath(string $lang): string

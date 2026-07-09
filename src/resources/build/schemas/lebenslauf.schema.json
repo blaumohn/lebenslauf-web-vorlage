@@ -150,7 +150,8 @@
           "type": "object",
           "required": ["projekt"],
           "properties": {
-            "projekt": { "type": "string" }
+            "projekt": { "type": "string" },
+            "url": { "type": "string", "format": "uri" }
           }
         }
       ]

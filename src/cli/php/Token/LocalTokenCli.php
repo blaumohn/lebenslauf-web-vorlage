@@ -12,10 +12,10 @@ use App\Http\Storage\FileStorage;
 
 final class LocalTokenCli
 {
-    /** @return list<string> Klartext-Token */
-    public function add(string $appRoot, string $profile, int $count, ?int $expiresAt, ?string $label = null): array
+    /** @return non-empty-string Klartext-Token */
+    public function add(string $appRoot, string $profile, ?int $expiresAt, ?string $label = null): string
     {
-        return $this->buildService($appRoot)->add($profile, $count, $expiresAt, $label);
+        return $this->buildService($appRoot)->add($profile, $expiresAt, $label);
     }
 
     /** @return list<array{hash: string, label: string|null, created_at: int, expires_at: int|null}> */
@@ -27,11 +27,6 @@ final class LocalTokenCli
     public function revoke(string $appRoot, string $profile, string $identifier): int
     {
         return $this->buildService($appRoot)->revoke($profile, $identifier);
-    }
-
-    public function revokeAll(string $appRoot, string $profile): void
-    {
-        $this->buildService($appRoot)->revokeAll($profile);
     }
 
     private function buildService(string $appRoot): TokenIssuanceService

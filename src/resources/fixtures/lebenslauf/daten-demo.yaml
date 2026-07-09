@@ -252,6 +252,7 @@ berufserfahrung:
 opensource:
   - titel: react-visualizer
     projekt: react-visualizer
+    url: https://example.invalid/react-visualizer
     zeitraum: "2022"
     punkte:
       - tags:

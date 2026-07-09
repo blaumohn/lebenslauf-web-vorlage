@@ -54,13 +54,12 @@ final class TokenTaskHandler implements TaskHandler
     private function handleAdd(QueuedTask $task): TaskResult
     {
         $profile = $task->get('profile');
-        $count = max(1, (int) $task->get('count'));
         $label = $task->get('label') !== '' ? $task->get('label') : null;
         $expiresAtRaw = $task->get('expires_at');
         $expiresAt = $expiresAtRaw !== '' ? (int) $expiresAtRaw : null;
 
-        $tokens = $this->issuanceService->add($profile, $count, $expiresAt, $label);
-        return TaskResult::ok(implode("\n", $tokens));
+        $token = $this->issuanceService->add($profile, $expiresAt, $label);
+        return TaskResult::ok("Freigabe erzeugt für Profil {$profile}", $token);
     }
 
     private function handleList(QueuedTask $task): TaskResult
@@ -77,10 +76,6 @@ final class TokenTaskHandler implements TaskHandler
     {
         $profile = $task->get('profile');
         $identifier = $task->get('identifier');
-        if ($identifier === 'all') {
-            $this->issuanceService->revokeAll($profile);
-            return TaskResult::ok('alle Freigaben entfernt');
-        }
 
         $removed = $this->issuanceService->revoke($profile, $identifier);
         return TaskResult::ok("{$removed} Freigabe(n) entfernt");
