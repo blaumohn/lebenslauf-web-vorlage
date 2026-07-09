@@ -61,6 +61,24 @@ final class ConfigCommandTest extends TestCase
         self::assertStringContainsString('Config OK. Pipeline: preview', $tester->getDisplay());
     }
 
+    public function testInitFailsWhenLocalConfigAlreadyExists(): void
+    {
+        $localFile = dirname(__DIR__, 2) . '/.local/prod.yaml';
+        self::assertFileDoesNotExist($localFile, 'Testaufbau erwartet keine bestehende .local/prod.yaml');
+        file_put_contents($localFile, "app:\n  APP_ROOT_URL: existing\n");
+        try {
+            $tester = $this->tester();
+            $exitCode = $tester->execute([
+                'pipeline' => 'prod',
+                'action'   => 'init',
+            ]);
+            self::assertSame(1, $exitCode);
+            self::assertStringContainsString('Config-Datei existiert bereits', $tester->getDisplay());
+        } finally {
+            unlink($localFile);
+        }
+    }
+
     private function fullOverrides(): array
     {
         return [

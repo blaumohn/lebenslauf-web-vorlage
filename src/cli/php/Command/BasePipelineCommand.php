@@ -76,6 +76,12 @@ abstract class BasePipelineCommand extends BaseCliCommand
         $this->configService()->validate($this->pipelineName(), $this->overrides);
     }
 
+    /** @return array<string, array<string, array{desc?: ?string, notes?: ?string, example?: ?string}>> */
+    protected function pipelineUnfilledVars(): array
+    {
+        return $this->configService()->unfilledVarsForPipeline($this->pipelineName());
+    }
+
     protected function getValuesByPhase(array $phases, OutputInterface $output): ?array
     {
         $result = [];
