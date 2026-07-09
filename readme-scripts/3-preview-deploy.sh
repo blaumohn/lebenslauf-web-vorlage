@@ -8,16 +8,26 @@
 #
 # Voraussetzung: Shared-PHP-Hosting mit SFTP und ein SMTP-Konto (z. B. Mailtrap).
 #
-# Fehlende Konfigurationswerte anzeigen (Beispiele/Beschreibungen der Variablen:
-# siehe [`manifest.yaml`](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/src/resources/pipeline-config/manifest.yaml);
-# die Werte selbst gehören in die GitHub-Repo-Secrets, nicht hierher):
+# Konfigurationswerte einer Phase ansehen — lehrreich: Variablen sind an
+# Pipeline-Phasen gebunden:
 #
 # ```bash
-# cli config preview show
+# cli config preview show --phase deploy
 # ```
 #
-# Die gemeldeten Werte — u. a. SMTP, SFTP, `app_url` — als Secrets/Parameter im
-# GitHub-Repo setzen.
+# Darunter liegt [pipeline-config-spec](https://github.com/blaumohn/pipeline-config-spec-php):
+# Auflösung in Schichten, Secrets an erlaubte Quellen gebunden — Hintergrund im
+# [Blog-Artikel](https://ysdani.com/blog/system-statt-knoedel).
+#
+# Alle noch offenen Werte als kommentierte Vorlage erzeugen:
+#
+# ```bash
+# cli config preview init
+# ```
+#
+# Die erzeugte `.local/preview.yaml` dient als Checkliste: die Werte — u. a.
+# SMTP, SFTP, `app_url` — als Secrets/Parameter im GitHub-Repo setzen;
+# Beschreibungen stehen als Kommentar in der Vorlage.
 #
 # Deploy auslösen: ein Push auf `preview` nutzt Fixtures, kein Content-Upload:
 #

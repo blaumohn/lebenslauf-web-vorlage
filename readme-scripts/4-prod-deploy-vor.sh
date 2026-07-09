@@ -8,10 +8,10 @@
 #      diesen Sentinel als Beweis für den erfolgreichen Deploy.
 #      Der `.local`-Move-Trick (Abschnitt 6 des Handoffs) läuft im Wrapper,
 #      VOR dem Sourcen dieses Skripts: `.local/prod.yaml` kurz beiseiteschieben
-#      (`.local/prod.benutzer-config.yaml`), damit `cli config prod show`
-#      unten die echten fehlenden Vars meldet wie beim Erstlauf; danach
+#      (`.local/prod.benutzer-config.yaml`), damit `cli config prod init`
+#      unten die Vorlage erzeugt wie beim Erstlauf; danach
 #      zurückkopieren. Der `mv` bleibt reine Harness-Sache (kein echter
-#      Erstnutzer hat eine Datei zum Verschieben) — `cli config prod show`
+#      Erstnutzer hat eine Datei zum Verschieben) — `cli config prod init`
 #      und der `cp`-Hinweis unten sind dagegen echte Nutzerführung und bleiben
 #      im Readme-Skript sichtbar. -->
 #
@@ -20,14 +20,16 @@
 # liest die Pipeline-Config vom ausführenden Rechner. (Anerkannte Projekt-Schwäche:
 # Prod-Zugangsdaten liegen dadurch doppelt vor, lokal und in GitHub.)
 #
-# Fehlende Konfigurationswerte anzeigen:
+# Vorlage mit allen offenen Werten erzeugen und ausfüllen:
 #
 # ```bash
-# cli config prod show
+# cli config prod init
 # ```
 #
-# Werte in `.local/prod.yaml` eintragen — die vorbereitete Datei an ihren Platz
-# kopieren:
+# Die erzeugte `.local/prod.yaml` trägt Beschreibung und Beispiel je Variable
+# als Kommentar ([Hintergrund](https://ysdani.com/blog/system-statt-knoedel)).
+# Wer schon eine ausgefüllte Datei hat, kopiert sie stattdessen an diesen
+# Platz:
 #
 # ```bash
 # cp <deine-vorbereitete-datei> .local/prod.yaml
@@ -40,8 +42,11 @@
 # lässt sich abweichen. Inhalt auf den Server laden, damit der Deploy ihn verwendet:
 #
 # ```bash
-# cli python prod --phase build scripts/content-sftp-upload.py
+# cli python prod --phase deploy --phase build scripts/content-sftp-upload.py
 # ```
+#
+# `content-sftp-upload.py` liest sowohl `deploy` (SFTP-Zugangsdaten) als auch
+# `build` (`CONTENT_PATH`) — beide Phasen müssen mitgegeben werden.
 #
 # Deploy auslösen:
 #

@@ -28,6 +28,7 @@ operations and architecture decisions behind it are documented on the
 ---
 
 ## Quickstart
+<small>*Executed in [tests/ci/readme-dev-user-flow.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/tests/ci/readme-dev-user-flow.sh)*</small>
 
 Show the career-profile template demo locally.
 
@@ -48,6 +49,7 @@ The demo then runs on <http://127.0.0.1:8080/>.
 ---
 
 ## Set up private view
+<small>*Executed in [tests/ci/readme-dev-user-flow.sh](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/tests/ci/readme-dev-user-flow.sh)*</small>
 
 The private full view opens via a URL token, without login.
 
@@ -71,16 +73,26 @@ curl --fail --silent --show-error "http://127.0.0.1:8080/cv?token=${token}" \
 
 Prerequisite: shared PHP hosting with SFTP and an SMTP account (e.g. Mailtrap).
 
-Show missing configuration values (examples/descriptions of the variables:
-see [`manifest.yaml`](https://github.com/blaumohn/shared-hosting-site-toolkit/blob/dev/src/resources/pipeline-config/manifest.yaml);
-the values themselves belong in the GitHub repo secrets, not here):
+Inspect one phase's configuration values — instructive: variables are bound
+to pipeline phases:
 
 ```bash
-cli config preview show
+cli config preview show --phase deploy
 ```
 
-Set the reported values — SMTP, SFTP, `app_url`, among others — as
-secrets/parameters in the GitHub repo.
+Underneath sits [pipeline-config-spec](https://github.com/blaumohn/pipeline-config-spec-php):
+layered resolution, secrets bound to allowed sources — background in the
+[blog post](https://ysdani.com/blog/system-statt-knoedel).
+
+Generate a commented template of all still-open values:
+
+```bash
+cli config preview init
+```
+
+The generated `.local/preview.yaml` doubles as a checklist: set the values —
+SMTP, SFTP, `app_url`, among others — as secrets/parameters in the GitHub
+repo; descriptions sit as comments in the template.
 
 Trigger a deploy: a push to `preview` uses fixtures, no content upload:
 
@@ -102,10 +114,10 @@ git push <preview>
      checks exactly this sentinel as proof of a successful deploy.
      The `.local` move trick (handoff section 6) runs in the wrapper,
      BEFORE sourcing this script: set aside `.local/prod.yaml`
-     (`.local/prod.benutzer-config.yaml`) so that `cli config prod show`
-     below reports the real missing vars as on a first run; copy it back
+     (`.local/prod.benutzer-config.yaml`) so that `cli config prod init`
+     below generates the template as on a first run; copy it back
      afterwards. The `mv` stays a pure harness concern (no real first-time
-     user has a file to move) — `cli config prod show` and the `cp` hint
+     user has a file to move) — `cli config prod init` and the `cp` hint
      below are real user guidance and stay visible in the readme script. -->
 
 Unlike the preview deploy, `prod` needs the real credentials not only as
@@ -113,13 +125,15 @@ GitHub secrets, but also locally in `.local/prod.yaml` — `content-sftp-upload`
 reads the pipeline config from the executing machine. (Acknowledged project
 weak point: prod credentials therefore exist twice, locally and in GitHub.)
 
-Show missing configuration values:
+Generate the template with all still-open values and fill it in:
 
 ```bash
-cli config prod show
+cli config prod init
 ```
 
-Enter the values in `.local/prod.yaml` — copy your prepared file into place:
+The generated `.local/prod.yaml` carries a description and an example per
+variable as comments ([background](https://ysdani.com/blog/system-statt-knoedel)).
+If you already have a filled-in file, copy it into place instead:
 
 ```bash
 cp <deine-vorbereitete-datei> .local/prod.yaml
@@ -132,8 +146,11 @@ quickstart) copies the demo content to `CONTENT_PATH`; deviate from that as
 needed. Upload the content to the server so the deploy uses it:
 
 ```bash
-cli python prod --phase build scripts/content-sftp-upload.py
+cli python prod --phase deploy --phase build scripts/content-sftp-upload.py
 ```
+
+`content-sftp-upload.py` reads both `deploy` (SFTP credentials) and `build`
+(`CONTENT_PATH`) — both phases must be passed.
 
 Trigger the deploy:
 
