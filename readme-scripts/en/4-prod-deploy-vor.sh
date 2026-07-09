@@ -11,8 +11,8 @@
 #      (`.local/prod.benutzer-config.yaml`) so that `cli config prod init`
 #      below generates the template as on a first run; copy it back
 #      afterwards. The `mv` stays a pure harness concern (no real first-time
-#      user has a file to move) — `cli config prod init` and the `cp` hint
-#      below are real user guidance and stay visible in the readme script. -->
+#      user has a file to move) — `cli config prod init` below is real user
+#      guidance and stays visible in the readme script. -->
 #
 # Unlike the preview deploy, `prod` needs the real credentials not only as
 # GitHub secrets, but also locally in `.local/prod.yaml` — `content-sftp-upload`
@@ -27,11 +27,6 @@
 #
 # The generated `.local/prod.yaml` carries a description and an example per
 # variable as comments ([background](https://ysdani.com/blog/system-statt-knoedel)).
-# If you already have a filled-in file, copy it into place instead:
-#
-# ```bash
-# cp <deine-vorbereitete-datei> .local/prod.yaml
-# ```
 #
 # After that: with real content instead of fixtures.
 #

@@ -12,8 +12,8 @@
 #      unten die Vorlage erzeugt wie beim Erstlauf; danach
 #      zurückkopieren. Der `mv` bleibt reine Harness-Sache (kein echter
 #      Erstnutzer hat eine Datei zum Verschieben) — `cli config prod init`
-#      und der `cp`-Hinweis unten sind dagegen echte Nutzerführung und bleiben
-#      im Readme-Skript sichtbar. -->
+#      unten ist dagegen echte Nutzerführung und bleibt im Readme-Skript
+#      sichtbar. -->
 #
 # Anders als beim Preview-Deploy braucht `prod` die echten Zugangsdaten nicht nur
 # als GitHub-Secrets, sondern auch lokal in `.local/prod.yaml` — `content-sftp-upload`
@@ -28,12 +28,6 @@
 #
 # Die erzeugte `.local/prod.yaml` trägt Beschreibung und Beispiel je Variable
 # als Kommentar ([Hintergrund](https://ysdani.com/blog/system-statt-knoedel)).
-# Wer schon eine ausgefüllte Datei hat, kopiert sie stattdessen an diesen
-# Platz:
-#
-# ```bash
-# cp <deine-vorbereitete-datei> .local/prod.yaml
-# ```
 #
 # Danach: mit echten Inhalten statt Fixtures.
 #
