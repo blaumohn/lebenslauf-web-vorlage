@@ -115,12 +115,15 @@ final class TokenServiceTest extends TestCase
     public function testRevokeByLabelRemovesMatchingEntries(): void
     {
         $service = $this->service();
-        $service->add('DEFAULT', null, 'firma-x');
+        $firstRemoved = $service->add('DEFAULT', null, 'firma-x');
+        $secondRemoved = $service->add('DEFAULT', null, 'firma-x');
         $kept = $service->add('DEFAULT', null, 'firma-y');
 
         $count = $service->revoke('DEFAULT', 'firma-x');
 
-        $this->assertSame(1, $count);
+        $this->assertSame(2, $count);
+        $this->assertFalse($service->verify('DEFAULT', $firstRemoved));
+        $this->assertFalse($service->verify('DEFAULT', $secondRemoved));
         $this->assertTrue($service->verify('DEFAULT', $kept));
     }
 
