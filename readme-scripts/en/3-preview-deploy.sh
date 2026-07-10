@@ -17,7 +17,7 @@
 #
 # Underneath sits [pipeline-config-spec](https://github.com/blaumohn/pipeline-config-spec-php):
 # layered resolution, secrets bound to allowed sources — background in the
-# [blog post](https://ysdani.com/blog/system-statt-knoedel).
+# [blog post](https://ysdani.com/blog/pipeline-spec-in-action).
 #
 # Generate a commented template of all still-open values:
 #

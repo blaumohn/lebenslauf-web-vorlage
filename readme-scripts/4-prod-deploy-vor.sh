@@ -27,7 +27,7 @@
 # ```
 #
 # Die erzeugte `.local/prod.yaml` trägt Beschreibung und Beispiel je Variable
-# als Kommentar ([Hintergrund](https://ysdani.com/blog/system-statt-knoedel)).
+# als Kommentar ([Hintergrund](https://ysdani.com/blog/pipeline-spec-in-action)).
 #
 # Danach: mit echten Inhalten statt Fixtures.
 #

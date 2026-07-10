@@ -95,7 +95,7 @@ cli config preview show --phase deploy
 
 Underneath sits [pipeline-config-spec](https://github.com/blaumohn/pipeline-config-spec-php):
 layered resolution, secrets bound to allowed sources — background in the
-[blog post](https://ysdani.com/blog/system-statt-knoedel).
+[blog post](https://ysdani.com/blog/pipeline-spec-in-action).
 
 Generate a commented template of all still-open values:
 
@@ -145,7 +145,7 @@ cli config prod init
 ```
 
 The generated `.local/prod.yaml` carries a description and an example per
-variable as comments ([background](https://ysdani.com/blog/system-statt-knoedel)).
+variable as comments ([background](https://ysdani.com/blog/pipeline-spec-in-action)).
 
 After that: with real content instead of fixtures.
 
