@@ -16,71 +16,73 @@ async function mockSite(page, handler) {
   });
 }
 
-test('erkennt einen intern aufgelösten Link ohne Protokoll als kaputt', async ({ page }) => {
-  await mockSite(page, path => {
-    if (path === '/') {
-      return '<a href="example.com/repo">repo</a>';
-    }
-    return null;
+test.describe('Selbsttest: Crawl-Mechanik (gemockt, kein Server nötig)', () => {
+  test('erkennt einen intern aufgelösten Link ohne Protokoll als kaputt', async ({ page }) => {
+    await mockSite(page, path => {
+      if (path === '/') {
+        return '<a href="example.com/repo">repo</a>';
+      }
+      return null;
+    });
+
+    const { visited } = await crawlSite(page, ORIGIN);
+
+    expect(visited.get('/example.com/repo')?.navigationStatus).toBe(404);
   });
 
-  const { visited } = await crawlSite(page, ORIGIN);
+  test('bricht bei unbegrenzt wachsenden Pfaden nach maxPages ab, statt zu hängen', async ({ page }) => {
+    await mockSite(page, path => `<a href="loop/${path.replace(/^\//, '')}">next</a>`);
 
-  expect(visited.get('/example.com/repo')?.navigationStatus).toBe(404);
-});
+    const { truncated, visited } = await crawlSite(page, ORIGIN, { maxPages: 10 });
 
-test('bricht bei unbegrenzt wachsenden Pfaden nach maxPages ab, statt zu hängen', async ({ page }) => {
-  await mockSite(page, path => `<a href="loop/${path.replace(/^\//, '')}">next</a>`);
-
-  const { truncated, visited } = await crawlSite(page, ORIGIN, { maxPages: 10 });
-
-  expect(truncated).toBe(true);
-  expect(visited.size).toBe(10);
-});
-
-test('meldet eine syntaktisch ungültige URL im Content statt sie stillschweigend zu verwerfen', async ({ page }) => {
-  await mockSite(page, path => {
-    if (path === '/') {
-      return '<a href="http://[bad">kaputt</a>';
-    }
-    return null;
+    expect(truncated).toBe(true);
+    expect(visited.size).toBe(10);
   });
 
-  const { visited } = await crawlSite(page, ORIGIN);
+  test('meldet eine syntaktisch ungültige URL im Content statt sie stillschweigend zu verwerfen', async ({ page }) => {
+    await mockSite(page, path => {
+      if (path === '/') {
+        return '<a href="http://[bad">kaputt</a>';
+      }
+      return null;
+    });
 
-  expect(visited.get('/')?.failures).toEqual([
-    { url: 'http://[bad', reason: 'Ungültige URL im Content' }
-  ]);
-});
+    const { visited } = await crawlSite(page, ORIGIN);
 
-test('summarizeBrokenPages meldet einen kaputten Link genau wie links.spec.js ihn auswerten würde', async ({ page }) => {
-  await mockSite(page, path => {
-    if (path === '/') {
-      return '<a href="example.com/repo">repo</a>';
-    }
-    return null;
+    expect(visited.get('/')?.failures).toEqual([
+      { url: 'http://[bad', reason: 'Ungültige URL im Content' }
+    ]);
   });
 
-  const crawlResult = await crawlSite(page, ORIGIN);
-  const brokenPages = summarizeBrokenPages(crawlResult);
+  test('summarizeBrokenPages meldet einen kaputten Link genau wie links.spec.js ihn auswerten würde', async ({ page }) => {
+    await mockSite(page, path => {
+      if (path === '/') {
+        return '<a href="example.com/repo">repo</a>';
+      }
+      return null;
+    });
 
-  expect(brokenPages).toEqual(['/example.com/repo: HTTP 404']);
-});
+    const crawlResult = await crawlSite(page, ORIGIN);
+    const brokenPages = summarizeBrokenPages(crawlResult);
 
-test('sammelt externe Links separat, ohne sie zu besuchen', async ({ page }) => {
-  await mockSite(page, path => {
-    if (path === '/') {
-      return '<a href="https://github.com/example/repo">repo</a><a href="/kontakt">kontakt</a>';
-    }
-    if (path === '/kontakt') {
-      return 'kontakt-seite';
-    }
-    return null;
+    expect(brokenPages).toEqual(['/example.com/repo: HTTP 404']);
   });
 
-  const { visited, externalUrls } = await crawlSite(page, ORIGIN);
+  test('sammelt externe Links separat, ohne sie zu besuchen', async ({ page }) => {
+    await mockSite(page, path => {
+      if (path === '/') {
+        return '<a href="https://github.com/example/repo">repo</a><a href="/kontakt">kontakt</a>';
+      }
+      if (path === '/kontakt') {
+        return 'kontakt-seite';
+      }
+      return null;
+    });
 
-  expect([...visited.keys()].sort()).toEqual(['/', '/kontakt']);
-  expect(externalUrls.has('https://github.com/example/repo')).toBe(true);
-  expect(visited.get('/kontakt')?.navigationStatus).toBe(200);
+    const { visited, externalUrls } = await crawlSite(page, ORIGIN);
+
+    expect([...visited.keys()].sort()).toEqual(['/', '/kontakt']);
+    expect(externalUrls.has('https://github.com/example/repo')).toBe(true);
+    expect(visited.get('/kontakt')?.navigationStatus).toBe(200);
+  });
 });

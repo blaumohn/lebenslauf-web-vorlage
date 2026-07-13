@@ -1,129 +1,11 @@
-const IGNORED_PROTOCOLS = new Set(['data:', 'blob:', 'javascript:', 'mailto:', 'tel:']);
-
 const LINK_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'poster', 'data', 'cite'];
 
-export function isCheckableUrl(urlString) {
-  try {
-    return !IGNORED_PROTOCOLS.has(new URL(urlString).protocol);
-  } catch {
-    return false;
-  }
-}
-
-export async function collectPageUrls(page) {
-  const urls = new Set();
-  const invalid = new Set();
-
-  for (const frame of page.frames()) {
-    let result;
-    try {
-      result = await frame.evaluate(collectUrlsInDocument, LINK_ATTRIBUTES);
-    } catch {
-      // Cross-Origin-Frame: Inhalt ist von hier aus nicht einsehbar (Same-Origin-Policy),
-      // kein Absturz — dieser Rahmen wird für die Link-Sammlung übersprungen.
-      continue;
-    }
-    for (const url of result.urls) {
-      urls.add(url);
-    }
-    for (const value of result.invalid) {
-      invalid.add(value);
-    }
-  }
-
-  return { urls: [...urls].filter(isCheckableUrl), invalid: [...invalid] };
-}
-
-function collectUrlsInDocument(attributes) {
-  const found = new Set();
-  const invalid = new Set();
-
-  const add = value => {
-    if (!value) {
-      return;
-    }
-    try {
-      found.add(new URL(value, document.baseURI).href);
-    } catch {
-      invalid.add(value);
-    }
-  };
-
-  const parseSrcsetCandidates = srcset =>
-    srcset.split(',').map(candidate => candidate.trim().split(/\s+/, 1)[0]);
-
-  const readMetaRefreshUrl = meta => {
-    const match = meta.content.match(/(?:^|;)\s*url\s*=\s*(['"]?)(.*?)\1\s*$/i);
-    return match?.[2] ?? null;
-  };
-
-  const collectAttributeUrls = () => {
-    for (const element of document.querySelectorAll('*')) {
-      for (const attribute of attributes) {
-        add(element.getAttribute(attribute));
-      }
-
-      const srcset = element.getAttribute('srcset');
-      if (srcset) {
-        for (const candidate of parseSrcsetCandidates(srcset)) {
-          add(candidate);
-        }
-      }
-    }
-  };
-
-  const collectMetaRefreshUrls = () => {
-    for (const meta of document.querySelectorAll('meta[http-equiv="refresh" i][content]')) {
-      add(readMetaRefreshUrl(meta));
-    }
-  };
-
-  collectAttributeUrls();
-  collectMetaRefreshUrls();
-
-  return { urls: [...found], invalid: [...invalid] };
-}
-
-async function visitPage(page, url) {
-  const failures = [];
-  const onRequestFailed = request => {
-    failures.push({ url: request.url(), reason: request.failure()?.errorText ?? 'Netzwerkfehler' });
-  };
-  const onResponse = response => {
-    if (response.url() === url) {
-      return; // Haupt-Navigation wird bereits über navigationStatus gemeldet, nicht doppelt zählen
-    }
-    if (response.status() >= 400) {
-      failures.push({ url: response.url(), reason: `HTTP ${response.status()}` });
-    }
-  };
-
-  page.on('requestfailed', onRequestFailed);
-  page.on('response', onResponse);
-
-  try {
-    const response = await page.goto(url, { waitUntil: 'load' });
-    // networkidle gilt bei Playwright als unzuverlässig für harte Wartebedingungen
-    // (Polling/Analytics verhindern es u. U. dauerhaft) — hier nur als kurze,
-    // folgenlose Kulanzfrist für spät nachgeladene Ressourcen.
-    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
-
-    const { urls, invalid } = await collectPageUrls(page);
-    for (const value of invalid) {
-      failures.push({ url: value, reason: 'Ungültige URL im Content' });
-    }
-
-    return { navigationStatus: response?.status() ?? null, failures, discoveredUrls: urls };
-  } finally {
-    page.off('requestfailed', onRequestFailed);
-    page.off('response', onResponse);
-  }
-}
+const IGNORED_PROTOCOLS = new Set(['data:', 'blob:', 'javascript:', 'mailto:', 'tel:']);
 
 const DEFAULT_MAX_PAGES = 200;
 
 export async function crawlSite(page, baseUrl, { maxPages = DEFAULT_MAX_PAGES } = {}) {
-  const origin = new URL(baseUrl).origin;
+  const siteOrigin = new URL(baseUrl).origin;
   const visited = new Map();
   const externalUrls = new Set();
   const queue = ['/'];
@@ -143,14 +25,13 @@ export async function crawlSite(page, baseUrl, { maxPages = DEFAULT_MAX_PAGES } 
     const { navigationStatus, failures, discoveredUrls } = await visitPage(page, new URL(path, baseUrl).href);
 
     for (const url of discoveredUrls) {
-      const parsed = new URL(url);
-      if (parsed.origin === origin) {
-        const internalPath = parsed.pathname + parsed.search;
-        if (!visited.has(internalPath)) {
-          queue.push(internalPath);
-        }
-      } else {
+      if (!belongsToSite(url, siteOrigin)) {
         externalUrls.add(url);
+        continue;
+      }
+      const internalPath = toCrawlPath(url);
+      if (!visited.has(internalPath)) {
+        queue.push(internalPath);
       }
     }
 
@@ -173,6 +54,147 @@ export function summarizeBrokenPages({ visited, truncated }) {
   }
 
   return brokenPages;
+}
+
+function belongsToSite(url, siteOrigin) {
+  return new URL(url).origin === siteOrigin;
+}
+
+// Nur Pfad + Query weiterverfolgen: der Fragment-Anteil (#…) adressiert keine
+// eigene Seite, und absolute URLs würden den visited-Abgleich unterlaufen.
+function toCrawlPath(url) {
+  const { pathname, search } = new URL(url);
+  return pathname + search;
+}
+
+async function visitPage(page, url) {
+  const failures = [];
+  const onRequestFailed = request => {
+    failures.push({ url: request.url(), reason: request.failure()?.errorText ?? 'Netzwerkfehler' });
+  };
+  const onResponse = response => {
+    if (response.url() === url) {
+      return;
+    }
+    if (response.status() >= 400) {
+      failures.push({ url: response.url(), reason: `HTTP ${response.status()}` });
+    }
+  };
+
+  page.on('requestfailed', onRequestFailed);
+  page.on('response', onResponse);
+
+  try {
+    const response = await page.goto(url, { waitUntil: 'load' });
+    if (!response) {
+      failures.push({ url, reason: 'keine Navigations-Response' });
+    }
+    // networkidle gilt bei Playwright als unzuverlässig für harte Wartebedingungen
+    // (Polling/Analytics verhindern es u. U. dauerhaft) — hier nur als kurze,
+    // folgenlose Kulanzfrist für spät nachgeladene Ressourcen.
+    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
+
+    const { urls, invalid } = await collectPageUrls(page);
+    for (const value of invalid) {
+      failures.push({ url: value, reason: 'Ungültige URL im Content' });
+    }
+
+    return { navigationStatus: response?.status() ?? null, failures, discoveredUrls: urls };
+  } finally {
+    page.off('requestfailed', onRequestFailed);
+    page.off('response', onResponse);
+  }
+}
+
+async function collectPageUrls(page) {
+  const urls = new Set();
+  const invalid = new Set();
+
+  for (const frame of page.frames()) {
+    let result;
+    try {
+      result = await frame.evaluate(collectUrlsInDocument, LINK_ATTRIBUTES);
+    } catch (error) {
+      if (frame.isDetached()) {
+        // Frame wurde während des Crawls entfernt (z. B. durch Skripte der Seite) —
+        // dann gibt es nichts mehr einzusammeln. Alle anderen Fehler sind Bugs
+        // in der Sammellogik und schlagen durch.
+        continue;
+      }
+      throw error;
+    }
+    for (const url of result.urls) {
+      if (isCheckableUrl(url)) {
+        urls.add(url);
+      }
+    }
+    for (const value of result.invalid) {
+      invalid.add(value);
+    }
+  }
+
+  return { urls: [...urls], invalid: [...invalid] };
+}
+
+// Wird von Playwright serialisiert und im Browser-Kontext der Seite ausgeführt:
+// darf nichts aus diesem Modul referenzieren, alle Helfer müssen deshalb im
+// Funktionskörper stehen (gehoisted, damit der Hauptfluss oben lesbar bleibt).
+function collectUrlsInDocument(attributes) {
+  const found = new Set();
+  const invalid = new Set();
+
+  collectAttributeUrls();
+  collectMetaRefreshUrls();
+  return { urls: [...found], invalid: [...invalid] };
+
+  function collectAttributeUrls() {
+    for (const element of document.querySelectorAll('*')) {
+      for (const attribute of attributes) {
+        add(element.getAttribute(attribute));
+      }
+
+      const srcset = element.getAttribute('srcset');
+      if (srcset) {
+        for (const candidate of parseSrcsetCandidates(srcset)) {
+          add(candidate);
+        }
+      }
+    }
+  }
+
+  function collectMetaRefreshUrls() {
+    for (const meta of document.querySelectorAll('meta[http-equiv="refresh" i][content]')) {
+      add(readMetaRefreshUrl(meta));
+    }
+  }
+
+  function add(value) {
+    if (!value) {
+      return;
+    }
+    try {
+      found.add(new URL(value, document.baseURI).href);
+    } catch {
+      invalid.add(value);
+    }
+  }
+
+  function parseSrcsetCandidates(srcset) {
+    return srcset.split(',').map(candidate => candidate.trim().split(/\s+/, 1)[0]);
+  }
+
+  function readMetaRefreshUrl(meta) {
+    const match = meta.content.match(/(?:^|;)\s*url\s*=\s*(['"]?)(.*?)\1\s*$/i);
+    return match?.[2] ?? null;
+  }
+}
+
+function isCheckableUrl(urlString) {
+  try {
+    return !IGNORED_PROTOCOLS.has(new URL(urlString).protocol);
+  } catch {
+    return false;
+  }
 }
 
 function isBrokenStatus(navigationStatus) {

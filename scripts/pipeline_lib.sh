@@ -31,6 +31,7 @@ run_pipeline() {
 
   if [[ $is_dev ]]; then
     run_step "Tests" composer test
+    run_step "QA-Tooling-Selbsttest" npm run qa:tooling
     run_step "HTTP-Smoke lokal" with_dev_server "public" run_smoke_checks
     run_step "Link-Check lokal" with_dev_server "public" run_link_checks
     return
