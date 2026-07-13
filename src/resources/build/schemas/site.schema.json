@@ -8,11 +8,10 @@
     "footer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_url"],
+      "required": ["built_with"],
       "properties": {
         "privacy_note": { "$ref": "common.schema.json#/definitions/intlString" },
-        "built_with":   { "$ref": "common.schema.json#/definitions/intlString" },
-        "source_url":   { "type": "string", "minLength": 1 }
+        "built_with":   { "$ref": "common.schema.json#/definitions/intlString" }
       }
     }
   }

@@ -73,8 +73,11 @@ final class PipelineCommandConfigTest extends TestCase
             '--phase'  => 'runtime',
         ]);
 
+        $configured = (new PipelineConfig($this->context()->appRoot(), 'src/resources/pipeline-config'))
+            ->values('dev', 'runtime');
+
         self::assertSame(0, $exitCode);
-        self::assertSame('5', $tester->getDisplay());
+        self::assertSame((string) $configured['CAPTCHA_MAX_GET'], $tester->getDisplay());
     }
 
     public function testCiCommandOnlyAcceptsPipelineArgument(): void

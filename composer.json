@@ -87,6 +87,7 @@
     "lint:js": "npm run lint:js",
     "qa": "npm run qa",
     "qa:a11y": "npm run qa:a11y",
+    "qa:tooling": "npm run qa:tooling",
     "test": [
       "@test:php",
       "@test:python"

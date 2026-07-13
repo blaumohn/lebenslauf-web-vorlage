@@ -8,14 +8,17 @@
     "lint": "npm run lint:js && npm run lint:css && npm run lint:html",
     "lint:css": "stylelint \"src/resources/build/assets/css/**/*.css\"",
     "lint:html": "html-validate --config htmlvalidate.config.cjs var/cache/html",
-    "lint:js": "eslint eslint.config.js playwright.config.js htmlvalidate.config.cjs stylelint.config.cjs tests/ci/a11y.mjs tests/ci/a11y.ensure-browser.mjs tests/ci/a11y.web-server.mjs tests/ci/a11y.spec.js tests/ci/smoke.spec.js tests/ci/token.spec.js",
+    "lint:js": "eslint eslint.config.js playwright.config.js htmlvalidate.config.cjs stylelint.config.cjs tests/ci/a11y.mjs tests/ci/a11y.ensure-browser.mjs tests/ci/a11y.web-server.mjs tests/ci/a11y.spec.js tests/ci/smoke.spec.js tests/ci/token.spec.js tests/ci/link-collector.mjs tests/ci/links.spec.js tests/ci/external-link-check.mjs tests/ci/link-collector.spec.js tests/ci/external-link-check.spec.js",
     "qa": "npm run qa:a11y",
     "qa:html": "npm run lint:html",
     "qa:a11y:ensure-browser": "node tests/ci/a11y.ensure-browser.mjs",
     "qa:a11y": "playwright test tests/ci/a11y.spec.js",
     "qa:smoke": "playwright test tests/ci/smoke.spec.js",
     "qa:smoke:token": "playwright test tests/ci/token.spec.js",
-    "qa:a11y:install": "playwright install chromium"
+    "qa:links": "playwright test tests/ci/links.spec.js",
+    "qa:links:external": "node tests/ci/external-link-check.mjs",
+    "qa:a11y:install": "playwright install chromium",
+    "qa:tooling": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:1 playwright test tests/ci/link-collector.spec.js tests/ci/external-link-check.spec.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

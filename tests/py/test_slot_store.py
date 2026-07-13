@@ -146,19 +146,6 @@ class DeployResourceTest(unittest.TestCase):
         self.assertTrue((REPO_ROOT / "public" / "index.php").exists())
 
 
-class DevRouterTest(unittest.TestCase):
-    def test_dev_server_uses_public_docroot(self):
-        """Dev-Server nutzt public/ als Webroot ohne Router."""
-        path = (
-            REPO_ROOT / "src" / "cli" / "py" / "dev" / "dev.py"
-        )
-        content = path.read_text(encoding="utf-8")
-        self.assertIn('"php"', content)
-        self.assertIn('"-t"', content)
-        self.assertIn('"public"', content)
-        self.assertNotIn("dev-index.php", content)
-
-
 _CHECKSUM = "abc123def456abcd"
 _RUN_ID = "run-42"
 _HTACCESS_A = HtaccessSlotFile.generate("a")

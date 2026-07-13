@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Cli\CliContext;
 use App\Cli\Command\BuildCommand;
+use PipelineConfigSpec\PipelineConfig;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class CvBuildCommandFeatureTest extends FeatureTestCase
@@ -39,8 +40,11 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
             'task'     => 'config',
         ]);
 
+        $configured = (new PipelineConfig($this->root, 'src/resources/pipeline-config'))
+            ->values('dev', 'runtime');
+
         self::assertSame(0, $exitCode, $tester->getDisplay());
-        self::assertSame(5, $this->readCompiledConfigValue('CAPTCHA_MAX_GET'));
+        self::assertSame($configured['CAPTCHA_MAX_GET'], $this->readCompiledConfigValue('CAPTCHA_MAX_GET'));
     }
 
     public function testBuildCvUsesDataPathOverride(): void
