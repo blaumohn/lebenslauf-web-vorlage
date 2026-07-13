@@ -90,6 +90,7 @@ def start_php_server(root_path, supervisor):
         "127.0.0.1:8080",
         "-t",
         "public",
+        "scripts/php-dev-server-router.php",
     ]
     return supervisor.start("php-server", cmd, cwd=root_path)
 

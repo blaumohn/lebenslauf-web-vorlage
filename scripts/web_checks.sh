@@ -44,6 +44,18 @@ run_accessibility_checks() {
   PLAYWRIGHT_BASE_URL="$base" CONTENT_LANGS="$CONTENT_LANGS" npm run qa:a11y
 }
 
+run_link_checks() {
+  local base="${1%/}"
+
+  PLAYWRIGHT_BASE_URL="$base" npm run qa:links
+}
+
+run_external_link_check() {
+  local base="${1%/}"
+
+  PLAYWRIGHT_BASE_URL="$base" npm run qa:links:external
+}
+
 with_dev_server() {
   local docroot="$1" dev_server_port=8080 pid
 
@@ -61,6 +73,7 @@ start_php_server() {
 
   php -S "0.0.0.0:${port}" \
     -t "$docroot" \
+    scripts/php-dev-server-router.php \
     > "$log_file" 2>&1 &
   echo "$!"
 }

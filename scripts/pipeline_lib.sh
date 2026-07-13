@@ -26,18 +26,20 @@ run_pipeline() {
     run_step "Content-Daten" prepare_content_data
   fi
 
-  run_step "Build ($PIPELINE)" pipeline_build "$is_dev"
+  run_step "Build ($PIPELINE)" pipeline_build
   # run_step "Tests" run_unit_and_feature_tests
 
   if [[ $is_dev ]]; then
     run_step "Tests" composer test
     run_step "HTTP-Smoke lokal" with_dev_server "public" run_smoke_checks
+    run_step "Link-Check lokal" with_dev_server "public" run_link_checks
     return
   fi
 
   run_step "Deploy-Artefakt" prepare_deploy "$deploy_dir"
   run_step "Artefakt-HTTP-Smoke" with_dev_server "$deploy_dir/public" run_smoke_checks
   run_step "Artefakt-HTML/A11y-QA" run_artifact_html_accessibility_checks "$deploy_dir"
+  run_step "Artefakt-Link-Check" with_dev_server "$deploy_dir/public" run_link_checks
   run_step "SFTP-Deploy"           deploy
   reset_content_sftp_if_used
 }
@@ -49,9 +51,7 @@ pipeline_setup() {
 }
 
 pipeline_build() {
-  local is_dev="$1"
-
-  cli build "$PIPELINE" ${is_dev:+site}
+  cli build "$PIPELINE"
 }
 
 write_pipeline_config_from_stdin() {

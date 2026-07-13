@@ -68,7 +68,6 @@ final class SiteFooterRenderer extends BaseContentRenderer
             'privacy_note' => $this->resolveFooterField($footer['privacy_note'] ?? null, $lang, 'privacy_note'),
             'attribution' => $nameKurz,
             'built_with' => $this->resolveFooterField($footer['built_with'] ?? null, $lang, 'built_with'),
-            'source_url' => (string) $footer['source_url'],
         ];
     }
 

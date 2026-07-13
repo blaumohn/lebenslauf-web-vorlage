@@ -33,6 +33,8 @@ main() {
 
   deploy_dir="var/deploy"
   run_pipeline "$deploy_dir"
+
+  run_step "Externe-Link-Prüfung" run_external_link_check "$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
 }
 
 main "$@"

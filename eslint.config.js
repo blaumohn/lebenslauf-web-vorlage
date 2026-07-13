@@ -14,14 +14,17 @@ export default [
     files: [
       'eslint.config.js',
       'playwright.config.js',
-      'tests/**/*.js'
+      'tests/**/*.js',
+      'tests/**/*.mjs'
     ],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
         process: 'readonly',
-        console: 'readonly'
+        console: 'readonly',
+        URL: 'readonly',
+        document: 'readonly'
       }
     }
   },

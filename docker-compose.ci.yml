@@ -13,7 +13,6 @@ x-ci-env: &ci-env
   XDG_CONFIG_HOME: /tmp/xdg-config
 
 x-ci-repo-volume: &ci-repo-volume ".:/repo:ro"
-x-local-repo-volume: &local-repo-volume ".:/repo"
 
 x-ci-pipeline-env: &ci-pipeline-env
   <<: *ci-env
@@ -88,17 +87,6 @@ services:
         condition: service_started
       mailpit:
         condition: service_started
-
-  deploy-local:
-    <<: *ci-runner
-    volumes:
-      - *local-repo-volume
-      - "composer_home_ci:/home/ci/.composer"
-      - "npm_cache_ci:/home/ci/.npm"
-    environment:
-      <<: *ci-pipeline-env
-      LAST_DEPLOY_COMMIT: "$LAST_DEPLOY_COMMIT"
-    command: bash /repo/bin/cd
 
   mailpit:
     image: axllent/mailpit:latest
