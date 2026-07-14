@@ -65,6 +65,28 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testCompanyNeedsAtLeastOnePosition(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][0]['stellen'] = [];
+
+        $errors = $validator->validate($data);
+        $this->assertNotEmpty($errors);
+    }
+
+    public function testPositionRejectsLegacyGroupField(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][0]['stellen'][0]['stelleGruppe'] = [
+            'letzteStelle' => true,
+        ];
+
+        $errors = $validator->validate($data);
+        $this->assertNotEmpty($errors);
+    }
+
     private function schemaPath(): string
     {
         return dirname(__DIR__, 2) . '/src/resources/build/schemas/lebenslauf.schema.json';
@@ -90,16 +112,20 @@ final class SchemaValidatorTest extends TestCase
             ],
             'berufserfahrung' => [
                 [
-                    'titel' => 'Entwickler',
-                    'zeitraum' => '2020-2023',
-                    'punkte' => [
+                    'unternehmen' => 'Beispiel GmbH',
+                    'stellen' => [
                         [
-                            'tags' => ['PHP'],
-                            'text' => 'Backend-Entwicklung.',
+                            'titel' => 'Entwickler',
+                            'zeitraum' => '2020-2023',
+                            'punkte' => [
+                                [
+                                    'tags' => ['PHP'],
+                                    'text' => 'Backend-Entwicklung.',
+                                ],
+                            ],
+                            'ort' => 'Berlin',
                         ],
                     ],
-                    'ort' => 'Berlin',
-                    'unternehmen' => 'Beispiel GmbH',
                 ],
             ],
             'sprachen' => [

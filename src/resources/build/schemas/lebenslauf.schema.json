@@ -45,7 +45,7 @@
     },
     "berufserfahrung": {
       "type": "array",
-      "items": { "$ref": "#/definitions/eintragBeruf" }
+      "items": { "$ref": "#/definitions/unternehmen" }
     },
     "opensource": {
       "type": "array",
@@ -123,25 +123,32 @@
         }
       }
     },
-    "eintragBeruf": {
-      "allOf": [
-        { "$ref": "#/definitions/eintrag" },
-        {
-          "type": "object",
-          "required": ["ort", "unternehmen"],
-          "properties": {
-            "ort": { "$ref": "common.schema.json#/definitions/intlString" },
-            "unternehmen": { "type": "string" },
-            "stelleGruppe": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "letzteStelle": { "type": "boolean" }
-              }
-            }
-          }
+    "stelle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["titel", "zeitraum", "ort", "punkte"],
+      "properties": {
+        "titel": { "$ref": "common.schema.json#/definitions/intlString" },
+        "zeitraum": { "$ref": "common.schema.json#/definitions/intlString" },
+        "ort": { "$ref": "common.schema.json#/definitions/intlString" },
+        "punkte": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/eintragPunkt" }
         }
-      ]
+      }
+    },
+    "unternehmen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unternehmen", "stellen"],
+      "properties": {
+        "unternehmen": { "type": "string" },
+        "stellen": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/stelle" }
+        }
+      }
     },
     "eintragProjekt": {
       "allOf": [

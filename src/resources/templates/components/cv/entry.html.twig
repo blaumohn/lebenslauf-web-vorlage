@@ -42,15 +42,24 @@
 
 {% macro entry(eintrag) %}
   <div class="entry">
-    {% if eintrag.show_company %}
-      <div class="entry-company-line">{{ eintrag.company_line }}</div>
-    {% endif %}
-
-    <div class="entry-content{% if eintrag.grouped %} entry-group{% endif %}">
+    <div class="entry-content">
       {{ _self.header(eintrag) }}
       {% if eintrag.punkte is defined and eintrag.punkte|length %}
         {{ _self.points(eintrag.punkte) }}
       {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro employment_group(gruppe) %}
+  <div class="employment-group">
+    <h3 class="employment-company">{{ gruppe.company }}</h3>
+    <div class="employment-positions">
+      {% for stelle in gruppe.positions %}
+        <div class="employment-position">
+          {{ _self.entry(stelle) }}
+        </div>
+      {% endfor %}
     </div>
   </div>
 {% endmacro %}
