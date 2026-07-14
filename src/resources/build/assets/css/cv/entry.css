@@ -210,12 +210,6 @@
       line-height: var(--line-height-tight);
     }
 
-    @media (40rem <= width <= 50rem) {
-      .language-item {
-        flex-direction: column;
-      }
-    }
-
     .language-level {
       color: var(--gray-500);
     }
