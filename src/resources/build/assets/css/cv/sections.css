@@ -58,6 +58,10 @@
       --section-body-gap: 0.5rem;
     }
 
+    .section-experience {
+      --section-body-gap: 0.75rem;
+    }
+
     .section-talks {
       --entry-between-gap: 0rem;
       --section-body-gap: 0.125rem;

@@ -87,6 +87,24 @@ final class CvContentRendererTest extends TestCase
         $this->assertStringContainsString((string) $data['kopfdaten']['name'], $html);
     }
 
+    public function testMultiplePositionsRenderAsOneCompanyGroup(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $normalizer = new CvDataNormalizer('de');
+        $builder = new CvViewModelBuilder();
+        $view = $builder->build($normalizer->normalize($data));
+
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
+
+        $this->assertSame(1, substr_count($html, 'Tech Solutions GmbH'));
+        $this->assertStringContainsString(
+            'class="employment-group"',
+            $html
+        );
+        $this->assertStringContainsString('Frontend Developer', $html);
+        $this->assertStringContainsString('Junior Frontend Developer', $html);
+    }
+
     private function renderer(): CvContentRenderer
     {
         return new CvContentRenderer(new ConfigValues(['APP_BASE_PATH' => '/']), $this->projectRoot());

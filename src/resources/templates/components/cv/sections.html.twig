@@ -21,6 +21,19 @@
   </section>
 {% endmacro %}
 
+{% macro experience(titel, daten, klasse = '') %}
+  {% import 'components/cv/lib.html.twig' as ui %}
+  {% import 'components/cv/entry.html.twig' as entry %}
+  <section{% if klasse %} class="{{ klasse }}"{% endif %}>
+    {{ ui.section_title(titel) }}
+    <div class="section-body">
+      {% for gruppe in daten %}
+        {{ entry.employment_group(gruppe) }}
+      {% endfor %}
+    </div>
+  </section>
+{% endmacro %}
+
 {% macro talks(titel, daten, klasse = '') %}
   {% import 'components/cv/lib.html.twig' as ui %}
   {% import 'components/cv/entry.html.twig' as entry %}
@@ -29,12 +42,9 @@
     <div class="section-body">
       {% for vortrag in daten %}
         {{ entry.entry({
-          show_company: false,
-          company_line: '',
           show_project: true,
           project_line: vortrag.titel,
           project_url: null,
-          grouped: false,
           header_title: vortrag.beschreibung,
           header_time: vortrag.datum,
           show_location: false,

@@ -6,50 +6,63 @@ final class CvViewModelBuilder
 {
     public function build(array $cv): array
     {
-        $cv['berufserfahrung'] = $this->buildEntries($cv['berufserfahrung']);
+        $cv['berufserfahrung'] = $this->buildEmploymentGroups($cv['berufserfahrung']);
         if (isset($cv['opensource']) && is_array($cv['opensource'])) {
-            $cv['opensource'] = $this->buildEntries($cv['opensource']);
+            $cv['opensource'] = $this->buildProjectEntries($cv['opensource']);
         }
         $cv['faehigkeiten'] = $this->buildSkills($cv['faehigkeiten']);
 
         return $cv;
     }
 
-    private function buildEntries(array $entries): array
+    private function buildEmploymentGroups(array $groups): array
+    {
+        $result = [];
+        foreach ($groups as $group) {
+            $positions = $this->buildPositions($group['stellen']);
+            $result[] = [
+                'company' => (string) $group['unternehmen'],
+                'positions' => $positions,
+            ];
+        }
+
+        return $result;
+    }
+
+    private function buildPositions(array $positions): array
+    {
+        $result = [];
+        foreach ($positions as $position) {
+            $ort = $this->stringOrNull($position['ort']);
+            $result[] = [
+                'show_project' => false,
+                'project_line' => null,
+                'project_url' => null,
+                'header_title' => (string) $position['titel'],
+                'header_time' => (string) $position['zeitraum'],
+                'show_location' => $ort !== null,
+                'location' => $ort,
+                'punkte' => $this->buildPoints($position['punkte']),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function buildProjectEntries(array $entries): array
     {
         $result = [];
         foreach ($entries as $entry) {
-            $unternehmen = $this->stringOrNull($entry['unternehmen'] ?? null);
-            $projekt = $this->stringOrNull($entry['projekt'] ?? null);
             $projektUrl = $this->stringOrNull($entry['url'] ?? null);
-            $stelleGruppe = is_array($entry['stelleGruppe'] ?? null) ? $entry['stelleGruppe'] : null;
-            $isGrouped = $stelleGruppe !== null;
-            $showCompany = $unternehmen !== null && (!$isGrouped || !empty($stelleGruppe['letzteStelle']));
-            $companyLine = $showCompany ? $unternehmen : null;
-            $projectLine = $unternehmen === null && $projekt !== null ? $projekt : null;
-
-            $titel = (string) $entry['titel'];
-            $headerTitle = $unternehmen !== null && $projekt !== null
-                ? $projekt . ' | ' . $titel
-                : $titel;
-
-            $zeitraum = (string) $entry['zeitraum'];
-            $ort = $this->stringOrNull($entry['ort'] ?? null);
-
-            $punkte = $this->buildPoints($entry['punkte']);
-
             $result[] = [
-                'show_company' => $companyLine !== null,
-                'company_line' => $companyLine,
-                'show_project' => $projectLine !== null,
-                'project_line' => $projectLine,
-                'project_url' => $projectLine !== null ? $projektUrl : null,
-                'grouped' => $isGrouped,
-                'header_title' => $headerTitle,
-                'header_time' => $zeitraum,
-                'show_location' => $ort !== null && $ort !== '',
-                'location' => $ort,
-                'punkte' => $punkte,
+                'show_project' => true,
+                'project_line' => (string) $entry['projekt'],
+                'project_url' => $projektUrl,
+                'header_title' => (string) $entry['titel'],
+                'header_time' => (string) $entry['zeitraum'],
+                'show_location' => false,
+                'location' => null,
+                'punkte' => $this->buildPoints($entry['punkte']),
             ];
         }
 
