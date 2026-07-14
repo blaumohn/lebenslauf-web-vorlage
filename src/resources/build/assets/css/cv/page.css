@@ -7,6 +7,11 @@
   }
 
   @media print {
+    .page,
+    article.card {
+      background: transparent;
+    }
+
     .page {
       padding: 0 var(--print-edge-guard) 0 0;
     }
