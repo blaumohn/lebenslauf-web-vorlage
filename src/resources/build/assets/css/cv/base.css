@@ -7,7 +7,6 @@
     --gray-500: #6b7280;
     --gray-400: #9ca3af;
     --gray-300: #d1d5db;
-    --color-paper: #fff;
     --color-ink: #000;
     --color-tag-bg: #e5e7eb;
     --font-size-xs: 0.85rem;
@@ -20,16 +19,13 @@
     --line-height-base: 1.4;
     --line-height-tight: 1.25;
     --border-width-thin: 1px;
-    --cv-page-padding: 1.5rem;
     --list-indent: 0.75rem;
     --print-edge-guard: 2px;
   }
 
   article {
     font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: var(--color-paper);
     color: var(--gray-800);
-    padding: var(--cv-page-padding);
     line-height: var(--line-height-base);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -83,7 +79,9 @@
       margin: 1cm 1cm 1cm 2.5cm;
     }
 
+    html,
     body {
+      background: transparent;
       padding: 0;
       margin-top: 0;
     }
