@@ -18,9 +18,10 @@ abstract class BaseSchemaValidator implements ContentValidatorInterface
         return true;
     }
 
-    public function schemaName(): ?string
+    /** @return list<string> */
+    public function schemaNames(): array
     {
-        return null;
+        return [];
     }
 
     protected function resolveContentBase(): string

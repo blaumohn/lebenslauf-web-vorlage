@@ -74,9 +74,12 @@
   </section>
 {% endmacro %}
 
-{% macro skills(titel, daten, klasse = '') %}
+{% macro skills(titel, daten, klasse = '', zeige_titel = false) %}
   {% import 'components/cv/lib.html.twig' as ui %}
   <section{% if klasse %} class="{{ klasse }}"{% endif %}>
+    {% if zeige_titel %}
+      {{ ui.section_title(titel) }}
+    {% endif %}
     <div class="section-body">
       {% for gruppe in daten %}
         {{ ui.skill_group(gruppe) }}

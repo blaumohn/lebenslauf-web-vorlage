@@ -1,14 +1,14 @@
-{% macro view(cv, etiketten, is_private, name, cv_footer) %}
+{% macro view(cv, kontaktdaten, etiketten, is_private, name, cv_footer) %}
   {% import 'components/cv/lib.html.twig' as ui %}
   {% import 'components/cv/page.html.twig' as page %}
   {% import 'components/cv/sections.html.twig' as section %}
   <header class="cv-header" aria-label="{{ name }}">
     <div class="header-main">
-      {{ ui.name_block(name, cv.kopfdaten.bereich) }}
+      {{ ui.name_block(name, cv.titel) }}
     </div>
     {% if is_private %}
       <div class="header-aside">
-        {{ page.contact_private(cv) }}
+        {{ page.contact_private(kontaktdaten) }}
       </div>
     {% endif %}
   </header>
@@ -16,9 +16,10 @@
   <div class="cv-body">
     <div class="cv-aside-col">
       {{ section.skills(
-        etiketten.faehigkeiten.value,
-        cv.faehigkeiten,
-        'section-skills'
+        etiketten.kenntnisse.value,
+        cv.kenntnisse,
+        'section-skills',
+        cv.zeige_kenntnisse_label|default(false)
       ) }}
 
       {{ section.languages(

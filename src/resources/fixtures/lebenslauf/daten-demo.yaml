@@ -1,63 +1,54 @@
 oeffentlich: true
+zeige_kenntnisse_label: true
 
-kopfdaten:
-  name: Alex Beispiel
-  bereich:
-    de: Softwareentwicklung im Web-Bereich
-    en: Software development for the web
-    es: Desarrollo web
-  ort: Berlin
-  email: alex@example.com
-  telefon: +49 151 12345678
-  linkedin: https://linkedin.com/in/alexbeispiel
+titel:
+  de: Softwareentwicklung im Web-Bereich
+  en: Software development for the web
+  es: Desarrollo web
 
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.
   en: I am a passionate developer focused on modern web technologies.
   es: Soy un desarrollador apasionado centrado en tecnologias web modernas.
 
-faehigkeiten:
-  - stufe:
-      de: Fortgeschritten
-      en: Advanced
-      es: Avanzado
-    wert: 5
-    technologien:
+kenntnisse:
+  -
+    tags:
       - JavaScript
       - TypeScript
       - de: Reaktive Komponenten
         en: Reactive components
         es: Componentes reactivos
-  - stufe:
-      de: Grundlegend
-      en: Fundamental
-      es: Básico
-    wert: 4
-    technologien:
-      - Docker
-      - Git
-      - CI/CD
-      - de: Release-Automatisierung
-        en: Release automation
-        es: Automatización de lanzamientos
-  - stufe:
+  - gruppe_label:
       de: Praxiserprobt
       en: Proven in practice
       es: Probado en la práctica
-    wert: 4
-    technologien:
+    wert: 5
+    tags:
       - Barrierefreiheit
       - Design Tokens
       - Browser-Kompatibilität
       - de: Technische Dokumentation
         en: Technical documentation
         es: Documentación técnica
-  - stufe:
+  - gruppe_label:
+      de: Grundlegend
+      en: Fundamental
+      es: Básico
+    wert: 4
+    tags:
+      - Docker
+      - Git
+      - CI/CD
+      - de: Release-Automatisierung
+        en: Release automation
+        es: Automatización de lanzamientos
+  - gruppe_label:
       de: Aufbauend
       en: Developing
       es: En desarrollo
     wert: 3
-    technologien:
+    tags:
       - PHP
       - Twig
       - YAML

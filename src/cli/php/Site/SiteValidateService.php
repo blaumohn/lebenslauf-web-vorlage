@@ -56,8 +56,7 @@ final class SiteValidateService
     {
         $declared = [];
         foreach ($this->validators as $validator) {
-            $name = $validator->schemaName();
-            if ($name !== null) {
+            foreach ($validator->schemaNames() as $name) {
                 $declared[$name] = true;
             }
         }

@@ -10,7 +10,7 @@ final class CvViewModelBuilder
         if (isset($cv['opensource']) && is_array($cv['opensource'])) {
             $cv['opensource'] = $this->buildProjectEntries($cv['opensource']);
         }
-        $cv['faehigkeiten'] = $this->buildSkills($cv['faehigkeiten']);
+        $cv['kenntnisse'] = $this->buildSkills($cv['kenntnisse']);
 
         return $cv;
     }
@@ -91,21 +91,42 @@ final class CvViewModelBuilder
     private function buildSkills(array $groups): array
     {
         $result = [];
+        $maxWert = $this->highestSkillValue($groups);
         foreach ($groups as $group) {
             if (!is_array($group)) {
                 continue;
             }
 
-            $technologien = is_array($group['technologien'] ?? null) ? $group['technologien'] : [];
-            $result[] = [
-                'stufe' => (string) ($group['stufe'] ?? ''),
-                'wert' => (int) ($group['wert'] ?? 0),
-                'technologien' => $technologien,
-                'show_technologien' => count($technologien) > 0,
+            $tags = is_array($group['tags'] ?? null) ? $group['tags'] : [];
+            $skill = [
+                'gruppe_label' => (string) ($group['gruppe_label'] ?? ''),
+                'show_wert' => false,
+                'tags' => $tags,
+                'show_tags' => count($tags) > 0,
             ];
+            if (array_key_exists('wert', $group)) {
+                $skill['wert'] = (int) $group['wert'];
+                $skill['max_wert'] = $maxWert;
+                $skill['show_wert'] = true;
+            }
+            $result[] = $skill;
         }
 
         return $result;
+    }
+
+    private function highestSkillValue(array $groups): int
+    {
+        $maxWert = 0;
+        foreach ($groups as $group) {
+            if (!is_array($group) || !array_key_exists('wert', $group)) {
+                continue;
+            }
+
+            $maxWert = max($maxWert, (int) $group['wert']);
+        }
+
+        return $maxWert;
     }
 
     private function stringOrNull(mixed $value): ?string

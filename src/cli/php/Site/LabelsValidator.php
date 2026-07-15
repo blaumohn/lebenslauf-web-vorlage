@@ -14,9 +14,9 @@ final class LabelsValidator extends BaseSchemaValidator
         return $this->validateYamlFile($this->labelsPath(), self::SCHEMA, 'Labels', $output);
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     private function labelsPath(): string

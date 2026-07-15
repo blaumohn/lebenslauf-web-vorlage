@@ -3,9 +3,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "kopfdaten",
+    "titel",
     "motivation",
-    "faehigkeiten",
+    "kenntnisse",
     "berufserfahrung",
     "sprachen",
     "ausbildung",
@@ -13,30 +13,19 @@
   ],
   "properties": {
     "oeffentlich": { "type": "boolean" },
-    "kopfdaten": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "bereich", "ort", "email", "telefon"],
-      "properties": {
-        "name": { "type": "string" },
-        "bereich": { "$ref": "common.schema.json#/definitions/intlString" },
-        "ort": { "$ref": "common.schema.json#/definitions/intlString" },
-        "email": { "type": "string" },
-        "telefon": { "type": "string" },
-        "linkedin": { "type": "string" }
-      }
-    },
+    "zeige_kenntnisse_label": { "type": "boolean" },
+    "titel": { "$ref": "common.schema.json#/definitions/intlString" },
     "motivation": { "$ref": "common.schema.json#/definitions/intlString" },
-    "faehigkeiten": {
+    "kenntnisse": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["stufe", "wert", "technologien"],
+        "required": ["tags"],
         "properties": {
-          "stufe": { "$ref": "common.schema.json#/definitions/intlString" },
-          "wert": { "type": "number" },
-          "technologien": {
+          "gruppe_label": { "$ref": "common.schema.json#/definitions/intlString" },
+          "wert": { "type": "integer", "minimum": 1 },
+          "tags": {
             "type": "array",
             "items": { "$ref": "common.schema.json#/definitions/intlString" }
           }

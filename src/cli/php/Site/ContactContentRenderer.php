@@ -16,9 +16,9 @@ final class ContactContentRenderer extends BaseContentRenderer
         return 'contact';
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     public function validateContent(OutputInterface $output): bool

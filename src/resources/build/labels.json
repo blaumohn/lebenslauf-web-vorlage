@@ -3,7 +3,7 @@
     "value": { "de": "Lebenslauf", "en": "CV", "es": "Currículum" },
     "childLabels": {
       "motivation":      { "value": { "de": "Motivation",          "en": "Objective",              "es": "Objetivo" } },
-      "faehigkeiten":    { "value": { "de": "Fähigkeiten",         "en": "Skills",                 "es": "Habilidades" } },
+      "kenntnisse":     { "value": { "de": "Kenntnisse",           "en": "Knowledge",               "es": "Conocimientos" } },
       "berufserfahrung": { "value": { "de": "Berufserfahrung",     "en": "Work Experience",        "es": "Experiencia laboral" } },
       "opensource":      { "value": { "de": "Opensource",          "en": "Opensource Contributions","es": "Contribuciones de código abierto" } },
       "sprachen":        { "value": { "de": "Sprachen",            "en": "Languages",              "es": "Idiomas" } },
