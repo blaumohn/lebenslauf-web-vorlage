@@ -163,6 +163,22 @@ berufserfahrung:
               und technische Ursachen so beschrieben, dass sie zwischen Backend,
               Frontend und Betrieb nachvollziehbar blieben.
 
+  - station:
+      de: Elternzeit & Weiterbildung
+      en: Parental leave & continuing education
+      es: Permiso parental y formación continua
+    ort: Berlin
+    zeitraum: 2018 ‒ 2019
+    beschreibung:
+      de: >-
+        Familienzeit genutzt und fachliche Kenntnisse durch Selbststudium
+        vertieft.
+      en: >-
+        Used family time and deepened professional knowledge through self-study.
+      es: >-
+        Dediqué tiempo a la familia y profundicé conocimientos profesionales
+        mediante autoestudio.
+
   - unternehmen: Digital Services AG
     stellen:
       - titel: Werkstudent UI Engineering

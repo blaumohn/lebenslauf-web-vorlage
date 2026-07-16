@@ -1,17 +1,18 @@
 @layer base {
   article {
     .cv-body {
-      display: flex;
-      gap: 1rem;
-      flex-direction: row;
-      margin-top: 0;
+      display: grid;
+      grid-template-columns: var(--cv-body-columns-compact);
+      column-gap: var(--cv-column-gap);
+      margin-block-start: 0;
     }
 
     @media (width <= 40rem) {
       .cv-body {
         -webkit-hyphens: auto;
         hyphens: auto;
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: var(--cv-mobile-section-gap);
       }
     }
   }
@@ -19,34 +20,38 @@
 
 @layer patterns {
   article {
-    .cv-body {
-      --main-aside-width-compact: 33.3333%;
-      --main-aside-width: 21.875%;
+    --cv-column-gap: 1rem;
+    --cv-header-content-gap: 2rem;
+    --cv-aside-offset-from-main: 2rem;
+    --cv-main-section-gap: 1.5rem;
+    --cv-aside-section-gap: 3rem;
+    --cv-mobile-section-gap: 2rem;
+    --cv-header-columns: minmax(0, 1fr) minmax(0, 2fr);
+    --cv-body-columns-compact: minmax(0, 1fr) minmax(0, 2fr);
+    --cv-body-columns-wide: minmax(0, 7fr) minmax(0, 25fr);
+
+    @media (width >= 48rem) {
+      .cv-body {
+        grid-template-columns: var(--cv-body-columns-wide);
+      }
     }
 
     .cv-body .cv-main-col {
       display: flex;
       flex-direction: column;
-      flex: 0 0 66.6667%;
+      gap: var(--cv-main-section-gap);
+      min-width: 0;
     }
 
     .cv-body .cv-aside-col {
-      flex: 0 0 var(--main-aside-width-compact);
       display: flex;
       flex-direction: column;
-      margin-top: 3rem;
-      gap: 1.5rem;
+      margin-block-start: var(--cv-aside-offset-from-main);
+      gap: var(--cv-aside-section-gap);
     }
 
-    @media (width >= 28rem) {
-      .cv-body .cv-aside-col {
-        flex: 0 0 var(--main-aside-width);
-      }
-
-      .cv-body .cv-main-col {
-        flex: 1 1 auto;
-        min-width: 0;
-      }
+    .cv-body :where(section) {
+      margin-block-start: 0;
     }
 
     @media (width <= 40rem) {

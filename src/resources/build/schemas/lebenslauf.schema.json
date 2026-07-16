@@ -34,7 +34,12 @@
     },
     "berufserfahrung": {
       "type": "array",
-      "items": { "$ref": "#/definitions/unternehmen" }
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/unternehmen" },
+          { "$ref": "#/definitions/station" }
+        ]
+      }
     },
     "opensource": {
       "type": "array",
@@ -137,6 +142,17 @@
           "minItems": 1,
           "items": { "$ref": "#/definitions/stelle" }
         }
+      }
+    },
+    "station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["station", "zeitraum", "beschreibung"],
+      "properties": {
+        "station": { "$ref": "common.schema.json#/definitions/intlString" },
+        "ort": { "$ref": "common.schema.json#/definitions/intlString" },
+        "zeitraum": { "$ref": "common.schema.json#/definitions/intlString" },
+        "beschreibung": { "$ref": "common.schema.json#/definitions/intlString" }
       }
     },
     "eintragProjekt": {

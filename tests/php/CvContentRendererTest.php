@@ -106,6 +106,39 @@ final class CvContentRendererTest extends TestCase
         $this->assertStringContainsString('Junior Frontend Developer', $html);
     }
 
+    public function testStationRendersWithoutCompanyHeading(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        array_unshift($data['berufserfahrung'], [
+            'station' => 'Elternzeit & Weiterbildung',
+            'ort' => 'Wien',
+            'zeitraum' => '2024-2025',
+            'beschreibung' => 'Betreuung und Weiterbildung.',
+        ]);
+
+        $html = $this->renderPublicCv($data);
+
+        $this->assertStringContainsString('Elternzeit &amp; Weiterbildung', $html);
+        $this->assertStringContainsString('2024-2025', $html);
+        $this->assertStringContainsString('Wien', $html);
+        $this->assertStringContainsString('Betreuung und Weiterbildung.', $html);
+        $this->assertStringContainsString('entry-station"', $html);
+        $this->assertStringContainsString('class="entry-description"', $html);
+    }
+
+    public function testEmploymentPointsRenderAsOneSemanticList(): void
+    {
+        $html = $this->renderPublicCv(Yaml::parseFile($this->validFixturePath()));
+
+        $this->assertMatchesRegularExpression(
+            '/<ul class="entry-points">\\s*'
+            . '<li class="entry-point">(?:(?!<\\/li>)[\\s\\S])*?'
+            . '<p class="entry-point-text">/',
+            $html
+        );
+        $this->assertStringNotContainsString('entry-list', $html);
+    }
+
     public function testKnowledgeTagsAreTranslatedAndNeedNoRating(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());

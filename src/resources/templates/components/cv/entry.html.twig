@@ -24,20 +24,18 @@
 
 {% macro points(punkte) %}
   {% import 'components/cv/lib.html.twig' as ui %}
-  <div class="entry-points">
+  <ul class="entry-points">
     {% for punkt in punkte %}
-      <div class="entry-point">
+      <li class="entry-point">
         {% if punkt.show_tags %}
           <div class="entry-tags">
             {{ ui.tag_list(punkt.tags) }}
           </div>
         {% endif %}
-        <ul class="entry-list">
-          <li>{{ punkt.text }}</li>
-        </ul>
-      </div>
+        <p class="entry-point-text">{{ punkt.text }}</p>
+      </li>
     {% endfor %}
-  </div>
+  </ul>
 {% endmacro %}
 
 {% macro entry(eintrag) %}
@@ -60,6 +58,15 @@
           {{ _self.entry(stelle) }}
         </div>
       {% endfor %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro station(station) %}
+  <div class="entry entry-station">
+    <div class="entry-content">
+      {{ _self.header(station) }}
+      <p class="entry-description">{{ station.beschreibung }}</p>
     </div>
   </div>
 {% endmacro %}

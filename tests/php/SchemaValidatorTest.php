@@ -75,6 +75,37 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testStationIsValidEmploymentExperience(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][] = [
+            'station' => 'Elternzeit & Weiterbildung',
+            'zeitraum' => '2024-2025',
+            'beschreibung' => 'Betreuung und Weiterbildung.',
+        ];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testStationRejectsTypeInputField(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][] = [
+            'station' => 'Elternzeit & Weiterbildung',
+            'typ' => 'karenz',
+            'zeitraum' => '2024-2025',
+            'beschreibung' => 'Betreuung und Weiterbildung.',
+        ];
+
+        $errors = $validator->validate($data);
+
+        $this->assertNotEmpty($errors);
+    }
+
     public function testPositionRejectsLegacyGroupField(): void
     {
         $validator = new SchemaValidator($this->schemaPath());

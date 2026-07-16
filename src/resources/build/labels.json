@@ -4,7 +4,7 @@
     "childLabels": {
       "motivation":      { "value": { "de": "Motivation",          "en": "Objective",              "es": "Objetivo" } },
       "kenntnisse":     { "value": { "de": "Kenntnisse",           "en": "Knowledge",               "es": "Conocimientos" } },
-      "berufserfahrung": { "value": { "de": "Berufserfahrung",     "en": "Work Experience",        "es": "Experiencia laboral" } },
+      "berufserfahrung": { "value": { "de": "Beruflicher Werdegang", "en": "Career History", "es": "Trayectoria profesional" } },
       "opensource":      { "value": { "de": "Opensource",          "en": "Opensource Contributions","es": "Contribuciones de código abierto" } },
       "sprachen":        { "value": { "de": "Sprachen",            "en": "Languages",              "es": "Idiomas" } },
       "ausbildung":      { "value": { "de": "Ausbildung",          "en": "Education",              "es": "Educacion" } },

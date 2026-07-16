@@ -19,14 +19,46 @@ final class CvViewModelBuilder
     {
         $result = [];
         foreach ($groups as $group) {
-            $positions = $this->buildPositions($group['stellen']);
-            $result[] = [
-                'company' => (string) $group['unternehmen'],
-                'positions' => $positions,
-            ];
+            if (array_key_exists('station', $group)) {
+                $result[] = $this->buildStation($group);
+                continue;
+            }
+
+            if (array_key_exists('unternehmen', $group)) {
+                $result[] = $this->buildCompanyGroup($group);
+                continue;
+            }
+
+            throw new \LogicException('Berufserfahrung braucht station oder unternehmen.');
         }
 
         return $result;
+    }
+
+    private function buildCompanyGroup(array $group): array
+    {
+        return [
+            'type' => 'company',
+            'company' => (string) $group['unternehmen'],
+            'positions' => $this->buildPositions($group['stellen']),
+        ];
+    }
+
+    private function buildStation(array $station): array
+    {
+        $ort = $this->stringOrNull($station['ort'] ?? null);
+
+        return [
+            'type' => 'station',
+            'show_project' => false,
+            'project_line' => null,
+            'project_url' => null,
+            'header_title' => (string) $station['station'],
+            'header_time' => (string) $station['zeitraum'],
+            'show_location' => $ort !== null,
+            'location' => $ort,
+            'beschreibung' => (string) $station['beschreibung'],
+        ];
     }
 
     private function buildPositions(array $positions): array
