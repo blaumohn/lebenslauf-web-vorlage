@@ -36,6 +36,21 @@
       }
     }
 
+    @media print {
+      .cv-body {
+        display: flex;
+      }
+
+      .cv-body .cv-aside-col {
+        flex: 7 1 0;
+        min-width: 0;
+      }
+
+      .cv-body .cv-main-col {
+        flex: 25 1 0;
+      }
+    }
+
     .cv-body .cv-main-col {
       display: flex;
       flex-direction: column;

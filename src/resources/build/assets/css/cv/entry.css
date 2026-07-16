@@ -156,7 +156,7 @@
       align-self: start;
       inline-size: var(--experience-marker-inline-size);
       block-size: var(--experience-marker-stroke-size);
-      margin-block-start: 0.55em;
+      margin-block-start: 0.45em;
       background: var(--gray-400);
     }
 
