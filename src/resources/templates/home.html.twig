@@ -3,12 +3,14 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title(titel) }}
-  {{ ui.muted(beschreibung) }}
+  <div class="home-content">
+    {{ ui.page_title(titel) }}
+    {{ ui.muted(beschreibung) }}
 
-  <section>
-    <p>{{ ui.link(path('/cv'), link_lebenslauf) }}</p>
-    <p>{{ ui.link(path('/contact'), link_kontakt) }}</p>
-    {% if public_cv_message is defined %}{{ ui.muted(public_cv_message) }}{% endif %}
-  </section>
+    <section class="home-links">
+      <p>{{ ui.link(path('/cv'), link_lebenslauf) }}</p>
+      <p>{{ ui.link(path('/contact'), link_kontakt) }}</p>
+      {% if public_cv_message is defined %}{{ ui.muted(public_cv_message) }}{% endif %}
+    </section>
+  </div>
 {% endblock %}

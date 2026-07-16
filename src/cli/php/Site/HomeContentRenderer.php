@@ -28,9 +28,9 @@ final class HomeContentRenderer extends BaseContentRenderer
         return 'home';
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     public function validateContent(OutputInterface $output): bool

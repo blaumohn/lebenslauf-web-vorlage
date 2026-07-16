@@ -8,5 +8,6 @@ interface ContentValidatorInterface
 {
     public function validateContent(OutputInterface $output): bool;
 
-    public function schemaName(): ?string;
+    /** @return list<string> */
+    public function schemaNames(): array;
 }

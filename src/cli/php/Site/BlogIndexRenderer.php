@@ -27,9 +27,9 @@ final class BlogIndexRenderer extends BlogRendererBase
         return null;
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     public function render(OutputInterface $output): void

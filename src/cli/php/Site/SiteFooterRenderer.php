@@ -9,9 +9,9 @@ final class SiteFooterRenderer extends BaseContentRenderer
 {
     public const SCHEMA = 'site.schema.json';
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     public function render(OutputInterface $output): void

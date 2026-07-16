@@ -1,9 +1,9 @@
-{% macro contact_private(cv) %}
+{% macro contact_private(kontaktdaten) %}
   <div class="contact">
-    <div>{{ cv.kopfdaten.telefon }} | {{ cv.kopfdaten.ort }}</div>
-    <div>{{ cv.kopfdaten.email }}</div>
-    {% if cv.kopfdaten.linkedin is defined %}
-      <div>{{ cv.kopfdaten.linkedin }}</div>
+    <div>{{ kontaktdaten.telefon }} | {{ kontaktdaten.ort }}</div>
+    <div>{{ kontaktdaten.email }}</div>
+    {% if kontaktdaten.linkedin is defined %}
+      <div>{{ kontaktdaten.linkedin }}</div>
     {% endif %}
   </div>
 {% endmacro %}

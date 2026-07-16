@@ -38,9 +38,9 @@ final class ErrorRenderer extends BaseContentRenderer
         ];
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::SCHEMA;
+        return [self::SCHEMA];
     }
 
     public function validateContent(OutputInterface $output): bool

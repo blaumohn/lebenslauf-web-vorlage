@@ -14,11 +14,11 @@ final class SchemaValidatorTest extends TestCase
         $this->assertSame([], $errors);
     }
 
-    public function testInvalidNameFails(): void
+    public function testInvalidTitleFails(): void
     {
         $validator = new SchemaValidator($this->schemaPath());
         $data = $this->validData();
-        $data['kopfdaten']['name'] = ['voll' => 'Max Mustermann', 'kurz' => 'Max M.'];
+        $data['titel'] = [];
 
         $errors = $validator->validate($data);
         $this->assertNotEmpty($errors);
@@ -75,6 +75,37 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testStationIsValidEmploymentExperience(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][] = [
+            'station' => 'Elternzeit & Weiterbildung',
+            'zeitraum' => '2024-2025',
+            'beschreibung' => 'Betreuung und Weiterbildung.',
+        ];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testStationRejectsTypeInputField(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['berufserfahrung'][] = [
+            'station' => 'Elternzeit & Weiterbildung',
+            'typ' => 'karenz',
+            'zeitraum' => '2024-2025',
+            'beschreibung' => 'Betreuung und Weiterbildung.',
+        ];
+
+        $errors = $validator->validate($data);
+
+        $this->assertNotEmpty($errors);
+    }
+
     public function testPositionRejectsLegacyGroupField(): void
     {
         $validator = new SchemaValidator($this->schemaPath());
@@ -87,27 +118,88 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testSkillGroupWithoutRatingIsValid(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['kenntnisse'] = [
+            [
+                'tags' => [
+                    [
+                        'de' => 'Kommunikation',
+                        'en' => 'Communication',
+                    ],
+                ],
+            ],
+        ];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testKnowledgeRatingMayExceedFive(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['kenntnisse'][0]['wert'] = 12;
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testKnowledgeLabelFlagMayBeFalse(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['zeige_kenntnisse_label'] = false;
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testContactDataUsesItsOwnSchema(): void
+    {
+        $validator = new SchemaValidator($this->contactSchemaPath());
+        $errors = $validator->validate([
+            'name' => 'Max Mustermann',
+            'ort' => 'Berlin',
+            'email' => 'max@example.com',
+            'telefon' => '+49 123 456',
+        ]);
+
+        $this->assertSame([], $errors);
+    }
+
     private function schemaPath(): string
     {
         return dirname(__DIR__, 2) . '/src/resources/build/schemas/lebenslauf.schema.json';
     }
 
+    private function contactSchemaPath(): string
+    {
+        return dirname(__DIR__, 2) . '/src/resources/build/schemas/kontaktdaten.schema.json';
+    }
+
     private function validData(): array
     {
         return [
-            'kopfdaten' => [
-                'name' => 'Max Mustermann',
-                'bereich' => 'Softwareentwicklung',
-                'ort' => 'Berlin',
-                'email' => 'max@example.com',
-                'telefon' => '+49 123 456',
-            ],
+            'zeige_kenntnisse_label' => true,
+            'titel' => 'Softwareentwicklung',
             'motivation' => 'Kurzbeschreibung.',
-            'faehigkeiten' => [
+            'kenntnisse' => [
                 [
-                    'stufe' => 'Senior',
+                    'gruppe_label' => 'Senior',
                     'wert' => 4,
-                    'technologien' => ['PHP', 'SQL'],
+                    'tags' => [
+                        [
+                            'de' => 'Datenbanken',
+                            'en' => 'Databases',
+                        ],
+                        'SQL',
+                    ],
                 ],
             ],
             'berufserfahrung' => [

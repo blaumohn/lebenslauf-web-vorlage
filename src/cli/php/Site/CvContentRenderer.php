@@ -16,6 +16,7 @@ use Twig\Environment;
 final class CvContentRenderer extends BaseContentRenderer
 {
     public const CV_SCHEMA = 'lebenslauf.schema.json';
+    public const CONTACT_SCHEMA = 'kontaktdaten.schema.json';
 
     private \App\Http\SiteHtmlCache $htmlCache;
     private SchemaValidator $validator;
@@ -38,15 +39,16 @@ final class CvContentRenderer extends BaseContentRenderer
         return 'lebenslauf';
     }
 
-    public function schemaName(): string
+    public function schemaNames(): array
     {
-        return self::CV_SCHEMA;
+        return [self::CV_SCHEMA, self::CONTACT_SCHEMA];
     }
 
     public function render(OutputInterface $output): void
     {
+        $contactData = $this->loadContactData();
         foreach ($this->resolveTargets() as $target) {
-            $this->renderTarget($target, $output);
+            $this->renderTarget($target, $contactData, $output);
         }
     }
 
@@ -58,12 +60,16 @@ final class CvContentRenderer extends BaseContentRenderer
             return true;
         }
         $valid = true;
-        foreach ($this->collectTargets($dataPath) as $target) {
+        $targets = $this->collectTargets($dataPath);
+        foreach ($targets as $target) {
             $yamlPath = $target['yaml'];
             $entry = basename($yamlPath);
             if (!$this->validateYamlFile($yamlPath, self::CV_SCHEMA, "CV: {$entry}", $output)) {
                 $valid = false;
             }
+        }
+        if ($targets !== [] && $valid && !$this->validateContactData($output)) {
+            $valid = false;
         }
         return $valid;
     }
@@ -81,6 +87,16 @@ final class CvContentRenderer extends BaseContentRenderer
         $targets = array_map($this->withParsedData(...), $targets);
         $this->assertAtMostOnePublicProfile($targets);
         return $targets;
+    }
+
+    private function loadContactData(): array
+    {
+        $path = $this->contactDataPath();
+        if (!is_file($path)) {
+            throw new \RuntimeException("Kontaktdaten-YAML nicht gefunden: {$path}");
+        }
+
+        return $this->parseYamlFile($path);
     }
 
     private function withParsedData(array $target): array
@@ -136,7 +152,7 @@ final class CvContentRenderer extends BaseContentRenderer
         return $targets;
     }
 
-    private function renderTarget(array $target, OutputInterface $output): void
+    private function renderTarget(array $target, array $contactData, OutputInterface $output): void
     {
         $profile = $target['profile'];
         $yamlPath = $target['yaml'];
@@ -145,7 +161,7 @@ final class CvContentRenderer extends BaseContentRenderer
         $isPublic = ($data['oeffentlich'] ?? false) === true;
         $langs = $this->resolveLangs();
         foreach ($langs as $lang) {
-            $this->renderForLang($profile, $lang, $data, $isPublic, $output);
+            $this->renderForLang($profile, $lang, $data, $contactData, $isPublic, $output);
         }
         $output->writeln("CV build completed: {$profile} ({$yamlPath})");
     }
@@ -173,12 +189,13 @@ final class CvContentRenderer extends BaseContentRenderer
         throw new \RuntimeException('Schema-Validierung fehlgeschlagen.');
     }
 
-    private function renderForLang(string $profile, string $lang, array $data, bool $isPublic, OutputInterface $output): void
+    private function renderForLang(string $profile, string $lang, array $data, array $contactData, bool $isPublic, OutputInterface $output): void
     {
         $cvFooter = $this->loadCvFooter($lang);
         $labels = LabelService::fromJsonFile($this->labelsPath, $lang)->all();
         $normalized = (new CvDataNormalizer($lang))->normalize($data);
-        $this->savePrivate($profile, $lang, $normalized, $labels, $cvFooter);
+        $contact = (new CvDataNormalizer($lang))->normalize($contactData);
+        $this->savePrivate($profile, $lang, $normalized, $contact, $labels, $cvFooter);
         if ($isPublic) {
             $this->renderPublicProfile($profile, $lang, $normalized, $labels, $cvFooter, $output);
         }
@@ -203,10 +220,10 @@ final class CvContentRenderer extends BaseContentRenderer
         return $html;
     }
 
-    private function savePrivate(string $profile, string $lang, array $normalized, array $labels, string $cvFooter): void
+    private function savePrivate(string $profile, string $lang, array $normalized, array $contact, array $labels, string $cvFooter): void
     {
         $view = $this->viewBuilder->build($normalized);
-        $html = $this->renderPrivate($view, $labels, $lang, $cvFooter);
+        $html = $this->renderPrivate($view, $contact, $labels, $lang, $cvFooter);
         $this->htmlCache->savePrivateHtmlForLang($profile, $html, $lang);
     }
 
@@ -240,9 +257,10 @@ final class CvContentRenderer extends BaseContentRenderer
         return sprintf($template, $siteNameKurz);
     }
 
-    public function renderPrivate(array $data, array $labels, string $lang, string $cvFooter): string
+    public function renderPrivate(array $data, array $contact, array $labels, string $lang, string $cvFooter): string
     {
         return $this->twig->render('cv_private.html.twig', $this->baseVars($data, $labels, $lang) + [
+            'kontaktdaten' => $contact,
             'cv_footer' => $cvFooter,
         ]);
     }
@@ -257,6 +275,7 @@ final class CvContentRenderer extends BaseContentRenderer
         ?string $systemNotice = null,
     ): string {
         return $this->twig->render('cv_public.html.twig', $this->baseVars($data, $labels, $lang) + [
+            'kontaktdaten' => [],
             'site_header' => $siteHeader,
             'site_name_kurz' => $siteNameKurz,
             'cv_footer' => $cvFooter,
@@ -283,6 +302,22 @@ final class CvContentRenderer extends BaseContentRenderer
     private function dataPath(): string
     {
         return Path::join($this->resolveContentBase(), 'lebenslauf');
+    }
+
+    private function contactDataPath(): string
+    {
+        return Path::join($this->dataPath(), 'kontaktdaten.yaml');
+    }
+
+    private function validateContactData(OutputInterface $output): bool
+    {
+        $path = $this->contactDataPath();
+        if (!is_file($path)) {
+            $output->writeln("<error>Kontaktdaten: YAML fehlt ({$path}).</error>");
+            return false;
+        }
+
+        return $this->validateYamlFile($path, self::CONTACT_SCHEMA, 'Kontaktdaten', $output);
     }
 
     private function buildValidator(): SchemaValidator

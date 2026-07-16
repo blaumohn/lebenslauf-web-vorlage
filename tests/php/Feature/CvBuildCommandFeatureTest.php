@@ -106,6 +106,10 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
             $this->projectRoot() . '/src/resources/fixtures/lebenslauf/daten-demo.yaml',
             $root . '/lebenslauf/daten-sonderpfad.yaml'
         );
+        copy(
+            $this->projectRoot() . '/src/resources/fixtures/lebenslauf/kontaktdaten.yaml',
+            $root . '/lebenslauf/kontaktdaten.yaml'
+        );
         mkdir($root . '/blog', 0775, true);
         mkdir($root . '/home', 0775, true);
         copy(

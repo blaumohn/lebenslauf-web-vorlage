@@ -15,8 +15,7 @@
   </div>
 {% endmacro %}
 
-{% macro dot_scale(wert) %}
-  {% set max = 5 %}
+{% macro dot_scale(wert, max) %}
   {% set dots = '' %}
   {% for i in 1..max %}
     {% set dots = dots ~ (i <= wert ? '&#9679;' : '&#9675;') %}
@@ -26,12 +25,18 @@
 
 {% macro skill_group(gruppe) %}
   <div class="skill-group">
-    {% if gruppe.stufe is not empty %}
-      <p class="skill-level">{{ gruppe.stufe }}</p>
+    {% if gruppe.gruppe_label is not empty %}
+      <p class="skill-level">{{ gruppe.gruppe_label }}</p>
     {% endif %}
-    {{ _self.dot_scale(gruppe.wert) }}
-    {% if gruppe.show_technologien %}
-      {{ _self.tag_list(gruppe.technologien) }}
+    {% if gruppe.show_wert %}
+      {% if gruppe.max_wert <= 10 %}
+        {{ _self.dot_scale(gruppe.wert, gruppe.max_wert) }}
+      {% else %}
+        <div class="skill-value">{{ gruppe.wert }} / {{ gruppe.max_wert }}</div>
+      {% endif %}
+    {% endif %}
+    {% if gruppe.show_tags %}
+      {{ _self.tag_list(gruppe.tags) }}
     {% endif %}
   </div>
 {% endmacro %}

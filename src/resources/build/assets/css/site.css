@@ -81,13 +81,22 @@
   article {
     margin-top: 24px;
   }
-
-  section {
-    margin-top: 24px;
-  }
 }
 
 @layer patterns {
+  .home-content,
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .home-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .muted {
     color: var(--muted);
   }

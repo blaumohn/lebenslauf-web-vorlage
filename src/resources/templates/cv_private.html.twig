@@ -4,9 +4,10 @@
   {% import 'components/cv/view.html.twig' as cv_view %}
   {{ cv_view.view(
     cv,
+    kontaktdaten,
     etiketten,
     true,
-    cv.kopfdaten.name,
+    kontaktdaten.name,
     cv_footer
   ) }}
 {% endblock %}
