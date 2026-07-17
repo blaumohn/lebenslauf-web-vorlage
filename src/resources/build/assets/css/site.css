@@ -9,7 +9,13 @@
     --ink: #1f1f1f;
     --muted: #6b5f52;
     --accent: #234d62;
+    --article-code-block-font-size: 0.9375rem;
+    --article-code-block-line-height: 1.5;
     --article-font-family: "Georgia", "Times New Roman", serif;
+    --article-font-size: 1.0625rem;
+    --article-inline-code-font-size: 0.9em;
+    --article-line-height: 1.6;
+    --article-prose-measure: 70ch;
     --border-subtle: #d8cdc0;
     --focus-ring: #0f5f8a;
     --mono-font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas",

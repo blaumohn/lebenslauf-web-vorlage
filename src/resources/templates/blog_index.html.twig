@@ -15,7 +15,7 @@
         <li>
           <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
           {{ ui.muted(post.datum) }}
-          {{ ui.muted(post.zusammenfassung) }}
+          <p class="blog-vorschau muted">{{ post.zusammenfassung }}</p>
         </li>
       {% endfor %}
     </ul>
