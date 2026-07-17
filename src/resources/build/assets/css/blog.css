@@ -6,8 +6,17 @@
   margin-top: 6px;
 }
 
+.blog-vorschau {
+  max-width: var(--article-prose-measure);
+  font-family: var(--article-font-family);
+  font-style: italic;
+  line-height: var(--article-line-height);
+}
+
 .blog-inhalt {
   font-family: var(--article-font-family);
+  font-size: var(--article-font-size);
+  line-height: var(--article-line-height);
   margin-top: 24px;
 }
 
@@ -15,9 +24,27 @@
   font-family: var(--mono-font-family);
 }
 
+.blog-inhalt :is(code, kbd, samp) {
+  font-size: var(--article-inline-code-font-size);
+}
+
 .blog-inhalt pre {
   max-width: 100%;
+  margin: 0;
+  padding: 14px 16px;
   overflow-x: auto;
+  font-size: var(--article-code-block-font-size);
+  line-height: var(--article-code-block-line-height);
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+}
+
+.blog-inhalt pre :is(code, kbd, samp) {
+  font-size: inherit;
+}
+
+.blog-inhalt > :is(p, ul, ol, blockquote, h2, h3, h4, h5, h6) {
+  max-width: var(--article-prose-measure);
 }
 
 .blog-inhalt > * + * {
@@ -32,4 +59,20 @@
 .blog-inhalt > ul,
 .blog-inhalt > ol {
   padding-left: 22px;
+}
+
+.blog-inhalt .pull-quote {
+  max-width: var(--article-prose-measure);
+  margin-top: 28px;
+  margin-bottom: 28px;
+  padding-left: 16px;
+  border-left: 3px solid var(--accent);
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-style: italic;
+  color: var(--accent);
+}
+
+.blog-inhalt .pull-quote p {
+  margin: 0;
 }
