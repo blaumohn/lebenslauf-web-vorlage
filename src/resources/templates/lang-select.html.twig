@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-<div>
+<article class="markdown-body">
   <h1>{% for lang in supported_langs %}{{ translations[lang].heading }}{% if not loop.last %} / {% endif %}{% endfor %}</h1>
   {% for lang in supported_langs %}
     <p>{{ translations[lang].description }}</p>
@@ -11,5 +11,5 @@
       <li><a href="?lang={{ lang }}">{{ translations[lang].link }}</a></li>
     {% endfor %}
   </ul>
-</div>
+</article>
 {% endblock %}

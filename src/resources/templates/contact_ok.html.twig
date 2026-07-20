@@ -3,12 +3,14 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title('Danke') }}
-  <p>Ihre Nachricht wurde über den Mail-Server abgeschickt.</p>
-  <dl>
-    <dt>Name</dt><dd>{{ sent_name }}</dd>
-    <dt>E-Mail</dt><dd>{{ sent_email }}</dd>
-    <dt>Nachricht</dt><dd>{{ sent_message }}</dd>
-  </dl>
-  <p>{{ ui.link(path('/'), 'Zurück zur Startseite') }}</p>
+  <article class="markdown-body">
+    {{ ui.page_title('Danke') }}
+    <p>Ihre Nachricht wurde über den Mail-Server abgeschickt.</p>
+    <dl>
+      <dt>Name</dt><dd>{{ sent_name }}</dd>
+      <dt>E-Mail</dt><dd>{{ sent_email }}</dd>
+      <dt>Nachricht</dt><dd>{{ sent_message }}</dd>
+    </dl>
+    <p>{{ ui.link(path('/'), 'Zurück zur Startseite') }}</p>
+  </article>
 {% endblock %}

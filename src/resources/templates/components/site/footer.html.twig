@@ -1,11 +1,11 @@
-<footer>
+<footer class="{% if cv_mode|default(false) %}cv-footer{% else %}markdown-body site-footer{% endif %}">
   {% if privacy_note %}
-    <div>{{ privacy_note }}</div>
+    <div class="site-footer-note">{{ privacy_note }}</div>
   {% endif %}
   <div class="footer-meta">
-    <span>{{ "now"|date("d.m.Y") }} {{ attribution }}</span>
+    <div>{{ "now"|date("d.m.Y") }} {{ attribution }}</div>
     {% if built_with %}
-      <span>{{ built_with|raw }}</span>
+      <div>{{ built_with }}</div>
     {% endif %}
   </div>
 </footer>

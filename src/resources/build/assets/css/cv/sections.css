@@ -1,5 +1,5 @@
-@layer components {
-  article {
+@layer cv.components {
+  .cv {
     :where(section[class^="section-"]) {
       --section-body-gap: 0.25rem;
       --section-indent: 0.125rem;

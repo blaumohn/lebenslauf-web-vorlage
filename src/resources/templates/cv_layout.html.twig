@@ -12,15 +12,17 @@
   <script defer src="{{ path('/js/cv/tag-breite.js') }}"></script>
 </head>
 <body>
-  <div class="page">
+  <div class="site-shell">
     {{ site_header|raw }}
     {% if system_notice %}
       <div class="system-notice">{{ system_notice }}</div>
     {% endif %}
-    <main>
-      <article class="card">
-        {% block content %}{% endblock %}
-      </article>
+    <main class="site-main">
+      <div class="cv-embed">
+        <article class="cv">
+          {% block content %}{% endblock %}
+        </article>
+      </div>
     </main>
   </div>
 </body>

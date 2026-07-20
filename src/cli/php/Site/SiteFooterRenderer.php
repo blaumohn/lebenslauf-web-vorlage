@@ -4,6 +4,7 @@ namespace App\Cli\Site;
 
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
+use Twig\Environment;
 
 final class SiteFooterRenderer extends BaseContentRenderer
 {
@@ -24,10 +25,11 @@ final class SiteFooterRenderer extends BaseContentRenderer
         $langs = $this->resolveLangs();
 
         foreach ($langs as $lang) {
-            $vars = $this->resolveVars($footer, $nameKurz, $lang);
+            $vars = $this->resolveVars($footer, $nameKurz, $lang, $twig);
             $siteHtml = $twig->render('components/site/footer.html.twig', $vars);
             $cvVars = $vars;
             $cvVars['privacy_note'] = null;
+            $cvVars['cv_mode'] = true;
             $cvHtml = $twig->render('components/site/footer.html.twig', $cvVars);
             $storage->saveFooterFragmentForLang($lang, $siteHtml);
             $storage->saveCvFooterFragmentForLang($lang, $cvHtml);
@@ -62,12 +64,24 @@ final class SiteFooterRenderer extends BaseContentRenderer
         return $data;
     }
 
-    private function resolveVars(array $footer, string $nameKurz, string $lang): array
+    private function resolveVars(array $footer, string $nameKurz, string $lang, Environment $twig): array
     {
+        $privacyNote = $this->resolveFooterField($footer['privacy_note'] ?? null, $lang, 'privacy_note');
+        $builtWith = $this->resolveFooterField($footer['built_with'] ?? null, $lang, 'built_with');
         return [
-            'privacy_note' => $this->resolveFooterField($footer['privacy_note'] ?? null, $lang, 'privacy_note'),
+            'privacy_note' => $privacyNote === null ? null : $this->renderMarkdown(
+                $twig,
+                $privacyNote,
+                $lang,
+                "site.footer.{$lang}.privacy_note"
+            ),
             'attribution' => $nameKurz,
-            'built_with' => $this->resolveFooterField($footer['built_with'] ?? null, $lang, 'built_with'),
+            'built_with' => $builtWith === null ? null : $this->renderMarkdown(
+                $twig,
+                $builtWith,
+                $lang,
+                "site.footer.{$lang}.built_with"
+            ),
         ];
     }
 

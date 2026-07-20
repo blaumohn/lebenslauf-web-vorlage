@@ -3,8 +3,9 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title('Kontakt') }}
-  {{ ui.muted('Ihre Nachricht wird direkt an mich weitergeleitet — ohne Datenbankablage.') }}
-
-  {% include 'components/site/contact-form.html.twig' with { form: form } only %}
+  <article class="markdown-body">
+    {{ ui.page_title('Kontakt') }}
+    <p>Ihre Nachricht wird direkt an mich weitergeleitet — ohne Datenbankablage.</p>
+    {% include 'components/site/contact-form.html.twig' with { form: form } only %}
+  </article>
 {% endblock %}

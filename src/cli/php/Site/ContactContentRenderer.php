@@ -45,6 +45,13 @@ final class ContactContentRenderer extends BaseContentRenderer
     private function renderForLang(array $data, string $lang, OutputInterface $output): void
     {
         $contact = $this->pickLang($data, $lang);
+        $twig = $this->buildTwig();
+        $contact['intro_html'] = $this->renderMarkdown(
+            $twig,
+            (string) $contact['intro'],
+            $lang,
+            "contact.{$lang}.intro"
+        );
         $labels = LabelService::fromJsonFile($this->labelsPath(), $lang)->all();
         $text = array_merge($contact, $this->resolveContactLabels($labels));
         $this->writeTemplate($lang, $this->generateTemplate($text));
@@ -80,21 +87,20 @@ final class ContactContentRenderer extends BaseContentRenderer
         {$textBlock}
         } %}
         {% block content %}
-          {{ ui.page_title(text.title) }}
-          {{ ui.muted(text.intro) }}
-          {% if form.show_error %}
-            {{ ui.muted(form.error_text) }}
-          {% endif %}
-          <form method="post" action="{{ path('/contact') }}">
-            {{ form_ui.input(text.name_label, 'name', 'text', form.values.name, true) }}
-            <br><br>
-            {{ form_ui.input(text.email_label, 'email', 'email', form.values.email, true, 'name@beispiel.de') }}
-            <br><br>
-            {{ form_ui.textarea(text.message_label, 'message', form.values.message, 6, true) }}
-            <br><br>
-            {{ form_ui.captcha(form.captcha_id, form.captcha_url) }}
-            <button type="submit">{{ text.submit_label }}</button>
-          </form>
+          <article class="markdown-body">
+            {{ ui.page_title(text.title) }}
+            {{ text.intro_html|raw }}
+            {% if form.show_error %}
+              <p class="form-error">{{ form.error_text }}</p>
+            {% endif %}
+            <form class="contact-form" method="post" action="{{ path('/contact') }}">
+              {{ form_ui.input(text.name_label, 'name', 'text', form.values.name, true) }}
+              {{ form_ui.input(text.email_label, 'email', 'email', form.values.email, true, 'name@beispiel.de') }}
+              {{ form_ui.textarea(text.message_label, 'message', form.values.message, 6, true) }}
+              {{ form_ui.captcha(form.captcha_id, form.captcha_url) }}
+              <button type="submit">{{ text.submit_label }}</button>
+            </form>
+          </article>
         {% endblock %}
         TWIG;
     }
@@ -103,8 +109,11 @@ final class ContactContentRenderer extends BaseContentRenderer
     {
         $entries = [];
         foreach ($text as $key => $value) {
-            $escaped = str_replace("'", "\\'", (string) $value);
-            $entries[] = "  {$key}: '{$escaped}'";
+            $encoded = json_encode(
+                (string) $value,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+            $entries[] = "  {$key}: {$encoded}";
         }
         return implode(",\n", $entries);
     }

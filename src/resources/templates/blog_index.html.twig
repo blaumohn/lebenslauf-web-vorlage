@@ -3,21 +3,23 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title('Blog') }}
+  <article class="markdown-body">
+    {{ ui.page_title('Blog') }}
 
-  {% if intro %}{{ ui.muted(intro) }}{% endif %}
+    {% if intro_html %}{{ intro_html }}{% endif %}
 
-  {% if posts is empty %}
-    {{ ui.muted('Noch keine Beiträge vorhanden.') }}
-  {% else %}
-    <ul class="blog-liste">
-      {% for post in posts %}
-        <li>
-          <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
-          {{ ui.muted(post.datum) }}
-          <p class="blog-vorschau muted">{{ post.zusammenfassung }}</p>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+    {% if posts is empty %}
+      <p class="content-meta">Noch keine Beiträge vorhanden.</p>
+    {% else %}
+      <ul class="blog-list">
+        {% for post in posts %}
+          <li>
+            <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
+            <p class="content-meta">{{ post.datum }}</p>
+            <p><em>{{ post.zusammenfassung }}</em></p>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </article>
 {% endblock %}

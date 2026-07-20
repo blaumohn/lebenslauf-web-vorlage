@@ -7,11 +7,10 @@
   <link rel="stylesheet" href="{{ path('/css/site.css') }}">
 </head>
 <body>
-  {% import 'components/site/layout.html.twig' as layout %}
-  <div class="page">
+  <div class="site-shell">
     {{ site_header|raw }}
 
-    <main class="card">
+    <main class="site-main">
       {% block content %}{% endblock %}
     </main>
 

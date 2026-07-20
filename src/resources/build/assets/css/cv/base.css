@@ -1,4 +1,4 @@
-@layer base {
+@layer cv.base {
   :root {
     --gray-900: #111827;
     --gray-800: #1f2937;
@@ -23,7 +23,7 @@
     --print-edge-guard: 2px;
   }
 
-  article {
+  .cv {
     font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
     color: var(--gray-800);
     line-height: var(--line-height-base);
@@ -65,6 +65,18 @@
           text-decoration: none;
         }
       }
+
+      .footer-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+      }
+
+      .footer-meta > :not(:last-child)::after {
+        content: "|";
+        margin-inline-start: 0.5rem;
+        color: var(--gray-700);
+      }
     }
   }
 
@@ -85,7 +97,7 @@
       margin-top: 0;
     }
 
-    .site {
+    .site-header {
       display: none;
     }
   }

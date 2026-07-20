@@ -1,20 +1,30 @@
 {% macro input(label, name, type, value, required = true, placeholder = '') %}
   <label>
-    {{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}
-    <input type="{{ type }}" name="{{ name }}" value="{{ value|default('') }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}>
+    <span>{{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}</span>
+    <input
+      type="{{ type }}"
+      name="{{ name }}"
+      value="{{ value|default('') }}"
+      {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+      {% if required %}required{% endif %}
+    >
   </label>
 {% endmacro %}
 
 {% macro textarea(label, name, value, rows = 6, required = true) %}
   <label>
-    {{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}
-    <textarea name="{{ name }}" rows="{{ rows }}"{% if required %} required{% endif %}>{{ value|default('') }}</textarea>
+    <span>{{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}</span>
+    <textarea
+      name="{{ name }}"
+      rows="{{ rows }}"
+      {% if required %}required{% endif %}
+    >{{ value|default('') }}</textarea>
   </label>
 {% endmacro %}
 
 {% macro captcha(captcha_id, captcha_url) %}
   <label>
-    CAPTCHA <span aria-hidden="true">*</span>
+    <span>CAPTCHA <span aria-hidden="true">*</span></span>
     <input type="text" name="captcha_answer" required>
   </label>
   <input type="hidden" name="captcha_id" value="{{ captcha_id }}">

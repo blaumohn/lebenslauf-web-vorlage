@@ -4,6 +4,6 @@
   "additionalProperties": false,
   "required": ["intro"],
   "properties": {
-    "intro": { "$ref": "common.schema.json#/definitions/intlString" }
+    "intro": { "$ref": "common.schema.json#/definitions/intlMarkdown" }
   }
 }

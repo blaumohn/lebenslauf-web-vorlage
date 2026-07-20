@@ -74,13 +74,24 @@ final class ErrorRenderer extends BaseContentRenderer
         }
     }
 
-    private function renderForLang(array $data, string $cacheKey, string $label, string $lang, OutputInterface $output): void
-    {
+    private function renderForLang(
+        array $data,
+        string $cacheKey,
+        string $label,
+        string $lang,
+        OutputInterface $output
+    ): void {
         $resolved = $this->pickLang($data, $lang);
+        $messageHtml = $this->renderMarkdown(
+            $this->twig,
+            (string) $resolved['message'],
+            $lang,
+            "error.{$cacheKey}.{$lang}.message"
+        );
         $html = $this->twig->render('error.html.twig', [
             'lang'        => $lang,
             'title'       => $resolved['title'],
-            'message'     => $resolved['message'],
+            'message_html' => $messageHtml,
             'site_header' => $this->loadHeaderFragment($lang),
             'site_footer' => $this->loadFooterFragment($lang),
         ]);

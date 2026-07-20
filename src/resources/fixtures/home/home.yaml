@@ -4,9 +4,9 @@ titel:
   es: Bienvenido
 
 beschreibung:
-  de: Kurzprofil und Kontakt in reduzierter Form.
-  en: Short profile and contact in a reduced form.
-  es: Perfil breve y contacto de forma resumida.
+  de: Kurzprofil von **{{ site.name_kurz }}** und Kontakt in reduzierter Form.
+  en: A short profile of **{{ site.name_kurz }}** and contact details in a reduced form.
+  es: Perfil breve de **{{ site.name_kurz }}** y contacto de forma resumida.
 
 link_lebenslauf:
   de: Zum Lebenslauf

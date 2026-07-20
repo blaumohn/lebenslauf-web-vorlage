@@ -10,8 +10,8 @@
       "additionalProperties": false,
       "required": ["built_with"],
       "properties": {
-        "privacy_note": { "$ref": "common.schema.json#/definitions/intlString" },
-        "built_with":   { "$ref": "common.schema.json#/definitions/intlString" }
+        "privacy_note": { "$ref": "common.schema.json#/definitions/intlMarkdown" },
+        "built_with":   { "$ref": "common.schema.json#/definitions/intlMarkdown" }
       }
     }
   }

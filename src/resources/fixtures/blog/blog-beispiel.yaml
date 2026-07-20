@@ -20,26 +20,29 @@ zusammenfassung:
 
 inhalt:
   de: |
-    <p>Systeme, die aus wenigen, klar abgegrenzten Teilen bestehen, sind
+    Systeme, die aus wenigen, klar abgegrenzten Teilen bestehen, sind
     einfacher zu testen, zu verstehen und zu betreiben als solche, bei denen
-    viele Verantwortlichkeiten ineinandergreifen.</p>
-    <p>Das gilt für Softwarekomponenten ebenso wie für Deployment-Prozesse
+    viele Verantwortlichkeiten ineinandergreifen.
+
+    Das gilt für Softwarekomponenten ebenso wie für Deployment-Prozesse
     und Datenstrukturen. Wer Komplexität reduziert, reduziert auch die Zahl
-    der möglichen Fehlerpunkte.</p>
+    der möglichen Fehlerpunkte.
   en: |
-    <p>Systems made up of a few clearly separated parts are easier to test,
+    Systems made up of a few clearly separated parts are easier to test,
     understand and operate than systems where many responsibilities are
-    intertwined.</p>
-    <p>This applies to software components as much as to deployment processes
+    intertwined.
+
+    This applies to software components as much as to deployment processes
     and data structures. Reducing complexity also reduces the number of
-    possible failure points.</p>
+    possible failure points.
   es: |
-    <p>Los sistemas formados por pocas partes bien delimitadas son más fáciles
+    Los sistemas formados por pocas partes bien delimitadas son más fáciles
     de probar, comprender y operar que aquellos en los que muchas
-    responsabilidades se entrelazan.</p>
-    <p>Esto se aplica tanto a los componentes de software como a los procesos
+    responsabilidades se entrelazan.
+
+    Esto se aplica tanto a los componentes de software como a los procesos
     de despliegue y las estructuras de datos. Reducir la complejidad significa
-    reducir también el número de puntos de fallo posibles.</p>
+    reducir también el número de puntos de fallo posibles.
 
 tags:
   - reliability

@@ -78,8 +78,13 @@ final class BlogPostRenderer extends BlogRendererBase
                 continue;
             }
             $resolved = $this->pickLang($post, $lang);
-            $resolved['inhalt'] = $this->encodeCodeBlocks((string) $resolved['inhalt']);
             $slug = (string) $post['slug'];
+            $resolved['inhalt_html'] = $this->renderMarkdown(
+                $this->twig,
+                (string) $resolved['inhalt'],
+                $lang,
+                "blog.{$slug}.{$lang}.inhalt"
+            );
             $html = $this->twig->render('blog_post.html.twig', [
                 'post'  => $resolved,
                 'title' => $resolved['titel'],
@@ -101,15 +106,4 @@ final class BlogPostRenderer extends BlogRendererBase
         ));
     }
 
-    private function encodeCodeBlocks(string $html): string
-    {
-        return (string) preg_replace_callback(
-            '/<code>(.*?)<\/code>/s',
-            function (array $m): string {
-                $decoded = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                return '<code>' . htmlspecialchars($decoded, ENT_NOQUOTES | ENT_HTML5, 'UTF-8') . '</code>';
-            },
-            $html
-        );
-    }
 }

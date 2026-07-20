@@ -15,7 +15,7 @@ for (const lang of langs) {
 
     test('home', async ({ page }) => {
       await page.goto('/');
-      await expect(page.locator('section a[href*="/cv"]')).toBeVisible();
+      await expect(page.locator('main a[href*="/cv"]')).toBeVisible();
     });
 
     test('cv', async ({ page }) => {

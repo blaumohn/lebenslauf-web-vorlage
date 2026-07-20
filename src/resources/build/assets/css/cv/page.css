@@ -1,5 +1,11 @@
-@layer patterns {
-  article {
+@layer cv.layout {
+  .cv-embed {
+    padding: 1.5rem;
+    border: var(--border-width-thin) solid var(--gray-300);
+    background: #fff;
+  }
+
+  .cv {
     max-width: 50rem;
     display: flex;
     flex-direction: column;
@@ -11,16 +17,18 @@
       margin-top: 0;
     }
 
-    .page,
-    article.card {
+    .site-shell,
+    .cv-embed,
+    .cv {
       background: transparent;
     }
 
-    .page {
+    .site-shell {
       padding: 0 var(--print-edge-guard) 0 0;
     }
 
-    article.card {
+    .cv-embed,
+    .cv {
       padding: 0;
       margin-top: 0;
       border: none;

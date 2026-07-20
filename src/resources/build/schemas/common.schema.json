@@ -6,6 +6,13 @@
         { "type": "string", "minLength": 1 },
         { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
       ]
+    },
+    "intlMarkdown": {
+      "description": "Markdown mit optionalen Twig-Ausdrücken; wird ausschließlich beim Build gerendert.",
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      ]
     }
   }
 }

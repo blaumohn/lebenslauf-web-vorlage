@@ -42,12 +42,18 @@ final class BlogIndexRenderer extends BlogRendererBase
         $posts = $this->discoverSortedPosts($blogDir);
         foreach ($this->resolveLangs() as $lang) {
             $intro = $introData === null ? null : self::resolveBlogIntro($introData['intro'] ?? null, $lang);
+            $introHtml = $intro === null ? null : $this->renderMarkdown(
+                $this->twig,
+                $intro,
+                $lang,
+                "blog.index.{$lang}.intro"
+            );
             $html = $this->twig->render('blog_index.html.twig', [
                 'lang'        => $lang,
                 'title'       => 'Blog',
                 'site_header' => $this->loadHeaderFragment($lang),
                 'site_footer' => $this->loadFooterFragment($lang),
-                'intro'       => $intro,
+                'intro_html'  => $introHtml,
                 'posts'       => $this->publishedForLang($posts, $lang),
             ]);
             $this->storage->writeText(Path::join($this->htmlPath(), $lang, 'index.html'), $html);

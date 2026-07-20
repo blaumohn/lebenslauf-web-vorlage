@@ -3,6 +3,8 @@
 {% block content %}
   {% import 'components/site/lib.html.twig' as ui %}
 
-  {{ ui.page_title(title) }}
-  {{ ui.muted(message) }}
+  <article class="markdown-body">
+    {{ ui.page_title(title) }}
+    {{ message_html }}
+  </article>
 {% endblock %}

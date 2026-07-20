@@ -58,6 +58,12 @@ final class HomeContentRenderer extends BaseContentRenderer
     private function renderForLang(array $data, string $lang, OutputInterface $output): void
     {
         $resolved = $this->pickLang($data, $lang);
+        $resolved['beschreibung_html'] = $this->renderMarkdown(
+            $this->twig,
+            (string) $resolved['beschreibung'],
+            $lang,
+            "home.{$lang}.beschreibung"
+        );
         $html = $this->twig->render('home.html.twig', $resolved + [
             'lang'        => $lang,
             'title'       => $resolved['titel'],

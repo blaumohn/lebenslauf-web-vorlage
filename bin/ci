@@ -138,11 +138,11 @@ zusammenfassung:
 
 inhalt:
   de: |
-    <p>$sentinel</p>
+    $sentinel
   en: |
-    <p>$sentinel</p>
+    $sentinel
   es: |
-    <p>$sentinel</p>
+    $sentinel
 
 tags:
   - ci

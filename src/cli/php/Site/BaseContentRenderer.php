@@ -8,6 +8,7 @@ use App\Http\Templating\TwigFactory;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
+use Twig\Markup;
 
 abstract class BaseContentRenderer extends BaseSchemaValidator implements ContentRendererInterface
 {
@@ -57,11 +58,13 @@ abstract class BaseContentRenderer extends BaseSchemaValidator implements Conten
         if (!is_array($value)) {
             return $value;
         }
-        if (isset($value[$lang])) {
-            return $value[$lang];
+        if (array_is_list($value)) {
+            return $value;
         }
-        $first = reset($value);
-        return $first !== false ? $first : '';
+        if (!array_key_exists($lang, $value)) {
+            throw new \RuntimeException("Übersetzung für Sprache {$lang} fehlt.");
+        }
+        return $value[$lang];
     }
 
     protected function resolveBasePath(): string
@@ -119,5 +122,25 @@ abstract class BaseContentRenderer extends BaseSchemaValidator implements Conten
             throw new \RuntimeException("site.yaml: name_kurz fehlt");
         }
         return (string) $name;
+    }
+
+    protected function renderMarkdown(
+        Environment $twig,
+        string $markdown,
+        string $lang,
+        string $name
+    ): Markup {
+        $renderer = new MarkdownContentRenderer($twig);
+        return $renderer->render($markdown, [
+            'site' => $this->resolveSiteContext($lang),
+        ], $name);
+    }
+
+    private function resolveSiteContext(string $lang): array
+    {
+        $site = $this->loadSiteYaml();
+        return [
+            'name_kurz' => $site['name_kurz'],
+        ];
     }
 }

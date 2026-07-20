@@ -5,7 +5,7 @@
   "required": ["titel", "beschreibung", "link_lebenslauf", "link_kontakt"],
   "properties": {
     "titel":           { "$ref": "common.schema.json#/definitions/intlString" },
-    "beschreibung":    { "$ref": "common.schema.json#/definitions/intlString" },
+    "beschreibung":    { "$ref": "common.schema.json#/definitions/intlMarkdown" },
     "link_lebenslauf": { "$ref": "common.schema.json#/definitions/intlString" },
     "link_kontakt":    { "$ref": "common.schema.json#/definitions/intlString" }
   }

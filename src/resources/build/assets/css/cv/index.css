@@ -1,6 +1,5 @@
-@layer reset, base, patterns, components, utilities;
+@layer cv.base, cv.layout, cv.components, cv.utilities;
 
-@import url("../normalise.css") layer(reset);
 @import url("./base.css");
 @import url("./page.css");
 @import url("./header.css");

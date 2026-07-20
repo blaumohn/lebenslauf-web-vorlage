@@ -2,14 +2,6 @@
   <h1>{{ text }}</h1>
 {% endmacro %}
 
-{% macro muted(text) %}
-  <p class="muted">{{ text }}</p>
-{% endmacro %}
-
 {% macro link(href, text) %}
-  <a href="{{ href }}">{{ text }}</a>
-{% endmacro %}
-
-{% macro nav_link(href, text) %}
   <a href="{{ href }}">{{ text }}</a>
 {% endmacro %}

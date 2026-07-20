@@ -1,5 +1,5 @@
-@layer components {
-  article {
+@layer cv.components {
+  .cv {
     .entry {
       --entry-meta-end-offset: 3%;
       --entry-text-end-reserve: 10%;
