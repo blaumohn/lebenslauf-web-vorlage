@@ -9,7 +9,7 @@
     "status":         { "type": "string", "enum": ["published", "draft"] },
     "titel":          { "$ref": "common.schema.json#/definitions/intlString" },
     "zusammenfassung":{ "$ref": "common.schema.json#/definitions/intlString" },
-    "inhalt":         { "$ref": "common.schema.json#/definitions/intlString" },
+    "inhalt":         { "$ref": "common.schema.json#/definitions/intlMarkdown" },
     "tags":           { "type": "array", "items": { "type": "string" } }
   }
 }

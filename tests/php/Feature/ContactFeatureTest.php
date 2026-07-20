@@ -30,6 +30,8 @@ final class ContactFeatureTest extends FeatureTestCase
     {
         $config = new ConfigValues([
             'CONTENT_LANGS' => 'de,es',
+            'CONTENT_PATH' => 'src/resources/fixtures',
+            'APP_BASE_PATH' => '/',
         ]);
         $renderer = new ContactContentRenderer($config, $this->root);
         $renderer->render(new NullOutput());
@@ -39,6 +41,8 @@ final class ContactFeatureTest extends FeatureTestCase
     {
         $config = new ConfigValues([
             'CONTENT_LANGS' => ' , ',
+            'CONTENT_PATH' => 'src/resources/fixtures',
+            'APP_BASE_PATH' => '/',
         ]);
         $renderer = new ContactContentRenderer($config, $this->root);
 

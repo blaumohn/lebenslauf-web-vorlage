@@ -21,26 +21,29 @@ zusammenfassung:
 
 inhalt:
   de: |
-    <p>Wenn Code stillschweigend davon ausgeht, dass ein Feld vorhanden oder
+    Wenn Code stillschweigend davon ausgeht, dass ein Feld vorhanden oder
     ein Wert in einem bestimmten Format ist, entstehen Fehler, die erst spät
-    und weit vom Ursprung entfernt sichtbar werden.</p>
-    <p>Explizite Validierung an den Systemgrenzen — beim Einlesen von
+    und weit vom Ursprung entfernt sichtbar werden.
+
+    Explizite Validierung an den Systemgrenzen — beim Einlesen von
     Konfiguration, Nutzereingaben oder externen Daten — macht Verstöße
-    sofort sichtbar und vermeidet stille Fehlerzustände.</p>
+    sofort sichtbar und vermeidet stille Fehlerzustände.
   en: |
-    <p>When code silently assumes that a field is present or that a value has
-    a specific format, errors appear late and far away from their origin.</p>
-    <p>Explicit validation at system boundaries, when reading configuration,
+    When code silently assumes that a field is present or that a value has
+    a specific format, errors appear late and far away from their origin.
+
+    Explicit validation at system boundaries, when reading configuration,
     user input or external data, makes violations visible immediately and
-    avoids silent error states.</p>
+    avoids silent error states.
   es: |
-    <p>Cuando el código asume en silencio que un campo está presente o que un
+    Cuando el código asume en silencio que un campo está presente o que un
     valor tiene un formato determinado, los errores aparecen tarde y lejos
-    de su origen.</p>
-    <p>La validación explícita en los límites del sistema — al leer
+    de su origen.
+
+    La validación explícita en los límites del sistema — al leer
     configuración, entradas de usuario o datos externos — hace que las
     infracciones sean inmediatamente visibles y evita estados de error
-    silenciosos.</p>
+    silenciosos.
 
 tags:
   - quality

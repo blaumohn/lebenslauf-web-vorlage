@@ -5,6 +5,6 @@
   "required": ["title", "message"],
   "properties": {
     "title":   { "$ref": "common.schema.json#/definitions/intlString" },
-    "message": { "$ref": "common.schema.json#/definitions/intlString" }
+    "message": { "$ref": "common.schema.json#/definitions/intlMarkdown" }
   }
 }

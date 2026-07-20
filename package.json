@@ -2,6 +2,9 @@
   "name": "shared-hosting-site-toolkit",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "github-markdown-css": "^5.9.0"
+  },
   "scripts": {
     "build:css": "postcss src/resources/build/assets/css/cv/index.css -o public/css/cv.css && postcss src/resources/build/assets/css/site.css -o public/css/site.css",
     "css:watch": "python3 src/cli/py/dev/css-watch.py || python src/cli/py/dev/css-watch.py",

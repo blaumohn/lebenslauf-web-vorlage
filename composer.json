@@ -11,6 +11,7 @@
   "require": {
     "php": "^8.2",
     "pipeline-config-spec/lib": "dev-main@dev",
+    "league/commonmark": "^2.7",
     "opis/json-schema": "^2.4",
     "slim/slim": "^4.12",
     "slim/psr7": "^1.6",
