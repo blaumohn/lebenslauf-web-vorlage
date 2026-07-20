@@ -2,11 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": ["title", "heading", "description", "link"],
+  "required": ["title", "heading", "description"],
   "properties": {
     "title":       { "$ref": "common.schema.json#/definitions/intlString" },
     "heading":     { "$ref": "common.schema.json#/definitions/intlString" },
-    "description": { "$ref": "common.schema.json#/definitions/intlString" },
-    "link":        { "$ref": "common.schema.json#/definitions/intlString" }
+    "description": { "$ref": "common.schema.json#/definitions/intlString" }
   }
 }

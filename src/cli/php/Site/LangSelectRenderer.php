@@ -42,18 +42,19 @@ final class LangSelectRenderer extends BaseContentRenderer
         $langs = $this->resolveLangs();
         $translations = $this->buildTranslations($data, $langs);
         $titles = array_column($translations, 'title');
-        $html = $this->twig->render('lang-select.html.twig', [
+        $messageHtml = $this->twig->render('components/site/lang-select-message.html.twig', [
             'supported_langs' => $langs,
             'translations' => $translations,
-            'title' => implode(' / ', $titles),
         ]);
-        $this->buildStorage()->saveLangSelectHtml($html);
-        $output->writeln('Lang-Select gerendert.');
+        $storage = $this->buildStorage();
+        $storage->saveLangSelectMessage($messageHtml);
+        $storage->saveLangSelectTitle(implode(' / ', $titles));
+        $output->writeln('Lang-Select-Fragment generiert.');
     }
 
     private function buildTranslations(array $data, array $langs): array
     {
-        $keys = ['title', 'heading', 'description', 'link'];
+        $keys = ['title', 'heading', 'description'];
         $translations = [];
         foreach ($langs as $lang) {
             foreach ($keys as $key) {

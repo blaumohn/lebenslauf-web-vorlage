@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Cli\ConfigValues;
+use App\Cli\Site\BlogIndexRenderer;
+use App\Cli\Site\BlogPostRenderer;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Symfony\Component\Console\Output\NullOutput;
 
 final class BlogFeatureTest extends FeatureTestCase
 {
@@ -78,5 +82,36 @@ final class BlogFeatureTest extends FeatureTestCase
         $response = $app->handle($request);
 
         $this->assertSame(300, $response->getStatusCode());
+    }
+
+    public function testRenderedBlogLinksKeepTheirLanguage(): void
+    {
+        $blogDir = $this->root . '/src/resources/fixtures/blog';
+        mkdir($blogDir, 0775, true);
+        copy($this->projectRoot() . '/src/resources/fixtures/blog/blog.yaml', $blogDir . '/blog.yaml');
+        copy(
+            $this->projectRoot() . '/src/resources/fixtures/blog/blog-beispiel.yaml',
+            $blogDir . '/blog-beispiel.yaml'
+        );
+
+        $config = new ConfigValues([
+            'CONTENT_LANGS' => 'de,es',
+            'APP_BASE_PATH' => '/',
+            'CONTENT_PATH' => 'src/resources/fixtures',
+        ]);
+        $output = new NullOutput();
+        (new BlogIndexRenderer($config, $this->root))->render($output);
+        (new BlogPostRenderer($config, $this->root))->render($output);
+
+        $indexHtml = (string) file_get_contents($this->root . '/var/cache/html/blog/de/index.html');
+        self::assertStringContainsString(
+            'href="/blog/beispiel-beitrag-eins?lang=de"',
+            $indexHtml
+        );
+
+        $postHtml = (string) file_get_contents(
+            $this->root . '/var/cache/html/blog/de/beispiel-beitrag-eins.html'
+        );
+        self::assertStringContainsString('href="/blog?lang=de"', $postHtml);
     }
 }

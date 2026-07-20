@@ -58,4 +58,5 @@ final class HomeFeatureTest extends FeatureTestCase
         $this->assertStringContainsString('Die bevorzugte Sprache konnte nicht automatisch erkannt werden.', $body);
         $this->assertStringContainsString('No se pudo detectar autom', $body);
     }
+
 }
