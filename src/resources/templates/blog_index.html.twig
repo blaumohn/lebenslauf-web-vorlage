@@ -14,7 +14,7 @@
       <ul class="blog-list">
         {% for post in posts %}
           <li>
-            <p><strong>{{ ui.link(path('/blog/' ~ post.slug), post.titel) }}</strong></p>
+            <p><strong>{{ ui.link(path('/blog/' ~ post.slug ~ '?lang=' ~ lang), post.titel) }}</strong></p>
             <p class="content-meta">{{ post.datum }}</p>
             <p><em>{{ post.zusammenfassung }}</em></p>
           </li>

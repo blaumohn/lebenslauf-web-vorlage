@@ -99,14 +99,24 @@ final class SiteHtmlCache
         return $this->storage->readText($this->publicWithNoticePath($lang));
     }
 
-    public function saveLangSelectHtml(string $html): void
+    public function saveLangSelectMessage(string $html): void
     {
-        $this->storage->writeText($this->langSelectPath(), $html);
+        $this->storage->writeText($this->langSelectMessagePath(), $html);
     }
 
-    public function getLangSelectHtml(): ?string
+    public function getLangSelectMessage(): ?string
     {
-        return $this->storage->readText($this->langSelectPath());
+        return $this->storage->readText($this->langSelectMessagePath());
+    }
+
+    public function saveLangSelectTitle(string $title): void
+    {
+        $this->storage->writeText($this->langSelectTitlePath(), $title);
+    }
+
+    public function getLangSelectTitle(): ?string
+    {
+        return $this->storage->readText($this->langSelectTitlePath());
     }
 
     public function saveErrorFragmentForLang(string $key, string $lang, string $html): void
@@ -131,9 +141,14 @@ final class SiteHtmlCache
         return is_file($this->publicPath($lang));
     }
 
-    private function langSelectPath(): string
+    private function langSelectMessagePath(): string
     {
-        return Path::join($this->cacheDir, 'lang-select.html');
+        return Path::join($this->cacheDir, 'lang-select-message.html');
+    }
+
+    private function langSelectTitlePath(): string
+    {
+        return Path::join($this->cacheDir, 'lang-select-title.txt');
     }
 
     private function errorFragmentPath(string $key, string $lang): string

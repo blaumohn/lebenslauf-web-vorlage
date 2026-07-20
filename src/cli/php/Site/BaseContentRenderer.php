@@ -133,7 +133,7 @@ abstract class BaseContentRenderer extends BaseSchemaValidator implements Conten
         $renderer = new MarkdownContentRenderer($twig);
         return $renderer->render($markdown, [
             'site' => $this->resolveSiteContext($lang),
-        ], $name);
+        ], $name, $lang);
     }
 
     private function resolveSiteContext(string $lang): array

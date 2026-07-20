@@ -129,6 +129,35 @@ final class CvFeatureTest extends FeatureTestCase
         $this->assertStringContainsString('system-notice', (string) $response->getBody());
     }
 
+    public function testLangSelectPreservesTokenForUnresolvableLanguage(): void
+    {
+        $app = $this->app();
+        $profile = 'entw';
+
+        $tokenService = $this->buildTokenService();
+        $token = $tokenService->add($profile, null);
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/cv?token=' . urlencode($token))
+            ->withHeader('Accept-Language', 'fr-FR,fr;q=0.9');
+        $response = $app->handle($request);
+        $body = (string) $response->getBody();
+
+        $this->assertSame(300, $response->getStatusCode());
+        preg_match('/href="([^"]*lang=de[^"]*)"/', $body, $matches);
+        $this->assertNotEmpty($matches, 'Sprachauswahl-Link mit lang=de nicht gefunden: ' . $body);
+        $href = html_entity_decode($matches[1]);
+        $this->assertStringContainsString('token=' . urlencode($token), $href);
+
+        $followUp = (new ServerRequestFactory())->createServerRequest('GET', '/cv' . $href);
+        $htmlPath = $this->root . '/var/cache/html/cv-private-' . $profile . '.de.html';
+        file_put_contents($htmlPath, '<h1>Privat</h1>');
+        $followUpResponse = $app->handle($followUp);
+
+        $this->assertSame(200, $followUpResponse->getStatusCode());
+        $this->assertStringContainsString('Privat', (string) $followUpResponse->getBody());
+    }
+
     public function testPrivateCvLanguageSelection(): void
     {
         $app = $this->app();

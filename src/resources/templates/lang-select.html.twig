@@ -2,13 +2,10 @@
 
 {% block content %}
 <article class="markdown-body">
-  <h1>{% for lang in supported_langs %}{{ translations[lang].heading }}{% if not loop.last %} / {% endif %}{% endfor %}</h1>
-  {% for lang in supported_langs %}
-    <p>{{ translations[lang].description }}</p>
-  {% endfor %}
+  {{ message_html|raw }}
   <ul>
-    {% for lang in supported_langs %}
-      <li><a href="?lang={{ lang }}">{{ translations[lang].link }}</a></li>
+    {% for item in lang_items %}
+      <li><a href="{{ item.href }}">{{ item.code }}</a></li>
     {% endfor %}
   </ul>
 </article>
