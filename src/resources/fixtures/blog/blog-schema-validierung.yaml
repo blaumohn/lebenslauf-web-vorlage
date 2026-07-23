@@ -4,20 +4,21 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Explizite Verträge statt stiller Annahmen"
-  en: "Example post: explicit contracts instead of silent assumptions"
   es: "Entrada: contratos explícitos en lugar de suposiciones tácitas"
+  pt: "Exemplo: contratos explícitos em vez de pressupostos implícitos"
 
 zusammenfassung:
   de: >
     Implizite Annahmen über Datenformate und Schnittstellen sind eine häufige
     Fehlerquelle. Explizite Validierung macht Fehler früh und klar sichtbar.
-  en: >
-    Implicit assumptions about data formats and interfaces are a common source
-    of errors. Explicit validation makes errors visible early and clearly.
   es: >
     Las suposiciones implícitas sobre formatos de datos e interfaces son una
     fuente habitual de errores. La validación explícita hace que los errores
     sean visibles de forma temprana y clara.
+  pt: >
+    Pressupostos implícitos sobre formatos de dados e interfaces são uma fonte
+    frequente de erros. A validação explícita torna os erros visíveis de forma
+    antecipada e clara.
 
 inhalt:
   de: |
@@ -28,13 +29,6 @@ inhalt:
     Explizite Validierung an den Systemgrenzen — beim Einlesen von
     Konfiguration, Nutzereingaben oder externen Daten — macht Verstöße
     sofort sichtbar und vermeidet stille Fehlerzustände.
-  en: |
-    When code silently assumes that a field is present or that a value has
-    a specific format, errors appear late and far away from their origin.
-
-    Explicit validation at system boundaries, when reading configuration,
-    user input or external data, makes violations visible immediately and
-    avoids silent error states.
   es: |
     Cuando el código asume en silencio que un campo está presente o que un
     valor tiene un formato determinado, los errores aparecen tarde y lejos
@@ -44,6 +38,14 @@ inhalt:
     configuración, entradas de usuario o datos externos — hace que las
     infracciones sean inmediatamente visibles y evita estados de error
     silenciosos.
+  pt: |
+    Quando o código pressupõe implicitamente que um campo está presente ou que
+    um valor tem um formato específico, os erros surgem tarde e longe da sua
+    origem.
+
+    A validação explícita nos limites do sistema — ao ler configurações,
+    entradas de utilizadores ou dados externos — torna as violações
+    imediatamente visíveis e evita estados de erro silenciosos.
 
 tags:
   - quality

@@ -4,7 +4,17 @@
     "intlString": {
       "oneOf": [
         { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+        {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "anyOf": [
+              { "const": "default" },
+              { "pattern": "^[a-z]{2}(-[a-z]{2})?$" }
+            ]
+          },
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
       ]
     },
     "intlMarkdown": {

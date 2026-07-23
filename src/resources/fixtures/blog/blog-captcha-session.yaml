@@ -4,19 +4,19 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Testen als Entwurfswerkzeug"
-  en: "Example post: testing as a design tool"
   es: "Entrada de ejemplo: las pruebas como herramienta de diseño"
+  pt: "Publicação de exemplo: testes como ferramenta de conceção"
 
 zusammenfassung:
   de: >
     Tests schreiben bevor der Code fertig ist hilft dabei, Schnittstellen
     klarer zu definieren und Abhängigkeiten sichtbar zu machen.
-  en: >
-    Writing tests before the code is finished helps define interfaces more
-    clearly and make dependencies visible.
   es: >
     Escribir pruebas antes de que el código esté listo ayuda a definir
     interfaces con más claridad y a hacer visibles las dependencias.
+  pt: >
+    Escrever testes antes de o código estar concluído ajuda a definir
+    interfaces com maior clareza e a tornar as dependências visíveis.
 
 inhalt:
   de: |
@@ -28,13 +28,6 @@ inhalt:
     Testbarkeit ist ein Zeichen guter Modularität. Schwer testbarer
     Code hat häufig zu viele Abhängigkeiten oder zu viele Aufgaben
     in einer Einheit.
-  en: |
-    Writing tests after the code only checks whether the implementation
-    works. Writing them first clarifies what a function should do up front,
-    and often reveals that the first design is harder to test than necessary.
-
-    Testability is a sign of good modularity. Code that is hard to test
-    often has too many dependencies or too many responsibilities in one unit.
   es: |
     Quien escribe pruebas después del código solo verifica si la
     implementación funciona. Quien las escribe primero aclara de antemano
@@ -44,6 +37,15 @@ inhalt:
     La facilidad de prueba es un indicador de buena modularidad. El código
     difícil de probar suele tener demasiadas dependencias o demasiadas
     responsabilidades en una sola unidad.
+  pt: |
+    Quem escreve testes apenas depois do código limita-se a verificar se a
+    implementação funciona. Quem os escreve primeiro esclarece antecipadamente
+    o que uma função deve fazer e descobre muitas vezes que a primeira conceção
+    é mais difícil de testar do que o necessário.
+
+    A facilidade de teste é um sinal de boa modularidade. Código difícil de
+    testar tem frequentemente demasiadas dependências ou responsabilidades
+    numa única unidade.
 
 tags:
   - quality

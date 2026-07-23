@@ -11,7 +11,18 @@ final class LabelsValidator extends BaseSchemaValidator
 
     public function validateContent(OutputInterface $output): bool
     {
-        return $this->validateYamlFile($this->labelsPath(), self::SCHEMA, 'Labels', $output);
+        try {
+            $labels = LabelCatalog::fromJsonFile($this->labelsPath())->labels();
+        } catch (\Throwable $e) {
+            $output->writeln("<error>Labels: {$e->getMessage()}</error>");
+            return false;
+        }
+        if (!$this->checkValid($labels, self::SCHEMA, $output)) {
+            $output->writeln('<error>Labels: ungültig.</error>');
+            return false;
+        }
+        $output->writeln('Labels: OK');
+        return true;
     }
 
     public function schemaNames(): array
@@ -23,4 +34,5 @@ final class LabelsValidator extends BaseSchemaValidator
     {
         return Path::join($this->rootPath, 'src', 'resources', 'build', 'labels.json');
     }
+
 }

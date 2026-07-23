@@ -82,7 +82,7 @@
         "additionalProperties": false,
         "required": ["titel", "beschreibung", "datum"],
         "properties": {
-          "titel": { "type": "string" },
+          "titel": { "$ref": "common.schema.json#/definitions/intlString" },
           "beschreibung": { "$ref": "common.schema.json#/definitions/intlString" },
           "datum": { "$ref": "common.schema.json#/definitions/intlString" }
         }

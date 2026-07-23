@@ -1,411 +1,380 @@
 oeffentlich: true
 zeige_kenntnisse_label: true
-
 titel:
   de: Softwareentwicklung im Web-Bereich
-  en: Software development for the web
+  pt: Desenvolvimento de software para a web
   es: Desarrollo web
-
 motivation:
   de: Ich bin ein leidenschaftlicher Entwickler mit Fokus auf moderne Webtechnologien.
-  en: I am a passionate developer focused on modern web technologies.
+  pt: Sou um desenvolvedor apaixonado com foco em tecnologias web modernas.
   es: Soy un desarrollador apasionado centrado en tecnologias web modernas.
-
 kenntnisse:
-  -
-    tags:
-      - JavaScript
-      - TypeScript
-      - de: Reaktive Komponenten
-        en: Reactive components
-        es: Componentes reactivos
-  - gruppe_label:
-      de: Praxiserprobt
-      en: Proven in practice
-      es: Probado en la práctica
-    wert: 5
-    tags:
-      - Barrierefreiheit
-      - Design Tokens
-      - Browser-Kompatibilität
-      - de: Technische Dokumentation
-        en: Technical documentation
-        es: Documentación técnica
-  - gruppe_label:
-      de: Grundlegend
-      en: Fundamental
-      es: Básico
-    wert: 4
-    tags:
-      - Docker
-      - Git
-      - CI/CD
-      - de: Release-Automatisierung
-        en: Release automation
-        es: Automatización de lanzamientos
-  - gruppe_label:
-      de: Aufbauend
-      en: Developing
-      es: En desarrollo
-    wert: 3
-    tags:
-      - PHP
-      - Twig
-      - YAML
-      - JSON Schema
-
+- tags:
+  - JavaScript
+  - TypeScript
+  - de: Reaktive Komponenten
+    pt: Componentes reativos
+    es: Componentes reactivos
+- gruppe_label:
+    de: Praxiserprobt
+    pt: Comprovado na prática
+    es: Probado en la práctica
+  wert: 5
+  tags:
+  - Barrierefreiheit
+  - Design Tokens
+  - Browser-Kompatibilität
+  - de: Technische Dokumentation
+    pt: Documentação técnica
+    es: Documentación técnica
+- gruppe_label:
+    de: Grundlegend
+    pt: Fundamental
+    es: Básico
+  wert: 4
+  tags:
+  - Docker
+  - Git
+  - CI/CD
+  - de: Release-Automatisierung
+    pt: Automatização de lançamentos
+    es: Automatización de lanzamientos
+- gruppe_label:
+    de: Aufbauend
+    pt: Em desenvolvimento
+    es: En desarrollo
+  wert: 3
+  tags:
+  - PHP
+  - Twig
+  - YAML
+  - JSON Schema
 berufserfahrung:
-  - unternehmen: Tech Solutions GmbH
-    stellen:
-      - titel: Frontend Developer
-        ort: Berlin-Friedrichshain, Remote DACH
-        zeitraum: 2021 ‒ 2023
-        punkte:
-          - tags:
-              - React
-              - Tailwind
-              - Design-System
-            text: >-
-              UI-Komponenten für ein Kundenportal entwickelt, Varianten für
-              kompakte Listen, ausführliche Detailansichten und druckoptimierte
-              Darstellungen gepflegt.
-          - tags:
-              - Agil
-              - Scrum
-              - Stakeholder-Kommunikation
-            text:
-              de: >-
-                Tägliche Arbeit in einem cross-funktionalen Team mit Abstimmung
-                zwischen Produkt, Entwicklung, Qualitätssicherung und Support.
-              en: >-
-                Daily work in a cross-functional team with coordination between
-                product, development, quality assurance and support.
-              es: >-
-                Trabajo diario en un equipo multifuncional con coordinación entre
-                producto, desarrollo, control de calidad y soporte.
-          - tags:
-              - Accessibility
-              - Keyboard UX
-              - Browser Testing
-              - Release Notes
-            text: >-
-              Bedienkonzepte für Tastatur, Fokusführung und reduzierte
-              Bewegungen geprüft und die Ergebnisse für Freigaben in kurzen
-              Release-Notizen dokumentiert.
-
-      - titel: Junior Frontend Developer
-        ort: Potsdam-Babelsberg / Berlin-Mitte
-        zeitraum: 2020 ‒ 2021
-        punkte:
-          - tags:
-              - HTML
-              - CSS
-              - Responsive Layouts
-            text: >-
-              Unterstützung bei der Entwicklung von Benutzeroberflächen für
-              verschiedene Projekte, inklusive längerer Inhaltsblöcke und
-              variierender Abschnittslängen.
-          - tags:
-              - JavaScript
-              - React
-            text:
-              de: Entwicklung von interaktiven UI-Komponenten.
-              en: Developed interactive UI components.
-              es: Desarrollé componentes de interfaz interactivos.
-          - tags:
-              - Formulare
-              - Validierung
-              - Fehlerzustände
-            text:
-              de: >-
-                Formularstrecken mit Pflichtfeldern, optionalen Angaben und
-                verständlichen Fehlermeldungen aufgebaut.
-              en: >-
-                Built form flows with required fields, optional information and
-                understandable error messages.
-              es: >-
-                Creé flujos de formularios con campos obligatorios, datos
-                opcionales y mensajes de error comprensibles.
-
-  - unternehmen: WebTech Innovations
-    stellen:
-      - titel: Backend Developer
-        ort: Hamburg-Altona, Hybrid
-        zeitraum: 2019 ‒ 2020
-        punkte:
-          - tags:
-              - Node.js
-              - Express
-              - API-Integration
-            text: >-
-              Entwicklung von RESTful APIs zur Integration mit Frontend-Systemen,
-              inklusive Fehlerbehandlung, Protokollierung und abgestimmten
-              Antwortformaten.
-          - tags:
-              - MongoDB
-              - Docker
-            text:
-              de: >-
-                Aufbau und Verwaltung von Datenbanken sowie Containerisierung der
-                Anwendung für lokale Entwicklung, Testumgebungen und Demos.
-              en: >-
-                Built and managed databases and containerized the application for
-                local development, test environments and demos.
-              es: >-
-                Creé y administré bases de datos y contenedoricé la aplicación para
-                desarrollo local, entornos de prueba y demostraciones.
-          - tags:
-              - Monitoring
-              - Log-Auswertung
-              - Schnittstellenanalyse
-            text: >-
-              Wiederkehrende Schnittstellenfehler mit Log-Auswertung eingegrenzt
-              und technische Ursachen so beschrieben, dass sie zwischen Backend,
-              Frontend und Betrieb nachvollziehbar blieben.
-
-  - station:
-      de: Elternzeit & Weiterbildung
-      en: Parental leave & continuing education
-      es: Permiso parental y formación continua
-    ort: Berlin
+- unternehmen: Tech Solutions GmbH
+  stellen:
+  - titel:
+      de: Frontend-Entwickler (VZ)
+      pt: Desenvolvedor frontend (TI)
+      es: Desarrollador frontend (TC)
+    ort: Berlin-Friedrichshain, Remote DACH
+    zeitraum: 2021 ‒ 2023
+    punkte:
+    - tags:
+      - React
+      - Tailwind
+      - Design-System
+      text:
+        de: UI-Komponenten für ein Kundenportal entwickelt, Varianten für kompakte Listen, ausführliche Detailansichten und druckoptimierte Darstellungen gepflegt.
+        pt: Desenvolvi componentes de interface para um portal de clientes e mantive variantes para listas compactas, vistas detalhadas e apresentações otimizadas para impressão.
+        es: Desarrollé componentes de interfaz para un portal de clientes y mantuve variantes para listas compactas, vistas detalladas y presentaciones optimizadas para impresión.
+    - tags:
+      - Agil
+      - Scrum
+      - Stakeholder-Kommunikation
+      text:
+        de: Tägliche Arbeit in einem cross-funktionalen Team mit Abstimmung zwischen Produkt, Entwicklung, Qualitätssicherung und Support.
+        pt: Trabalho diário numa equipa multifuncional, com coordenação entre produto, desenvolvimento, garantia de qualidade e suporte.
+        es: Trabajo diario en un equipo multifuncional con coordinación entre producto, desarrollo, control de calidad y soporte.
+    - tags:
+      - Accessibility
+      - Keyboard UX
+      - Browser Testing
+      - Release Notes
+      text:
+        de: Bedienkonzepte für Tastatur, Fokusführung und reduzierte Bewegungen geprüft und die Ergebnisse für Freigaben in kurzen Release-Notizen dokumentiert.
+        pt: Revisei conceitos de interação para teclado, gestão de foco e movimento reduzido e documentei os resultados em notas de versão breves.
+        es: Revisé conceptos de interacción para teclado, gestión del foco y movimiento reducido, y documenté los resultados para las aprobaciones en breves notas de versión.
+  - titel:
+      de: Junior-Frontend-Entwickler (TZ)
+      pt: Desenvolvedor frontend júnior (TP)
+      es: Desarrollador frontend júnior (TP)
+    ort: Potsdam-Babelsberg / Berlin-Mitte
+    zeitraum: 2020 ‒ 2021
+    punkte:
+    - tags:
+      - HTML
+      - CSS
+      - Responsive Layouts
+      text:
+        de: Unterstützung bei der Entwicklung von Benutzeroberflächen für verschiedene Projekte, inklusive längerer Inhaltsblöcke und variierender Abschnittslängen.
+        pt: Colaborei no desenvolvimento de interfaces para vários projetos, incluindo blocos de conteúdo extensos e secções de tamanhos variados.
+        es: Colaboré en el desarrollo de interfaces de usuario para varios proyectos, incluidos bloques de contenido extensos y secciones de longitudes variables.
+    - tags:
+      - JavaScript
+      - React
+      text:
+        de: Entwicklung von interaktiven UI-Komponenten.
+        pt: Desenvolvi componentes de interface interativos.
+        es: Desarrollé componentes de interfaz interactivos.
+    - tags:
+      - Formulare
+      - Validierung
+      - Fehlerzustände
+      text:
+        de: Formularstrecken mit Pflichtfeldern, optionalen Angaben und verständlichen Fehlermeldungen aufgebaut.
+        pt: Criei fluxos de formulários com campos obrigatórios, informações opcionais e mensagens de erro claras.
+        es: Creé flujos de formularios con campos obligatorios, datos opcionales y mensajes de error comprensibles.
+- unternehmen: WebTech Innovations
+  stellen:
+  - titel:
+      de: Backend-Entwickler (VZ)
+      pt: Desenvolvedor backend (TI)
+      es: Desarrollador backend (TC)
+    ort: Hamburg-Altona, Hybrid
+    zeitraum: 2019 ‒ 2020
+    punkte:
+    - tags:
+      - Node.js
+      - Express
+      - API-Integration
+      text:
+        de: Entwicklung von RESTful APIs zur Integration mit Frontend-Systemen, inklusive Fehlerbehandlung, Protokollierung und abgestimmten Antwortformaten.
+        pt: Desenvolvi APIs REST para integração com sistemas frontend, incluindo tratamento de erros, registo e formatos de resposta coordenados.
+        es: Desarrollé API REST para integrarlas con sistemas frontend, incluidos el manejo de errores, el registro y formatos de respuesta coordinados.
+    - tags:
+      - MongoDB
+      - Docker
+      text:
+        de: Aufbau und Verwaltung von Datenbanken sowie Containerisierung der Anwendung für lokale Entwicklung, Testumgebungen und Demos.
+        pt: Criei e geri bases de dados e coloquei a aplicação em contentores para desenvolvimento local, ambientes de teste e demonstrações.
+        es: Creé y administré bases de datos y contenedoricé la aplicación para desarrollo local, entornos de prueba y demostraciones.
+    - tags:
+      - Monitoring
+      - Log-Auswertung
+      - Schnittstellenanalyse
+      text:
+        de: Wiederkehrende Schnittstellenfehler mit Log-Auswertung eingegrenzt und technische Ursachen so beschrieben, dass sie zwischen Backend, Frontend und Betrieb nachvollziehbar blieben.
+        pt: Delimitei erros recorrentes de interfaces através da análise de registos e descrevi as causas técnicas de forma compreensível para backend, frontend e operações.
+        es: Delimité errores recurrentes de interfaces mediante el análisis de registros y describí las causas técnicas de forma comprensible para backend, frontend y operaciones.
+- station:
+    de: Elternzeit & Weiterbildung
+    pt: Licença parental e formação contínua
+    es: Permiso parental y formación continua
+  ort: Berlin
+  zeitraum: 2018 ‒ 2019
+  beschreibung:
+    de: Familienzeit genutzt und fachliche Kenntnisse durch Selbststudium vertieft.
+    pt: Usei o tempo com a família e aprofundei conhecimentos profissionais através de estudo autónomo.
+    es: Dediqué tiempo a la familia y profundicé conocimientos profesionales mediante autoestudio.
+- unternehmen: Digital Services AG
+  stellen:
+  - titel:
+      de: Werkstudent UI-Engineering (TZ)
+      pt: Estudante trabalhador de engenharia de UI (TP)
+      es: Estudiante trabajador de ingeniería UI (TP)
+    ort: Köln-Ehrenfeld, Düsseldorf Medienhafen
+    zeitraum: 2017 ‒ 2018
+    punkte:
+    - tags:
+      - Prototyping
+      - Design Review
+      - Nutzerfeedback
+      text:
+        de: Klickbare Prototypen für interne Werkzeuge erstellt und Rückmeldungen aus kurzen Review-Runden in umsetzbare UI-Anpassungen übersetzt.
+        pt: Criei protótipos interativos para ferramentas internas e transformei comentários de breves revisões em ajustes de interface aplicáveis.
+        es: Creé prototipos interactivos para herramientas internas y convertí los comentarios de breves revisiones en ajustes de interfaz aplicables.
+    - tags:
+      - Tabellen
+      - Filter
+      - Leere Zustände
+      - Ladezustände
+      text:
+        de: Tabellenansichten mit Filtern, leeren Zuständen und Ladezuständen vorbereitet, damit auch unvollständige Testdaten in der Vorlage realistische Layout-Abweichungen zeigen.
+        pt: Preparei vistas de tabelas com filtros, estados vazios e de carregamento para que até dados de teste incompletos revelem variações realistas de layout no modelo.
+        es: Preparé vistas de tabla con filtros, estados vacíos y estados de carga para que incluso datos de prueba incompletos muestren variaciones de diseño realistas en la plantilla.
+- unternehmen: Creative Web GmbH
+  stellen:
+  - titel:
+      de: Praktikant Frontend-Entwicklung (VZ)
+      pt: Estagiário de desenvolvimento frontend (TI)
+      es: Becario de desarrollo frontend (TC)
+    ort: München-Schwabing, Vor-Ort
     zeitraum: 2018 ‒ 2019
-    beschreibung:
-      de: >-
-        Familienzeit genutzt und fachliche Kenntnisse durch Selbststudium
-        vertieft.
-      en: >-
-        Used family time and deepened professional knowledge through self-study.
-      es: >-
-        Dediqué tiempo a la familia y profundicé conocimientos profesionales
-        mediante autoestudio.
-
-  - unternehmen: Digital Services AG
-    stellen:
-      - titel: Werkstudent UI Engineering
-        ort: Köln-Ehrenfeld, Düsseldorf Medienhafen
-        zeitraum: 2017 ‒ 2018
-        punkte:
-          - tags:
-              - Prototyping
-              - Design Review
-              - Nutzerfeedback
-            text: >-
-              Klickbare Prototypen für interne Werkzeuge erstellt und Rückmeldungen
-              aus kurzen Review-Runden in umsetzbare UI-Anpassungen übersetzt.
-          - tags:
-              - Tabellen
-              - Filter
-              - Leere Zustände
-              - Ladezustände
-            text: >-
-              Tabellenansichten mit Filtern, leeren Zuständen und Ladezuständen
-              vorbereitet, damit auch unvollständige Testdaten in der Vorlage
-              realistische Layout-Abweichungen zeigen.
-
-  - unternehmen: Creative Web GmbH
-    stellen:
-      - titel: Praktikant Frontend Developer
-        ort: München-Schwabing, Vor-Ort
-        zeitraum: 2018 ‒ 2019
-        punkte:
-          - tags:
-              - HTML
-              - CSS
-            text: Unterstützung im Design und der Implementierung von Weblayouts.
-          - tags:
-              - JavaScript
-              - React
-              - Komponentenvarianten
-            text:
-              de: >-
-                Entwicklung von interaktiven Webkomponenten im Team, darunter
-                Navigationszustände, kompakte Karten und wiederverwendbare
-                Inhaltsmodule.
-              en: >-
-                Developed interactive web components within the team, including
-                navigation states, compact cards and reusable content modules.
-              es: >-
-                Desarrollé componentes web interactivos dentro del equipo,
-                incluidos estados de navegación, tarjetas compactas y módulos de
-                contenido reutilizables.
-
-  - unternehmen: Kulturverein Beispielstadt
-    stellen:
-      - titel: Freie Mitarbeit Webpflege
-        ort: Leipzig-Plagwitz und remote
-        zeitraum: 2016 ‒ 2017
-        punkte:
-          - tags:
-              - CMS
-            text: Kurze Inhaltsaktualisierungen für Veranstaltungsseiten umgesetzt.
-          - tags:
-              - Redaktion
-              - Bildpflege
-              - Termine
-            text: >-
-              Wiederkehrende redaktionelle Aktualisierungen vorbereitet, Bilder für
-              unterschiedliche Seitenbereiche zugeschnitten und Terminlisten
-              konsistent gehalten.
-          - tags:
-              - Ehrenamtliche Teams
-              - Abstimmung
-              - Übergabe
-              - Checklisten
-            text: >-
-              Übergaben mit ehrenamtlichen Teams über kurze Checklisten
-              strukturiert, damit Inhalte auch bei wechselnden Ansprechpersonen
-              nachvollziehbar gepflegt werden konnten.
-
+    punkte:
+    - tags:
+      - HTML
+      - CSS
+      text:
+        de: Unterstützung im Design und der Implementierung von Weblayouts.
+        pt: Colaborei no design e na implementação de layouts web.
+        es: Colaboré en el diseño y la implementación de diseños web.
+    - tags:
+      - JavaScript
+      - React
+      - Komponentenvarianten
+      text:
+        de: Entwicklung von interaktiven Webkomponenten im Team, darunter Navigationszustände, kompakte Karten und wiederverwendbare Inhaltsmodule.
+        pt: Desenvolvi componentes web interativos em equipa, incluindo estados de navegação, cartões compactos e módulos de conteúdo reutilizáveis.
+        es: Desarrollé componentes web interactivos dentro del equipo, incluidos estados de navegación, tarjetas compactas y módulos de contenido reutilizables.
+- unternehmen: Kulturverein Beispielstadt
+  stellen:
+  - titel:
+      de: Freie Mitarbeit Webpflege (TZ)
+      pt: Colaboração independente em manutenção web (TP)
+      es: Colaboración independiente en mantenimiento web (TP)
+    ort: Leipzig-Plagwitz und remote
+    zeitraum: 2016 ‒ 2017
+    punkte:
+    - tags:
+      - CMS
+      text:
+        de: Kurze Inhaltsaktualisierungen für Veranstaltungsseiten umgesetzt.
+        pt: Implementei atualizações breves de conteúdo para páginas de eventos.
+        es: Implementé breves actualizaciones de contenido para páginas de eventos.
+    - tags:
+      - Redaktion
+      - Bildpflege
+      - Termine
+      text:
+        de: Wiederkehrende redaktionelle Aktualisierungen vorbereitet, Bilder für unterschiedliche Seitenbereiche zugeschnitten und Terminlisten konsistent gehalten.
+        pt: Preparei atualizações editoriais recorrentes, recortei imagens para diferentes áreas das páginas e mantive listas de datas consistentes.
+        es: Preparé actualizaciones editoriales recurrentes, recorté imágenes para distintas áreas de las páginas y mantuve coherentes las listas de fechas.
+    - tags:
+      - Ehrenamtliche Teams
+      - Abstimmung
+      - Übergabe
+      - Checklisten
+      text:
+        de: Übergaben mit ehrenamtlichen Teams über kurze Checklisten strukturiert, damit Inhalte auch bei wechselnden Ansprechpersonen nachvollziehbar gepflegt werden konnten.
+        pt: Estruturei transições com equipas voluntárias através de listas breves para que o conteúdo pudesse ser mantido de forma compreensível mesmo com contactos alternados.
+        es: Estructuré las transferencias con equipos voluntarios mediante listas breves para que el contenido pudiera mantenerse de forma comprensible incluso con personas de contacto cambiantes.
 opensource:
-  - titel: react-visualizer
-    projekt: react-visualizer
-    url: https://example.invalid/react-visualizer
-    zeitraum: "2022"
-    punkte:
-      - tags:
-          - Open Source
-          - React
-          - Komponentenbaum
-        text: >-
-          Ein Tool zur Visualisierung von React-Komponenten-Hierarchien mit
-          Fokus auf nachvollziehbare Zustände, Filter und exportierbare
-          Ansichten.
-      - tags:
-          - Open Source
-          - Testing
-          - Dokumentation
-        text: >-
-          Implementierung von Unit-Tests zur Sicherstellung der Funktionalität
-          und Robustheit der Anwendung sowie Ergänzung kurzer
-          Nutzungshinweise für neue Beitragende.
-      - tags:
-          - Issues
-          - Review
-          - Release-Vorbereitung
-        text: >-
-          Eingehende Issues sortiert, kleine Pull Requests geprüft und die
-          Release-Vorbereitung mit reproduzierbaren Prüfschritten unterstützt.
-  - titel: layout-sandbox
-    projekt: cv-layout-sandbox
-    zeitraum: "2021"
-    punkte:
-      - tags:
-          - CSS
-          - Print
-          - A4-Layout
-        text: >-
-          Experimentelle Drucklayouts für Lebensläufe verglichen, darunter
-          eng gesetzte Abschnitte, längere Ortsangaben und unterschiedlich
-          breite Tag-Zeilen.
-      - tags:
-          - Fixture-Daten
-          - Varianten
-          - Regressionstest
-          - Visuelle Prüfung
-        text: >-
-          Beispielinhalte mit mehreren Einträgen, wechselnden Punktmengen und
-          langen Begriffen gepflegt, um visuelle Abweichungen früh sichtbar zu
-          machen.
-
+- titel: react-visualizer
+  projekt: react-visualizer
+  url: https://example.invalid/react-visualizer
+  zeitraum: '2022'
+  punkte:
+  - tags:
+    - Open Source
+    - React
+    - Komponentenbaum
+    text:
+      de: Ein Tool zur Visualisierung von React-Komponenten-Hierarchien mit Fokus auf nachvollziehbare Zustände, Filter und exportierbare Ansichten.
+      pt: Uma ferramenta para visualizar hierarquias de componentes React, com foco em estados compreensíveis, filtros e vistas exportáveis.
+      es: Una herramienta para visualizar jerarquías de componentes React, con foco en estados comprensibles, filtros y vistas exportables.
+  - tags:
+    - Open Source
+    - Testing
+    - Dokumentation
+    text:
+      de: Implementierung von Unit-Tests zur Sicherstellung der Funktionalität und Robustheit der Anwendung sowie Ergänzung kurzer Nutzungshinweise für neue Beitragende.
+      pt: Implementei testes unitários para assegurar a funcionalidade e a robustez da aplicação e acrescentei instruções breves para novos colaboradores.
+      es: Implementé pruebas unitarias para asegurar la funcionalidad y la solidez de la aplicación, y añadí breves instrucciones para nuevas personas colaboradoras.
+  - tags:
+    - Issues
+    - Review
+    - Release-Vorbereitung
+    text:
+      de: Eingehende Issues sortiert, kleine Pull Requests geprüft und die Release-Vorbereitung mit reproduzierbaren Prüfschritten unterstützt.
+      pt: Classifiquei incidências recebidas, revi pequenos pull requests e apoiei a preparação de versões com passos de verificação reproduzíveis.
+      es: Clasifiqué incidencias entrantes, revisé pequeños pull requests y apoyé la preparación de versiones con pasos de comprobación reproducibles.
+- titel: layout-sandbox
+  projekt: cv-layout-sandbox
+  zeitraum: '2021'
+  punkte:
+  - tags:
+    - CSS
+    - Print
+    - A4-Layout
+    text:
+      de: Experimentelle Drucklayouts für Lebensläufe verglichen, darunter eng gesetzte Abschnitte, längere Ortsangaben und unterschiedlich breite Tag-Zeilen.
+      pt: Comparei layouts de impressão experimentais para currículos, incluindo secções compactas, localizações extensas e linhas de etiquetas com larguras diferentes.
+      es: Comparé diseños de impresión experimentales para currículums, incluidos secciones compactas, ubicaciones extensas y filas de etiquetas de distintos anchos.
+  - tags:
+    - Fixture-Daten
+    - Varianten
+    - Regressionstest
+    - Visuelle Prüfung
+    text:
+      de: Beispielinhalte mit mehreren Einträgen, wechselnden Punktmengen und langen Begriffen gepflegt, um visuelle Abweichungen früh sichtbar zu machen.
+      pt: Mantive conteúdo de exemplo com várias entradas, quantidades variáveis de pontos e termos longos para detetar cedo diferenças visuais.
+      es: Mantuve contenido de ejemplo con varias entradas, cantidades variables de puntos y términos largos para detectar pronto diferencias visuales.
 sprachen:
-  - sprache: Deutsch
-    stufe: Muttersprache
-  - sprache: Englisch
-    stufe: C1
-  - sprache: Spanisch
-    stufe: B1
-  - sprache:
-      de: Französisch
-      en: French
-      es: Francés
-    stufe:
-      de: Grundkenntnisse
-      en: Basic knowledge
-      es: Conocimientos básicos
-
+- sprache: Deutsch
+  stufe: Muttersprache
+- sprache: Englisch
+  stufe: C1
+- sprache: Spanisch
+  stufe: B1
+- sprache:
+    de: Französisch
+    pt: Francês
+    es: Francés
+  stufe:
+    de: Grundkenntnisse
+    pt: Conhecimentos básicos
+    es: Conocimientos básicos
 ausbildung:
-  - uni:
-      de: WIFI Wien
-      en: WIFI Vienna
-      es: WIFI Viena
-    beschreibung:
-      de: >-
-        Weiterbildung in Projektkoordination, Bürosoftware und
-        digitaler Zusammenarbeit.
-      en: >-
-        Continuing education in project coordination, office software and
-        digital collaboration.
-      es: >-
-        Formación continua en coordinación de proyectos,
-        software de oficina y colaboración digital.
-  - grad:
-      de: Zertifikat Webentwicklung
-      en: Web Development Certificate
-      es: Certificado de Desarrollo Web
-    uni: BFI Wien
-  - grad:
-      de: Berufsbegleitender Lehrgang UX-Grundlagen
-      en: Part-time course in UX fundamentals
-      es: Curso paralelo al trabajo sobre fundamentos de UX
-    uni:
-      de: Volkshochschule Berlin
-      en: Berlin adult education center
-      es: Universidad popular de Berlín
-    beschreibung:
-      de: >-
-        Grundlagen zu Informationsarchitektur, Formularverständlichkeit und
-        einfachen Usability-Tests.
-      en: >-
-        Fundamentals of information architecture, form clarity and simple
-        usability tests.
-      es: >-
-        Fundamentos de arquitectura de información, claridad de formularios y
-        pruebas sencillas de usabilidad.
-  - uni: Online-Kursplattform Beispiel
-    beschreibung:
-      de: >-
-        Mehrteilige Lernreihe zu CSS-Layout, responsiven Rastern und
-        druckfreundlichen Webansichten.
-      en: >-
-        Multi-part learning series on CSS layout, responsive grids and
-        print-friendly web views.
-      es: >-
-        Serie de aprendizaje sobre diseño CSS, retículas responsivas y vistas
-        web aptas para impresión.
-
+- uni:
+    de: WIFI Wien
+    pt: WIFI Viena
+    es: WIFI Viena
+  beschreibung:
+    de: Weiterbildung in Projektkoordination, Bürosoftware und digitaler Zusammenarbeit.
+    pt: Formação contínua em coordenação de projetos, software de escritório e colaboração digital.
+    es: Formación continua en coordinación de proyectos, software de oficina y colaboración digital.
+- grad:
+    de: Zertifikat Webentwicklung
+    pt: Certificado de desenvolvimento web
+    es: Certificado de Desarrollo Web
+  uni: BFI Wien
+- grad:
+    de: Berufsbegleitender Lehrgang UX-Grundlagen
+    pt: Curso em regime parcial sobre fundamentos de UX
+    es: Curso paralelo al trabajo sobre fundamentos de UX
+  uni:
+    de: Volkshochschule Berlin
+    pt: Centro de educação de adultos de Berlim
+    es: Universidad popular de Berlín
+  beschreibung:
+    de: Grundlagen zu Informationsarchitektur, Formularverständlichkeit und einfachen Usability-Tests.
+    pt: Fundamentos de arquitetura de informação, clareza de formulários e testes simples de usabilidade.
+    es: Fundamentos de arquitectura de información, claridad de formularios y pruebas sencillas de usabilidad.
+- uni: Online-Kursplattform Beispiel
+  beschreibung:
+    de: Mehrteilige Lernreihe zu CSS-Layout, responsiven Rastern und druckfreundlichen Webansichten.
+    pt: Série de aprendizagem em várias partes sobre layout CSS, grelhas responsivas e vistas web adequadas à impressão.
+    es: Serie de aprendizaje sobre diseño CSS, retículas responsivas y vistas web aptas para impresión.
 interessen:
-  - de: Open Source
-    en: Open source
-    es: Código abierto
-  - de: Technologieblogs
-    en: Technology blogs
-    es: Blogs de tecnologia
-  - de: Barrierefreiheit
-    en: Accessibility
-    es: Accesibilidad
-  - de: Lokale Tech-Meetups
-    en: Local tech meetups
-    es: Encuentros tecnológicos locales
-  - de: Drucklayout und Typografie
-    en: Print layout and typography
-    es: Diseño impreso y tipografía
-
+- default: Open Source
+  es: Código abierto
+- de: Technologieblogs
+  pt: Blogues de tecnologia
+  es: Blogs de tecnologia
+- de: Barrierefreiheit
+  pt: Acessibilidade
+  es: Accesibilidad
+- de: Lokale Tech-Meetups
+  pt: Encontros tecnológicos locais
+  es: Encuentros tecnológicos locales
+- de: Drucklayout und Typografie
+  pt: Layout de impressão e tipografia
+  es: Diseño impreso y tipografía
 vortraege:
-  - titel: "Proxies: Ereignismanagement in Node.js"
-    datum: "2024"
-    beschreibung:
-      de: ABC Aventura Vortragsreihe
-      en: ABC Aventura talk series
-      es: Serie de conferencias ABC Aventura
-  - titel: "CSS für druckbare Weboberflächen"
-    datum: "2023"
-    beschreibung:
-      de: Meetup für Frontend-Entwicklung und digitale Vorlagen
-      en: Meetup for frontend development and digital templates
-      es: Encuentro sobre desarrollo frontend y plantillas digitales
-  - titel: "Fixture-Daten als Layout-Werkzeug"
-    datum: "2022"
-    beschreibung:
-      de: Interner Kurzvortrag zu Testdaten, Varianten und visueller Prüfung
-      en: Internal short talk on test data, variants and visual review
-      es: Charla interna sobre datos de prueba, variantes y revisión visual
+- titel:
+    de: 'Proxies: Ereignismanagement in Node.js'
+    pt: 'Proxies: gestão de eventos em Node.js'
+    es: 'Proxies: gestión de eventos en Node.js'
+  datum: '2024'
+  beschreibung:
+    de: ABC Aventura Vortragsreihe
+    pt: Série de palestras ABC Aventura
+    es: Serie de conferencias ABC Aventura
+- titel:
+    de: CSS für druckbare Weboberflächen
+    pt: CSS para interfaces web imprimíveis
+    es: CSS para interfaces web imprimibles
+  datum: '2023'
+  beschreibung:
+    de: Meetup für Frontend-Entwicklung und digitale Vorlagen
+    pt: Encontro sobre desenvolvimento frontend e modelos digitais
+    es: Encuentro sobre desarrollo frontend y plantillas digitales
+- titel:
+    de: Fixture-Daten als Layout-Werkzeug
+    pt: Dados de fixture como ferramenta de layout
+    es: Datos de prueba como herramienta de diseño
+  datum: '2022'
+  beschreibung:
+    de: Interner Kurzvortrag zu Testdaten, Varianten und visueller Prüfung
+    pt: Palestra interna curta sobre dados de teste, variantes e revisão visual
+    es: Charla interna sobre datos de prueba, variantes y revisión visual

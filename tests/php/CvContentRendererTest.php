@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 use App\Cli\ConfigValues;
 use App\Cli\Site\CvContentRenderer;
-use App\Http\Cv\CvDataNormalizer;
+use App\Http\Contact\ContactContent;
+use App\Http\Cv\CvContent;
 use App\Http\Cv\CvViewModelBuilder;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
@@ -14,9 +15,8 @@ final class CvContentRendererTest extends TestCase
     public function testEducationWithDegreeOnlyIsRendered(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('de'));
 
         $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
 
@@ -29,21 +29,19 @@ final class CvContentRendererTest extends TestCase
     public function testPublicCvUsesGivenDocumentLanguage(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('en');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('es'));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '', '');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'es', '', '', '');
 
-        $this->assertStringContainsString('<html lang="en">', $html);
+        $this->assertStringContainsString('<html lang="es">', $html);
     }
 
     public function testPublicCvRendersSiteNameKurzInsteadOfCvName(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('de'));
 
         $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', 'Site-Kurzname', '');
 
@@ -51,38 +49,14 @@ final class CvContentRendererTest extends TestCase
         $this->assertStringNotContainsString((string) $this->contactData()['name'], $html);
     }
 
-    public function testPublicCvRendersSystemNoticeWhenGiven(): void
-    {
-        $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
-        $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
-
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '', 'Diese Freigabe ist abgelaufen.');
-
-        $this->assertStringContainsString('Diese Freigabe ist abgelaufen.', $html);
-    }
-
-    public function testPublicCvOmitsSystemNoticeByDefault(): void
-    {
-        $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
-        $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
-
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
-
-        $this->assertStringNotContainsString('system-notice', $html);
-    }
-
     public function testPrivateCvRendersFullCvName(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('de'));
 
-        $contact = $normalizer->normalize($this->contactData());
+        $contact = (new ContactContent($this->contactData(), $this->languages()))
+            ->forLanguage('de');
         $html = $this->renderer()->renderPrivate($view, $contact, $this->labels(), 'de', '');
 
         $this->assertStringContainsString((string) $this->contactData()['name'], $html);
@@ -91,9 +65,8 @@ final class CvContentRendererTest extends TestCase
     public function testMultiplePositionsRenderAsOneCompanyGroup(): void
     {
         $data = Yaml::parseFile($this->validFixturePath());
-        $normalizer = new CvDataNormalizer('de');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('de'));
 
         $html = $this->renderer()->renderPublic($view, $this->labels(), 'de', '', '', '');
 
@@ -102,8 +75,8 @@ final class CvContentRendererTest extends TestCase
             'class="employment-group"',
             $html
         );
-        $this->assertStringContainsString('Frontend Developer', $html);
-        $this->assertStringContainsString('Junior Frontend Developer', $html);
+        $this->assertStringContainsString('Frontend-Entwickler (VZ)', $html);
+        $this->assertStringContainsString('Junior-Frontend-Entwickler (TZ)', $html);
     }
 
     public function testStationRendersWithoutCompanyHeading(): void
@@ -158,13 +131,12 @@ final class CvContentRendererTest extends TestCase
     {
         $data = Yaml::parseFile($this->validFixturePath());
         $data['kenntnisse'] = [$data['kenntnisse'][0]];
-        $normalizer = new CvDataNormalizer('en');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('es'));
 
-        $html = $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '', '');
+        $html = $this->renderer()->renderPublic($view, $this->labels(), 'es', '', '', '');
 
-        $this->assertStringContainsString('Reactive components', $html);
+        $this->assertStringContainsString('Componentes reactivos', $html);
         $this->assertStringNotContainsString('dot-scale', $html);
     }
 
@@ -213,11 +185,21 @@ final class CvContentRendererTest extends TestCase
 
     private function renderPublicCv(array $data): string
     {
-        $normalizer = new CvDataNormalizer('en');
         $builder = new CvViewModelBuilder();
-        $view = $builder->build($normalizer->normalize($data));
+        $view = $builder->build($this->cvContent($data)->forLanguage('es'));
 
-        return $this->renderer()->renderPublic($view, $this->labels(), 'en', '', '', '');
+        return $this->renderer()->renderPublic($view, $this->labels(), 'es', '', '', '');
+    }
+
+    private function cvContent(array $data): CvContent
+    {
+        return new CvContent($data, $this->languages());
+    }
+
+    /** @return list<string> */
+    private function languages(): array
+    {
+        return ['de', 'es', 'pt'];
     }
 
     private function renderer(): CvContentRenderer

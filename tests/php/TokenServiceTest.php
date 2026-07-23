@@ -65,6 +65,18 @@ final class TokenServiceTest extends TestCase
         $this->assertNull($service->findProfileForToken($token));
     }
 
+    public function testIsExpiredDistinguishesExpiredFromActiveAndUnknownTokens(): void
+    {
+        $service = $this->service();
+
+        $expiredToken = $service->add('DEFAULT', time() - 10);
+        $activeToken = $service->add('DEFAULT', null);
+
+        $this->assertTrue($service->isExpired($expiredToken));
+        $this->assertFalse($service->isExpired($activeToken));
+        $this->assertFalse($service->isExpired('unknown'));
+    }
+
     public function testTokenWithoutExpiryStaysValid(): void
     {
         $service = $this->service();

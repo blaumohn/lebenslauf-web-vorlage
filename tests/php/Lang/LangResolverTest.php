@@ -57,7 +57,7 @@ class LangResolverTest extends TestCase
     public function testPreferredOverHeaderWhenBothPresent(): void
     {
         // ?lang= wird in der Middleware geprüft — LangResolver selbst kennt nur den Header
-        $result = $this->resolver->fromHeader('en', ['de', 'es']);
+        $result = $this->resolver->fromHeader('pt', ['de', 'es']);
         $this->assertNull($result);
     }
 }

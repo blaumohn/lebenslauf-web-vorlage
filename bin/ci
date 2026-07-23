@@ -103,9 +103,11 @@ run_contact_smoke() {
 }
 
 run_publish_smoke() {
-  local blog_dir content_path root_url sentinel
+  local blog_dir content_path content_langs lang root_url sentinel
 
   content_path="$(content_base_path)"
+  content_langs="$(cli config "$PIPELINE" get CONTENT_LANGS --phase build)"
+  lang="${content_langs%%,*}"
   blog_dir="${content_path%/}/blog"
   sentinel="ci-publish-blog-${PIPELINE_RUN_ID}"
   mkdir -p "$blog_dir"
@@ -114,8 +116,8 @@ run_publish_smoke() {
   cli publish "$PIPELINE"
 
   root_url="$(cli config "$PIPELINE" get APP_ROOT_URL --phase deploy)"
-  smoke_http_page_contains "${root_url%/}/blog?lang=de" "$sentinel"
-  smoke_http_page_contains "${root_url%/}/blog/ci-publish-smoke?lang=de" "$sentinel"
+  smoke_http_page_contains "${root_url%/}/blog?lang=${lang}" "$sentinel"
+  smoke_http_page_contains "${root_url%/}/blog/ci-publish-smoke?lang=${lang}" "$sentinel"
 }
 
 write_publish_smoke_blog_post() {
@@ -126,23 +128,12 @@ slug: ci-publish-smoke
 datum: "2026-06-29"
 status: published
 
-titel:
-  de: "CI Publish Smoke"
-  en: "CI Publish Smoke"
-  es: "CI Publish Smoke"
+titel: "CI Publish Smoke"
 
-zusammenfassung:
-  de: "$sentinel"
-  en: "$sentinel"
-  es: "$sentinel"
+zusammenfassung: "$sentinel"
 
-inhalt:
-  de: |
-    $sentinel
-  en: |
-    $sentinel
-  es: |
-    $sentinel
+inhalt: |
+  $sentinel
 
 tags:
   - ci

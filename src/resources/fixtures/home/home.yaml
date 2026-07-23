@@ -1,19 +1,19 @@
 titel:
   de: Willkommen
-  en: Welcome
   es: Bienvenido
+  pt: Bem-vindo
 
 beschreibung:
   de: Kurzprofil von **{{ site.name_kurz }}** und Kontakt in reduzierter Form.
-  en: A short profile of **{{ site.name_kurz }}** and contact details in a reduced form.
   es: Perfil breve de **{{ site.name_kurz }}** y contacto de forma resumida.
+  pt: Perfil breve de **{{ site.name_kurz }}** e contacto de forma resumida.
 
 link_lebenslauf:
   de: Zum Lebenslauf
-  en: View CV
   es: Ver CV
+  pt: Ver currículo
 
 link_kontakt:
   de: Kontakt aufnehmen
-  en: Get in touch
   es: Contactar
+  pt: Entrar em contacto

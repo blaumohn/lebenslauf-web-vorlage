@@ -4,19 +4,19 @@ status: published
 
 titel:
   de: "Beispielbeitrag: Zuverlässigkeit durch einfache Strukturen"
-  en: "Example post: reliability through simple structures"
   es: "Entrada de ejemplo: fiabilidad mediante estructuras simples"
+  pt: "Publicação de exemplo: fiabilidade através de estruturas simples"
 
 zusammenfassung:
   de: >
     Einfache, klar abgegrenzte Komponenten sind zuverlässiger als
     komplexe Systeme — ein Überblick über das Grundprinzip.
-  en: >
-    Simple, clearly separated components are more reliable than complex
-    systems: an overview of the basic principle.
   es: >
     Los componentes simples y bien delimitados son más fiables que los
     sistemas complejos: un resumen del principio básico.
+  pt: >
+    Componentes simples e claramente delimitados são mais fiáveis do que
+    sistemas complexos: uma visão geral do princípio básico.
 
 inhalt:
   de: |
@@ -27,14 +27,6 @@ inhalt:
     Das gilt für Softwarekomponenten ebenso wie für Deployment-Prozesse
     und Datenstrukturen. Wer Komplexität reduziert, reduziert auch die Zahl
     der möglichen Fehlerpunkte.
-  en: |
-    Systems made up of a few clearly separated parts are easier to test,
-    understand and operate than systems where many responsibilities are
-    intertwined.
-
-    This applies to software components as much as to deployment processes
-    and data structures. Reducing complexity also reduces the number of
-    possible failure points.
   es: |
     Los sistemas formados por pocas partes bien delimitadas son más fáciles
     de probar, comprender y operar que aquellos en los que muchas
@@ -43,6 +35,14 @@ inhalt:
     Esto se aplica tanto a los componentes de software como a los procesos
     de despliegue y las estructuras de datos. Reducir la complejidad significa
     reducir también el número de puntos de fallo posibles.
+  pt: |
+    Sistemas compostos por poucas partes claramente delimitadas são mais
+    fáceis de testar, compreender e operar do que aqueles em que muitas
+    responsabilidades estão interligadas.
+
+    Isto aplica-se tanto a componentes de software como a processos de
+    implantação e estruturas de dados. Reduzir a complexidade também reduz
+    o número de possíveis pontos de falha.
 
 tags:
   - reliability
