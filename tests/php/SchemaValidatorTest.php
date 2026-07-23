@@ -24,6 +24,51 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testInternationalStringAllowsDefaultOnly(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['titel'] = ['default' => 'Softwareentwicklung'];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function testInternationalStringRejectsNonLanguageKey(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['titel'] = ['titel' => 'Softwareentwicklung'];
+
+        $errors = $validator->validate($data);
+
+        $this->assertNotEmpty($errors);
+    }
+
+    public function testOpenSourceFirstRequiresOpenSourceEntries(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['opensource_first'] = true;
+
+        $errors = $validator->validate($data);
+
+        $this->assertNotEmpty($errors);
+    }
+
+    public function testOpenSourceFirstWithOpenSourceEntriesIsValid(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['opensource_first'] = true;
+        $data['opensource'] = [];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
     public function testEducationDescriptionIsOptional(): void
     {
         $validator = new SchemaValidator($this->schemaPath());
@@ -127,7 +172,7 @@ final class SchemaValidatorTest extends TestCase
                 'tags' => [
                     [
                         'de' => 'Kommunikation',
-                        'en' => 'Communication',
+                        'pt' => 'Comunicação',
                     ],
                 ],
             ],
@@ -196,7 +241,7 @@ final class SchemaValidatorTest extends TestCase
                     'tags' => [
                         [
                             'de' => 'Datenbanken',
-                            'en' => 'Databases',
+                            'pt' => 'Bases de dados',
                         ],
                         'SQL',
                     ],

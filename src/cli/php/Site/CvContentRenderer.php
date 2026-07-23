@@ -3,10 +3,10 @@
 namespace App\Cli\Site;
 
 use App\Cli\ConfigValues;
-use App\Http\Cv\CvDataNormalizer;
-use App\Http\SchemaValidator;
+use App\Http\Contact\ContactContent;
+use App\Http\Cv\CvContent;
 use App\Http\Cv\CvViewModelBuilder;
-use App\Cli\Site\LabelService;
+use App\Http\SchemaValidator;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Exception\ParseException;
@@ -46,9 +46,13 @@ final class CvContentRenderer extends BaseContentRenderer
 
     public function render(OutputInterface $output): void
     {
-        $contactData = $this->loadContactData();
+        $labelCatalog = LabelCatalog::fromJsonFile($this->labelsPath);
+        $contactContent = new ContactContent(
+            $this->loadContactData(),
+            $labelCatalog->languages()
+        );
         foreach ($this->resolveTargets() as $target) {
-            $this->renderTarget($target, $contactData, $output);
+            $this->renderTarget($target, $contactContent, $labelCatalog, $output);
         }
     }
 
@@ -152,16 +156,29 @@ final class CvContentRenderer extends BaseContentRenderer
         return $targets;
     }
 
-    private function renderTarget(array $target, array $contactData, OutputInterface $output): void
-    {
+    private function renderTarget(
+        array $target,
+        ContactContent $contactContent,
+        LabelCatalog $labelCatalog,
+        OutputInterface $output
+    ): void {
         $profile = $target['profile'];
         $yamlPath = $target['yaml'];
         $data = $target['data'];
         $this->validate($this->toValidatorTree($data), $output);
         $isPublic = ($data['oeffentlich'] ?? false) === true;
+        $cvContent = new CvContent($data, $labelCatalog->languages());
         $langs = $this->resolveLangs();
         foreach ($langs as $lang) {
-            $this->renderForLang($profile, $lang, $data, $contactData, $isPublic, $output);
+            $this->renderForLang(
+                $profile,
+                $lang,
+                $cvContent,
+                $contactContent,
+                $labelCatalog,
+                $isPublic,
+                $output
+            );
         }
         $output->writeln("CV build completed: {$profile} ({$yamlPath})");
     }
@@ -189,15 +206,36 @@ final class CvContentRenderer extends BaseContentRenderer
         throw new \RuntimeException('Schema-Validierung fehlgeschlagen.');
     }
 
-    private function renderForLang(string $profile, string $lang, array $data, array $contactData, bool $isPublic, OutputInterface $output): void
-    {
+    private function renderForLang(
+        string $profile,
+        string $lang,
+        CvContent $cvContent,
+        ContactContent $contactContent,
+        LabelCatalog $labelCatalog,
+        bool $isPublic,
+        OutputInterface $output
+    ): void {
         $cvFooter = $this->loadCvFooter($lang);
-        $labels = LabelService::fromJsonFile($this->labelsPath, $lang)->all();
-        $normalized = (new CvDataNormalizer($lang))->normalize($data);
-        $contact = (new CvDataNormalizer($lang))->normalize($contactData);
-        $this->savePrivate($profile, $lang, $normalized, $contact, $labels, $cvFooter);
+        $labelsForLang = $labelCatalog->forLanguage($lang);
+        $cvForLang = $cvContent->forLanguage($lang);
+        $contactForLang = $contactContent->forLanguage($lang);
+        $this->savePrivate(
+            $profile,
+            $lang,
+            $cvForLang,
+            $contactForLang,
+            $labelsForLang,
+            $cvFooter
+        );
         if ($isPublic) {
-            $this->renderPublicProfile($profile, $lang, $normalized, $labels, $cvFooter, $output);
+            $this->renderPublicProfile(
+                $profile,
+                $lang,
+                $cvForLang,
+                $labelsForLang,
+                $cvFooter,
+                $output
+            );
         }
         $output->writeln("Privates CV gerendert: Profil {$profile} ({$lang}).");
     }
@@ -220,41 +258,42 @@ final class CvContentRenderer extends BaseContentRenderer
         return $html;
     }
 
-    private function savePrivate(string $profile, string $lang, array $normalized, array $contact, array $labels, string $cvFooter): void
-    {
-        $view = $this->viewBuilder->build($normalized);
-        $html = $this->renderPrivate($view, $contact, $labels, $lang, $cvFooter);
+    private function savePrivate(
+        string $profile,
+        string $lang,
+        array $cvForLang,
+        array $contactForLang,
+        array $labelsForLang,
+        string $cvFooter
+    ): void {
+        $view = $this->viewBuilder->build($cvForLang);
+        $html = $this->renderPrivate($view, $contactForLang, $labelsForLang, $lang, $cvFooter);
         $this->htmlCache->savePrivateHtmlForLang($profile, $html, $lang);
     }
 
-    /** @var array<string, string> */
-    private const TOKEN_EXPIRED_NOTICE_TEMPLATES = [
-        'de' => 'Diese Freigabe ist abgelaufen. Bitte %s kontaktieren, um eine neue zu erhalten.',
-        'en' => 'This share link has expired. Please contact %s to request a new one.',
-        'es' => 'Este enlace ha caducado. Ponte en contacto con %s para solicitar uno nuevo.',
-    ];
-
-    private function renderPublicProfile(string $profile, string $lang, array $normalized, array $labels, string $cvFooter, OutputInterface $output): void
-    {
+    private function renderPublicProfile(
+        string $profile,
+        string $lang,
+        array $cvForLang,
+        array $labelsForLang,
+        string $cvFooter,
+        OutputInterface $output
+    ): void {
         $siteHeader = $this->loadSiteHeader($lang);
         $siteNameKurz = $this->loadSiteNameKurz();
-        $view = $this->viewBuilder->build($normalized);
+        $view = $this->viewBuilder->build($cvForLang);
 
-        $html = $this->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter);
+        $html = $this->renderPublic(
+            $view,
+            $labelsForLang,
+            $lang,
+            $siteHeader,
+            $siteNameKurz,
+            $cvFooter
+        );
         $this->htmlCache->savePublicHtmlForLang($html, $lang);
 
-        $notice = $this->resolveTokenExpiredNotice($lang, $siteNameKurz);
-        $htmlWithNotice = $this->renderPublic($view, $labels, $lang, $siteHeader, $siteNameKurz, $cvFooter, $notice);
-        $this->htmlCache->savePublicHtmlWithNoticeForLang($htmlWithNotice, $lang);
-
         $output->writeln("Öffentliches CV gerendert: Profil {$profile} ({$lang}).");
-    }
-
-    private function resolveTokenExpiredNotice(string $lang, string $siteNameKurz): string
-    {
-        $template = self::TOKEN_EXPIRED_NOTICE_TEMPLATES[$lang]
-            ?? throw new \RuntimeException("Kein Token-Ablauf-Text für Sprache '{$lang}' hinterlegt.");
-        return sprintf($template, $siteNameKurz);
     }
 
     public function renderPrivate(array $data, array $contact, array $labels, string $lang, string $cvFooter): string
@@ -271,15 +310,13 @@ final class CvContentRenderer extends BaseContentRenderer
         string $lang,
         string $siteHeader,
         string $siteNameKurz,
-        string $cvFooter,
-        ?string $systemNotice = null,
+        string $cvFooter
     ): string {
         return $this->twig->render('cv_public.html.twig', $this->baseVars($data, $labels, $lang) + [
             'kontaktdaten' => [],
             'site_header' => $siteHeader,
             'site_name_kurz' => $siteNameKurz,
             'cv_footer' => $cvFooter,
-            'system_notice' => $systemNotice,
         ]);
     }
 

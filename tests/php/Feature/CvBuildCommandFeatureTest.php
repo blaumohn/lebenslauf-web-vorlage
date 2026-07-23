@@ -65,37 +65,37 @@ final class CvBuildCommandFeatureTest extends FeatureTestCase
 
     public function testBuildSiteAllowsTranslationsForDisabledLangs(): void
     {
-        $this->prepareCustomContentRoot('custom-content-with-en');
+        $this->prepareCustomContentRoot('custom-content-with-pt');
 
         $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
         $exitCode = $tester->execute([
             'pipeline'    => 'dev',
             'task'        => 'site',
-            '--overrides' => json_encode(['CONTENT_PATH' => 'custom-content-with-en']),
+            '--overrides' => json_encode(['CONTENT_PATH' => 'custom-content-with-pt']),
         ]);
 
         self::assertSame(0, $exitCode, $tester->getDisplay());
         self::assertSame('de,es', $this->readCompiledConfigValue('CONTENT_LANGS'));
-        $this->assertBuiltLangs(['de', 'es'], ['en']);
+        $this->assertBuiltLangs(['de', 'es'], ['pt']);
     }
 
     public function testBuildSiteUsesOnlyConfiguredLangs(): void
     {
-        $this->prepareCustomContentRoot('custom-content-with-en');
+        $this->prepareCustomContentRoot('custom-content-with-pt');
 
         $tester = new CommandTester(new BuildCommand(new CliContext($this->root)));
         $exitCode = $tester->execute([
             'pipeline'    => 'dev',
             'task'        => 'site',
             '--overrides' => json_encode([
-                'CONTENT_LANGS' => 'de,en',
-                'CONTENT_PATH'  => 'custom-content-with-en',
+                'CONTENT_LANGS' => 'es,pt',
+                'CONTENT_PATH'  => 'custom-content-with-pt',
             ]),
         ]);
 
         self::assertSame(0, $exitCode, $tester->getDisplay());
-        self::assertSame('de,en', $this->readCompiledConfigValue('CONTENT_LANGS'));
-        $this->assertBuiltLangs(['de', 'en'], ['es']);
+        self::assertSame('es,pt', $this->readCompiledConfigValue('CONTENT_LANGS'));
+        $this->assertBuiltLangs(['es', 'pt'], ['de']);
     }
 
     private function prepareCustomContentRoot(string $name): void

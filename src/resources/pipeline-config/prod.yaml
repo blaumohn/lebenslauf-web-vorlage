@@ -5,7 +5,7 @@ app:
 
 content:
   CONTENT_PATH: .local
-  CONTENT_LANGS: "de,en"
+  CONTENT_LANGS: "es,pt"
 
 captcha:
   CAPTCHA_TTL_SECONDS: 600

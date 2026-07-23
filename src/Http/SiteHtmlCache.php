@@ -89,16 +89,6 @@ final class SiteHtmlCache
         return $this->storage->readText($this->cvFooterFragmentPath($lang));
     }
 
-    public function savePublicHtmlWithNoticeForLang(string $html, string $lang): void
-    {
-        $this->storage->writeText($this->publicWithNoticePath($lang), $html);
-    }
-
-    public function getPublicHtmlWithNoticeForLang(string $lang): ?string
-    {
-        return $this->storage->readText($this->publicWithNoticePath($lang));
-    }
-
     public function saveLangSelectMessage(string $html): void
     {
         $this->storage->writeText($this->langSelectMessagePath(), $html);
@@ -174,11 +164,6 @@ final class SiteHtmlCache
     private function publicPath(string $lang): string
     {
         return Path::join($this->cacheDir, 'cv-public.' . $this->langSuffix($lang) . '.html');
-    }
-
-    private function publicWithNoticePath(string $lang): string
-    {
-        return Path::join($this->cacheDir, 'cv-public-token-expired.' . $this->langSuffix($lang) . '.html');
     }
 
     private function privatePath(string $profile, string $lang): string

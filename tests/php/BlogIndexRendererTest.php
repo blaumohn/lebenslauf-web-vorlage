@@ -15,8 +15,8 @@ final class BlogIndexRendererTest extends TestCase
     public function testResolveBlogIntroPicksLanguage(): void
     {
         self::assertSame(
-            'Notes',
-            BlogIndexRenderer::resolveBlogIntro(['de' => 'Notizen', 'en' => 'Notes'], 'en')
+            'Notas',
+            BlogIndexRenderer::resolveBlogIntro(['de' => 'Notizen', 'es' => 'Notas'], 'es')
         );
     }
 
@@ -28,7 +28,7 @@ final class BlogIndexRendererTest extends TestCase
     public function testResolveBlogIntroThrowsWhenLanguageMissing(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('blog.yaml: intro.en fehlt');
-        BlogIndexRenderer::resolveBlogIntro(['de' => 'Notizen'], 'en');
+        $this->expectExceptionMessage('blog.yaml: intro.es fehlt');
+        BlogIndexRenderer::resolveBlogIntro(['de' => 'Notizen'], 'es');
     }
 }

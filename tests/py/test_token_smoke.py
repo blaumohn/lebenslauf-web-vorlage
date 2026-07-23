@@ -54,7 +54,7 @@ class TokenSmokeTest(unittest.TestCase):
         profiles = token_smoke.profiles_from_cache_entries(
             [
                 "cv-private-default.de.html",
-                "cv-private-default.en.html",
+                "cv-private-default.pt.html",
                 "cv-private-demo.de.html",
                 "cv-public-default.de.html",
                 "home.de.html",

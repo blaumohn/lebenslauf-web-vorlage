@@ -42,19 +42,29 @@
         'section-motivation'
       ) }}
 
-      {{ section.experience(
-        etiketten.berufserfahrung.value,
-        cv.berufserfahrung,
-        'section-experience'
-      ) }}
-
-      {% if cv.opensource is defined %}
-        {{ section.entries(
-          etiketten.opensource.value,
-          cv.opensource,
-          'section-opensource'
+      {% set experience_section %}
+        {{ section.experience(
+          etiketten.berufserfahrung.value,
+          cv.berufserfahrung,
+          'section-experience'
         ) }}
-      {% endif %}
+      {% endset %}
+
+      {% set opensource_section %}
+        {% if cv.opensource is defined %}
+          {{ section.entries(
+            etiketten.opensource.value,
+            cv.opensource,
+            'section-opensource'
+          ) }}
+        {% endif %}
+      {% endset %}
+
+      {% set main_sections = cv.opensource_first
+        ? [opensource_section, experience_section]
+        : [experience_section, opensource_section]
+      %}
+      {{ main_sections|join|raw }}
 
       {% if cv.vortraege is defined %}
         {{ section.talks(

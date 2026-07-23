@@ -3,9 +3,9 @@ name_kurz: Alex B.
 footer:
   privacy_note:
     de: Keine Cookies. Keine Tracker. Kontakt per Formular.
-    en: No cookies. No trackers. Contact via the form.
     es: Sin cookies. Sin rastreadores. Contacto por formulario.
+    pt: Sem cookies. Sem rastreadores. Contacto através do formulário.
   built_with:
     de: 'Gebaut mit dem [Website-Baukasten für Shared Hosting](https://github.com/blaumohn/shared-hosting-site-toolkit) von Dani Y.'
-    en: 'Built with a [shared-hosting website toolkit](https://github.com/blaumohn/shared-hosting-site-toolkit) by Dani Y.'
     es: 'Construido con un [kit de sitios web para shared hosting](https://github.com/blaumohn/shared-hosting-site-toolkit) de Dani Y.'
+    pt: 'Criado com o [kit de construção de sites para alojamento partilhado](https://github.com/blaumohn/shared-hosting-site-toolkit) de Dani Y.'

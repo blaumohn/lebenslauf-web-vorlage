@@ -18,8 +18,7 @@ final class CvAction extends Action
             return $this->handlePrivateCv($response, $params, $token, $lang);
         }
 
-        $tokenState = isset($params['token_state']) ? (string) $params['token_state'] : '';
-        return $this->handlePublicCv($response, $lang, $tokenState === 'expired');
+        return $this->handlePublicCv($response, $lang);
     }
 
     private function handlePrivateCv(
@@ -37,10 +36,6 @@ final class CvAction extends Action
             return $this->servePrivateCv($response, $profile, $lang);
         }
 
-        if ($this->context->tokenService->isExpired($token)) {
-            return ResponseHelper::redirect($response, "/cv?lang={$lang}&token_state=expired");
-        }
-
         return $this->renderError($response, 'token-invalid', $lang, 403);
     }
 
@@ -54,11 +49,9 @@ final class CvAction extends Action
         return ResponseHelper::html($response, $html);
     }
 
-    private function handlePublicCv(ResponseInterface $response, string $lang, bool $showExpiredNotice): ResponseInterface
+    private function handlePublicCv(ResponseInterface $response, string $lang): ResponseInterface
     {
-        $html = $showExpiredNotice
-            ? $this->context->htmlCache->getPublicHtmlWithNoticeForLang($lang)
-            : $this->context->htmlCache->getPublicHtmlForLang($lang);
+        $html = $this->context->htmlCache->getPublicHtmlForLang($lang);
         if ($html === null) {
             return $this->notFound($response, $lang);
         }

@@ -2,13 +2,16 @@ title:
   de: Sprache wählen
   en: Select language
   es: Seleccionar idioma
+  pt: Selecionar idioma
 
 heading:
   de: Sprache wählen
   en: Select language
   es: Seleccionar idioma
+  pt: Selecionar idioma
 
 description:
   de: Die bevorzugte Sprache konnte nicht automatisch erkannt werden.
   en: The preferred language could not be detected automatically.
   es: No se pudo detectar automáticamente el idioma preferido.
+  pt: Não foi possível detetar automaticamente o idioma preferido.

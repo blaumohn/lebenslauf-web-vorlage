@@ -2,7 +2,7 @@
 
 namespace App\Cli\Site;
 
-use App\Cli\Site\LabelService;
+use App\Http\Contact\ContactContent;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
@@ -37,14 +37,20 @@ final class ContactContentRenderer extends BaseContentRenderer
             throw new \RuntimeException("Ungültiges Contact-YAML: {$yamlPath}");
         }
         $this->assertValid($data, self::SCHEMA, $output);
+        $labelCatalog = LabelCatalog::fromJsonFile($this->labelsPath());
+        $contactContent = new ContactContent($data, $labelCatalog->languages());
         foreach ($this->resolveLangs() as $lang) {
-            $this->renderForLang($data, $lang, $output);
+            $this->renderForLang($contactContent, $labelCatalog, $lang, $output);
         }
     }
 
-    private function renderForLang(array $data, string $lang, OutputInterface $output): void
-    {
-        $contact = $this->pickLang($data, $lang);
+    private function renderForLang(
+        ContactContent $contactContent,
+        LabelCatalog $labelCatalog,
+        string $lang,
+        OutputInterface $output
+    ): void {
+        $contact = $contactContent->forLanguage($lang);
         $twig = $this->buildTwig();
         $contact['intro_html'] = $this->renderMarkdown(
             $twig,
@@ -52,8 +58,8 @@ final class ContactContentRenderer extends BaseContentRenderer
             $lang,
             "contact.{$lang}.intro"
         );
-        $labels = LabelService::fromJsonFile($this->labelsPath(), $lang)->all();
-        $text = array_merge($contact, $this->resolveContactLabels($labels));
+        $labelsForLang = $labelCatalog->forLanguage($lang);
+        $text = array_merge($contact, $this->resolveContactLabels($labelsForLang));
         $this->writeTemplate($lang, $this->generateTemplate($text));
         $output->writeln("Contact-Template generiert ({$lang}).");
     }
