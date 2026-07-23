@@ -24,6 +24,29 @@ final class SchemaValidatorTest extends TestCase
         $this->assertNotEmpty($errors);
     }
 
+    public function testOpenSourceFirstRequiresOpenSourceEntries(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['opensource_first'] = true;
+
+        $errors = $validator->validate($data);
+
+        $this->assertNotEmpty($errors);
+    }
+
+    public function testOpenSourceFirstWithOpenSourceEntriesIsValid(): void
+    {
+        $validator = new SchemaValidator($this->schemaPath());
+        $data = $this->validData();
+        $data['opensource_first'] = true;
+        $data['opensource'] = [];
+
+        $errors = $validator->validate($data);
+
+        $this->assertSame([], $errors);
+    }
+
     public function testEducationDescriptionIsOptional(): void
     {
         $validator = new SchemaValidator($this->schemaPath());

@@ -14,6 +14,7 @@
   "properties": {
     "oeffentlich": { "type": "boolean" },
     "zeige_kenntnisse_label": { "type": "boolean" },
+    "opensource_first": { "type": "boolean" },
     "titel": { "$ref": "common.schema.json#/definitions/intlString" },
     "motivation": { "$ref": "common.schema.json#/definitions/intlString" },
     "kenntnisse": {
@@ -92,11 +93,24 @@
       "items": { "$ref": "common.schema.json#/definitions/intlString" }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["opensource_first"],
+        "properties": {
+          "opensource_first": { "const": true }
+        }
+      },
+      "then": {
+        "required": ["opensource"]
+      }
+    }
+  ],
   "definitions": {
     "eintragPunkt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tags", "text"],
+      "required": [ "text"],
       "properties": {
         "tags": {
           "type": "array",
@@ -147,7 +161,7 @@
     "station": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["station", "zeitraum", "beschreibung"],
+      "required": ["station", "zeitraum"],
       "properties": {
         "station": { "$ref": "common.schema.json#/definitions/intlString" },
         "ort": { "$ref": "common.schema.json#/definitions/intlString" },

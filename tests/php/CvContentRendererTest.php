@@ -126,6 +126,21 @@ final class CvContentRendererTest extends TestCase
         $this->assertStringContainsString('class="entry-description"', $html);
     }
 
+    public function testOpenSourceCanRenderBeforeEmploymentHistory(): void
+    {
+        $data = Yaml::parseFile($this->validFixturePath());
+        $data['opensource_first'] = true;
+
+        $html = $this->renderPublicCv($data);
+
+        $openSourcePosition = strpos($html, '<section class="section-opensource">');
+        $experiencePosition = strpos($html, '<section class="section-experience">');
+
+        $this->assertNotFalse($openSourcePosition);
+        $this->assertNotFalse($experiencePosition);
+        $this->assertLessThan($experiencePosition, $openSourcePosition);
+    }
+
     public function testEmploymentPointsRenderAsOneSemanticList(): void
     {
         $html = $this->renderPublicCv(Yaml::parseFile($this->validFixturePath()));
